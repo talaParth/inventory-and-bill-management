@@ -1,0 +1,2764 @@
+import React, { useRef, useEffect, useState } from "react";
+import { Bill, SampleBill } from "@/types";
+import {
+  formatCurrency,
+  formatDate,
+  numberToWords,
+  formatToTwoDecimals,
+} from "@/lib/billUtils";
+import { getCompanyProfile } from "@/lib/storage";
+import { Button } from "./ui/button";
+import { Download, Printer, MessageCircle } from "lucide-react";
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  Image,
+  PDFDownloadLink,
+  pdf,
+} from "@react-pdf/renderer";
+import QRCode from "qrcode";
+import { Font } from "@react-pdf/renderer";
+
+Font.register({
+  family: "Inter",
+  src: "/fonts/Inter-VariableFont_opsz,wght.ttf", // or full URL if using CDN
+
+  // }
+});
+
+interface BillViewProps {
+  bill: Bill;
+}
+
+type InternationalDetailsLike = {
+  preCarriageBy?: string;
+  vesselsFlightNo?: string;
+  portOfDischarge?: string;
+  placeOfReceiptByPreCarriage?: string;
+  portOfLoading?: string;
+  finalDestination?: string;
+  grossWeight?: number;
+  netWeight?: number;
+  countryOfOrigin?: string;
+  countryOfFinalDestination?: string;
+};
+
+type BillLike =
+  | (Bill & {
+      billType?: "domestic" | "international";
+      internationalDetails?: InternationalDetailsLike;
+    })
+  | (SampleBill & {
+      // SampleBill type may not declare these fields, but sample data can include them.
+      billType?: "domestic" | "international";
+      internationalDetails?: InternationalDetailsLike;
+      returnComment?: string;
+    });
+
+const mmToPt = (mm: number) => mm * 2.83465;
+
+const styles = StyleSheet.create({
+  page: {
+    fontFamily: "Inter",
+    fontSize: 8,
+    padding: mmToPt(5),
+  },
+  currencyText: {
+    fontFamily: "Inter",
+  },
+  section: {
+    marginBottom: mmToPt(3),
+  },
+  border: {
+    border: "1pt solid black",
+  },
+  header: {
+    border: "2pt solid black",
+    marginBottom: mmToPt(3),
+  },
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: mmToPt(3),
+  },
+  logo: {
+    width: 28,
+    height: 28,
+    marginRight: 8,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  smallText: {
+    fontSize: 8,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#000", // Will override with themeColor
+    color: "white",
+  },
+  tableRow: {
+    flexDirection: "row",
+  },
+  tableCell: {
+    padding: 4,
+    border: "1pt solid black",
+  },
+  textRight: {
+    textAlign: "right",
+  },
+  textCenter: {
+    textAlign: "center",
+  },
+  bold: {
+    fontWeight: "bold",
+  },
+  gray: {
+    color: "gray",
+  },
+});
+
+const exportStyles = StyleSheet.create({
+  tableRow: {
+    flexDirection: "row",
+    borderBottom: "0.5pt solid #ccc",
+    paddingVertical: 4,
+  },
+  page: {
+    fontFamily: "Inter",
+    fontSize: 8.5, // tight but readable, matches image density
+    padding: mmToPt(8), // reduced margins to fit everything
+    lineHeight: 1.15,
+  },
+  fullBorder: {
+    border: "1pt solid black",
+    padding: 6,
+    marginBottom: 8,
+  },
+  topTitle: {
+    fontSize: 8,
+    fontWeight: "bold",
+    textAlign: "center",
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  headerRow: {
+    flexDirection: "row",
+    borderBottom: "0.5pt solid black",
+    paddingVertical: 3,
+  },
+  labelCell: {
+    width: "25%",
+    fontWeight: "bold",
+    paddingHorizontal: 4,
+  },
+  valueCell: {
+    width: "75%",
+    paddingHorizontal: 4,
+  },
+  twoColRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  col48: {
+    width: "48%",
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#e8e8e8",
+    borderBottom: "1pt solid black",
+    paddingVertical: 4,
+    fontWeight: "bold",
+  },
+  tableCell: {
+    paddingHorizontal: 4,
+    paddingVertical: 3,
+  },
+  colMarks: { width: "20%" },
+  colDesc: { width: "32%" },
+  colPkgs: { width: "14%", textAlign: "center" },
+  colQty: { width: "12%", textAlign: "center" },
+  colRate: { width: "10%", textAlign: "right" },
+  colAmount: { width: "12%", textAlign: "right" },
+  totalLine: {
+    flexDirection: "row",
+    borderTop: "1pt solid black",
+    paddingTop: 4,
+    marginTop: 4,
+    fontWeight: "bold",
+  },
+  declaration: {
+    fontSize: 8,
+    marginVertical: 3,
+  },
+  signatureArea: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 30,
+    borderTop: "1pt solid black",
+    paddingTop: 12,
+  },
+  row: {
+    flexDirection: "row",
+    marginBottom: 4,
+  },
+});
+export const BillPDF = ({
+  bill,
+  company,
+  qrDataURL,
+  isSample,
+}: {
+  bill: BillLike;
+  company: any;
+  qrDataURL: string;
+  isSample?: boolean;
+}) => {
+  const gstEnabled = company.gstEnabled ?? true;
+  const isInterState =
+    bill.gstType === "igst" ||
+    (!bill.gstType && company.stateCode !== bill.client.stateCode);
+  const isInternational = bill.billType === "international";
+  const isSampleBill = isSample === true;
+  const title = isInternational
+    ? "INVOICE"
+    : gstEnabled
+    ? "TAX INVOICE"
+    : "INVOICE";
+  const formatDate = (date: Date | string, format = "DD-MM-YYYY") => {
+    const d = typeof date === "string" ? new Date(date) : date;
+    if (format === "DD-MM-YYYY") {
+      return `${d.getDate().toString().padStart(2, "0")}-${(d.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${d.getFullYear()}`;
+    }
+    // ... other formats ...
+  };
+
+  const addressLines = (address: string) =>
+    address
+      .split(",")
+      .map((line) => line.trim())
+      .join("\n");
+
+  const slWidth = 30;
+  const hsnWidth = 60;
+  const gstRateWidth = 40;
+  const qtyWidth = 50;
+  const unitWidth = 45;
+  const rateWidth = 60;
+  const amountWidth = 70;
+
+  if (isInternational) {
+    return (
+      <Document>
+        <Page size="A4" style={exportStyles.page}>
+          {/* Top full-width bordered title */}
+          <View style={{ ...exportStyles.fullBorder, padding: 8 }}>
+            <Text style={exportStyles.topTitle}>
+              SUPPLY MEANT FOR EXPORT UNDER BOND OR LETTER OF UNDERTAKING
+              WITHOUT PAYMENT OF IGST
+            </Text>
+            <Text
+              style={{ fontSize: 11, fontWeight: "bold", textAlign: "center" }}
+            >
+              PARFORMA INVOICE
+            </Text>
+            {/* {isSampleBill && (
+              <Text
+                style={{
+                  marginTop: 4,
+                  fontSize: 9,
+                  color: "#b91c1c",
+                  fontWeight: "bold",
+                  textAlign: "center",
+                }}
+              >
+                SAMPLE BILL - NOT FOR ACTUAL TRANSACTIONS
+              </Text>
+            )} */}
+          </View>
+
+          {/* Exporter / Invoice / Consignee grid */}
+          <View style={exportStyles.fullBorder}>
+            <View style={exportStyles.twoColRow}>
+              {/* Left: Exporter */}
+              <View style={exportStyles.col48}>
+                <Text style={{ fontWeight: "bold", marginBottom: 4 }}>
+                  Exporter
+                </Text>
+                <Text>{company.name.toUpperCase()}</Text>
+                <Text>{addressLines(company.address)}</Text>
+                <Text>TEL: {company.phone}</Text>
+                <Text>GST NO: {company.gstin || "N.A."}</Text>
+              </View>
+
+              {/* Right: Invoice details + Buyer */}
+              <View style={{ ...exportStyles.col48, textAlign: "right" }}>
+                <Text>
+                  <Text style={{ fontWeight: "bold" }}>
+                    Invoice No. & Date:
+                  </Text>{" "}
+                  {bill.billNumber} {formatDate(bill.date)}
+                </Text>
+
+                <Text>
+                  <Text style={{ fontWeight: "bold" }}>
+                    Buyer's Order No. & Date:
+                  </Text>{" "}
+                  Not Applicable
+                </Text>
+
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ fontWeight: "bold" }}>
+                    Buyers (If other than consignee)
+                  </Text>
+                  <Text>{bill.client.name.toUpperCase()}</Text>
+                  <Text>{addressLines(bill.client.billingAddress)}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Country line */}
+            <View
+              style={{
+                flexDirection: "row",
+                marginTop: 8,
+                borderTop: "0.5pt solid black",
+                paddingTop: 4,
+              }}
+            >
+              <Text style={{ width: "50%" }}>
+                <Text style={{ fontWeight: "bold" }}>
+                  Country Of Origin Of Goods:
+                </Text>{" "}
+                INDIA
+              </Text>
+              <Text style={{ width: "50%", textAlign: "right" }}>
+                <Text style={{ fontWeight: "bold" }}>
+                  Country Of Final Destination:
+                </Text>{" "}
+                HONG KONG
+              </Text>
+            </View>
+          </View>
+
+          {/* Shipping + Payment Terms table */}
+          {/* <View style={exportStyles.fullBorder}>
+            <View style={exportStyles.headerRow}>
+              <Text style={{ width: "25%", fontWeight: "bold" }}>
+                Pre-Carriage By
+              </Text>
+              <Text style={{ width: "25%", fontWeight: "bold" }}>
+                Place Of Receipt By Pre-Carriage
+              </Text>
+              <Text
+                style={{
+                  width: "50%",
+                  fontWeight: "bold",
+                  textAlign: "center",
+                }}
+              >
+                Terms of Delivery and Payment
+              </Text>
+            </View>
+
+            <View style={exportStyles.row}>
+              <Text style={{ width: "25%" }}>
+                {bill.internationalDetails?.preCarriageBy || "DHL"}
+              </Text>
+              <Text style={{ width: "25%" }}>
+                {bill.internationalDetails?.placeOfReceiptByPreCarriage ||
+                  "N.A."}
+              </Text>
+             </View>
+
+            
+            <View style={exportStyles.row}>
+              <Text style={{ width: "25%" }}>
+                {bill.internationalDetails?.vesselsFlightNo || "AIR FREIGHT"}
+              </Text>
+              <Text style={{ width: "25%" }}>
+                {bill.internationalDetails?.portOfLoading || "SURAT"}
+              </Text>
+              <Text style={{ width: "50%" }}>
+                BANK NAME: {company.bankDetails?.bankName || "N.A."}
+              </Text>
+            </View>
+
+            <View style={exportStyles.row}>
+              <Text style={{ width: "25%" }}>Port Of Discharge</Text>
+              <Text style={{ width: "25%" }}>Final Destination</Text>
+              <Text style={{ width: "50%" }}>
+                A/C NO.: {company.bankDetails?.accountNumber || "N.A."}
+              </Text>
+            </View>
+
+            <View style={exportStyles.row}>
+              <Text style={{ width: "25%" }}>
+                {bill.internationalDetails?.portOfDischarge || "HONG KONG"}
+              </Text>
+              <Text style={{ width: "25%" }}>
+                {bill.internationalDetails?.finalDestination || "HONG KONG"}
+              </Text>
+              <Text style={{ width: "50%" }}>
+                SWIFT CODE: {company.bankDetails?.swiftCode || "N.A."}
+              </Text>
+            </View>
+          </View> */}
+          <Text
+            style={{
+              fontSize: 9.5,
+              fontWeight: "bold",
+              textAlign: "center",
+              marginBottom: 6,
+            }}
+          >
+            Shipping & Export Details
+          </Text>
+
+          {isInternational && bill.internationalDetails && (
+            <View
+              style={{
+                border: "0.8pt solid #555", // keep subtle border or remove if unwanted
+                padding: 8,
+                marginBottom: 10,
+                borderRadius: 2, // optional slight rounding
+              }}
+            >
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                {/* LEFT COLUMN - 4 fields */}
+                <View style={{ width: "50%" }}>
+                  {bill.internationalDetails.preCarriageBy && (
+                    <View style={{ marginBottom: 3 }}>
+                      <Text style={{ fontSize: 8.5 }}>
+                        <Text style={{ fontWeight: "bold" }}>
+                          Pre-Carriage By:
+                        </Text>{" "}
+                        {bill.internationalDetails.preCarriageBy}
+                      </Text>
+                    </View>
+                  )}
+
+                  {bill.internationalDetails.placeOfReceiptByPreCarriage && (
+                    <View style={{ marginBottom: 3 }}>
+                      <Text style={{ fontSize: 8.5 }}>
+                        <Text style={{ fontWeight: "bold" }}>
+                          Place Of Receipt:
+                        </Text>{" "}
+                        {bill.internationalDetails.placeOfReceiptByPreCarriage}
+                      </Text>
+                    </View>
+                  )}
+
+                  {bill.internationalDetails.portOfLoading && (
+                    <View style={{ marginBottom: 3 }}>
+                      <Text style={{ fontSize: 8.5 }}>
+                        <Text style={{ fontWeight: "bold" }}>
+                          Port of Loading:
+                        </Text>{" "}
+                        {bill.internationalDetails.portOfLoading}
+                      </Text>
+                    </View>
+                  )}
+
+                  {bill.internationalDetails.portOfDischarge && (
+                    <View style={{ marginBottom: 3 }}>
+                      <Text style={{ fontSize: 8.5 }}>
+                        <Text style={{ fontWeight: "bold" }}>
+                          Port of Discharge:
+                        </Text>{" "}
+                        {bill.internationalDetails.portOfDischarge}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* RIGHT COLUMN - 4 fields */}
+                <View style={{ width: "50%" }}>
+                  {bill.internationalDetails.vesselsFlightNo && (
+                    <View style={{ marginBottom: 3 }}>
+                      <Text style={{ fontSize: 8.5 }}>
+                        <Text style={{ fontWeight: "bold" }}>
+                          Vessels/Flight No.:
+                        </Text>{" "}
+                        {bill.internationalDetails.vesselsFlightNo}
+                      </Text>
+                    </View>
+                  )}
+
+                  {bill.internationalDetails.finalDestination && (
+                    <View style={{ marginBottom: 3 }}>
+                      <Text style={{ fontSize: 8.5 }}>
+                        <Text style={{ fontWeight: "bold" }}>
+                          Final Destination:
+                        </Text>{" "}
+                        {bill.internationalDetails.finalDestination}
+                      </Text>
+                    </View>
+                  )}
+
+                  {bill.internationalDetails.countryOfOrigin && (
+                    <View style={{ marginBottom: 3 }}>
+                      <Text style={{ fontSize: 8.5 }}>
+                        <Text style={{ fontWeight: "bold" }}>
+                          Country Of Origin:
+                        </Text>{" "}
+                        {bill.internationalDetails.countryOfOrigin}
+                      </Text>
+                    </View>
+                  )}
+
+                  {bill.internationalDetails.countryOfFinalDestination && (
+                    <View style={{ marginBottom: 3 }}>
+                      <Text style={{ fontSize: 8.5 }}>
+                        <Text style={{ fontWeight: "bold" }}>
+                          Country Of Destination:
+                        </Text>{" "}
+                        {bill.internationalDetails.countryOfFinalDestination}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Items Table */}
+
+          <View
+            style={{
+              border: "1pt solid black", // outer border
+              marginBottom: 12,
+            }}
+          >
+            {/* Header */}
+            <View
+              style={{
+                flexDirection: "row",
+                backgroundColor: "#f5f5f5",
+                borderBottom: "1pt solid black",
+                fontWeight: "bold",
+              }}
+            >
+              <Text
+                style={{
+                  width: "18%",
+                  textAlign: "center",
+                  padding: 5,
+                  borderRight: "0.5pt solid black",
+                }}
+              >
+                Sl
+              </Text>
+              <Text
+                style={{
+                  width: "34%",
+                  padding: 5,
+                  borderRight: "0.5pt solid black",
+                }}
+              >
+                Description of Goods
+              </Text>
+              {gstEnabled && (
+                <Text
+                  style={{
+                    width: "12%",
+                    textAlign: "center",
+                    padding: 5,
+                    borderRight: "0.5pt solid black",
+                  }}
+                >
+                  HSN/SAC
+                </Text>
+              )}
+              <Text
+                style={{
+                  width: "10%",
+                  textAlign: "center",
+                  padding: 5,
+                  borderRight: "0.5pt solid black",
+                }}
+              >
+                Qty
+              </Text>
+              <Text
+                style={{
+                  width: "8%",
+                  textAlign: "center",
+                  padding: 5,
+                  borderRight: "0.5pt solid black",
+                }}
+              >
+                Unit
+              </Text>
+              <Text
+                style={{
+                  width: "10%",
+                  textAlign: "right",
+                  padding: 5,
+                  borderRight: "0.5pt solid black",
+                }}
+              >
+                Rate
+              </Text>
+              <Text
+                style={{
+                  width: "12%",
+                  textAlign: "right",
+                  padding: 5,
+                }}
+              >
+                Amount
+              </Text>
+            </View>
+
+            {/* Rows */}
+            {bill.items.map((item, index) => (
+              <View
+                key={index}
+                style={{
+                  flexDirection: "row",
+                  borderBottom: "0.5pt solid #ddd",
+                }}
+              >
+                <Text
+                  style={{
+                    width: "18%",
+                    textAlign: "center",
+                    padding: 5,
+                    borderRight: "0.5pt solid #ddd",
+                  }}
+                >
+                  {index + 1}
+                </Text>
+                <View
+                  style={{
+                    width: "34%",
+                    padding: 5,
+                    borderRight: "0.5pt solid #ddd",
+                  }}
+                >
+                  <Text>{item.productName}</Text>
+                  {bill.internationalDetails?.grossWeight && (
+                    <Text style={{ fontSize: 7, color: "gray", marginTop: 2 }}>
+                      GW: {bill.internationalDetails.grossWeight} kg | NW:{" "}
+                      {bill.internationalDetails.netWeight || "N/A"} kg
+                    </Text>
+                  )}
+                </View>
+                {gstEnabled && (
+                  <Text
+                    style={{
+                      width: "12%",
+                      textAlign: "center",
+                      padding: 5,
+                      borderRight: "0.5pt solid #ddd",
+                    }}
+                  >
+                    {item.hsnCode || "-"}
+                  </Text>
+                )}
+                <Text
+                  style={{
+                    width: "10%",
+                    textAlign: "center",
+                    padding: 5,
+                    borderRight: "0.5pt solid #ddd",
+                  }}
+                >
+                  {item.quantity}
+                </Text>
+                <Text
+                  style={{
+                    width: "8%",
+                    textAlign: "center",
+                    padding: 5,
+                    borderRight: "0.5pt solid #ddd",
+                  }}
+                >
+                  {item.unit || "PCS"}
+                </Text>
+                <Text
+                  style={{
+                    width: "10%",
+                    textAlign: "right",
+                    padding: 5,
+                    borderRight: "0.5pt solid #ddd",
+                  }}
+                >
+                  {formatCurrency(item.ratePerUnit)}
+                </Text>
+                <Text
+                  style={{
+                    width: "12%",
+                    textAlign: "right",
+                    padding: 5,
+                  }}
+                >
+                  {formatCurrency(item.amount)}
+                </Text>
+              </View>
+            ))}
+
+            {/* Subtotal / Total rows */}
+            <View
+              style={{
+                flexDirection: "row",
+                borderTop: "1pt solid black",
+                backgroundColor: "#f9f9f9",
+                paddingVertical: 6,
+              }}
+            >
+              <Text
+                style={{
+                  width: "88%",
+                  textAlign: "right",
+                  fontWeight: "bold",
+                  paddingHorizontal: 8,
+                }}
+              >
+                Subtotal
+              </Text>
+              <Text
+                style={{
+                  width: "12%",
+                  textAlign: "right",
+                  fontWeight: "bold",
+                  paddingRight: 8,
+                }}
+              >
+                {formatCurrency(bill.subtotal)}
+              </Text>
+            </View>
+
+            {/* Final Total */}
+            <View
+              style={{
+                flexDirection: "row",
+                backgroundColor: "#e0e0e0",
+                paddingVertical: 8,
+                borderTop: "1pt solid black",
+              }}
+            >
+              <Text
+                style={{
+                  width: "88%",
+                  textAlign: "right",
+                  fontWeight: "bold",
+                  paddingHorizontal: 8,
+                  fontSize: 10,
+                }}
+              >
+                TOTAL
+              </Text>
+              <Text
+                style={{
+                  width: "12%",
+                  textAlign: "right",
+                  fontWeight: "bold",
+                  paddingRight: 8,
+                  fontSize: 10,
+                }}
+              >
+                {formatCurrency(bill.total)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Declaration */}
+          <View style={{ ...exportStyles.fullBorder, borderTop: 0 }}>
+            <Text style={{ fontWeight: "bold", marginBottom: 4 }}>
+              DECLARATION:
+            </Text>
+            <Text style={exportStyles.declaration}>
+              THE DIAMONDS HEREIN INVOICED ARE EXCLUSIVELY OF LAB GROWN DIAMOND
+              BASED ON PERSONAL KNOWLEDGE AND/OR WRITTEN GUARANTEES PROVIDED BY
+              THE SUPPLIER OF THESE DIAMONDS.
+            </Text>
+
+            <Text style={exportStyles.declaration}>
+              TOTAL US DOLLARS : {numberToWords(Math.round(bill.total))}
+            </Text>
+            <Text style={exportStyles.declaration}>
+              WE INTEND TO CLAIM BENEFIT UNDER RoDTEP SCHEME AS APPLICABLE
+            </Text>
+            <Text style={exportStyles.declaration}>
+              The diamonds herein invoiced have been purchased from legitimate
+              sources not involved in funding conflict and in compliance with
+              United Nations resolutions. The seller hereby guarantees that the
+              supplier of these diamonds is conflict free, based on personal
+              knowledge and/or written guarantees provided by the supplier of
+              these diamonds.
+            </Text>
+          </View>
+
+          {/* Payment & Signatures */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: 12,
+              borderTop: "0.5pt solid #ccc", // optional light separator
+              paddingTop: 8,
+            }}
+          >
+            {/* LEFT SIDE: Bank Details */}
+            <View style={{ width: "50%" }}>
+              <Text style={{ fontWeight: "bold", marginBottom: 4 }}>
+                PAYMENT INSTRUCTIONS:
+              </Text>
+              <Text>{company.bankDetails?.accountHolder || "N.A."}</Text>
+              <Text>
+                A/c No.: {company.bankDetails?.accountNumber || "N.A."}
+              </Text>
+              <Text>Bank: {company.bankDetails?.bankName || "N.A."}</Text>
+              <Text>
+                Branch & IFSC: {company.bankDetails?.branchAndIFSC || "N.A."}
+              </Text>
+              {!!qrDataURL && (
+                <View style={{ flexDirection: "row", marginTop: 8 }}>
+                  <Image src={qrDataURL} style={{ width: 55, height: 55 }} />
+                  <Text style={{ fontSize: 8, marginLeft: 8 }}>
+                    Scan & Pay (UPI)
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* RIGHT SIDE: Signature & Date */}
+            <View style={{ width: "50%", textAlign: "right" }}>
+              <Text>
+                Signature & Date: {formatDate(new Date(), "DD-MM-YYYY")}
+              </Text>{" "}
+              {/* Current date in DD-MM-YYYY */}
+              <Text style={{ fontWeight: "bold", marginTop: 4 }}>
+                FOR {company.name.toUpperCase()}
+              </Text>
+              <Text style={{ marginTop: 50 }}>Proprietor</Text>{" "}
+              {/* Increased space for signature */}
+            </View>
+          </View>
+        </Page>
+      </Document>
+    );
+  }
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* {isSampleBill && (
+          <View style={{ marginBottom: mmToPt(2) }}>
+            <Text
+              style={{
+                fontSize: 10,
+                color: "#b91c1c",
+                fontWeight: "bold",
+                textAlign: "center",
+              }}
+            >
+              SAMPLE BILL - NOT FOR ACTUAL TRANSACTIONS
+            </Text>
+          </View>
+        )} */}
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={{ flex: 1 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 4,
+                }}
+              >
+                {company.logo && (
+                  <Image src={company.logo} style={styles.logo} />
+                )}
+                <Text
+                  style={{
+                    fontSize: 16,
+                    ...styles.bold,
+                    color: company.themeColor,
+                  }}
+                >
+                  {company.name}
+                </Text>
+              </View>
+              <Text style={styles.smallText}>
+                {addressLines(company.address)}
+              </Text>
+              {gstEnabled && (
+                <View style={{ ...styles.smallText, marginTop: 4 }}>
+                  <Text>
+                    <Text style={styles.bold}>GSTIN/UIN:</Text> {company.gstin}
+                  </Text>
+                  <Text>
+                    <Text style={styles.bold}>State:</Text> {company.state},{" "}
+                    <Text style={styles.bold}>Code:</Text> {company.stateCode}
+                  </Text>
+                </View>
+              )}
+              <View style={{ ...styles.smallText, marginTop: 4 }}>
+                <Text>
+                  <Text style={styles.bold}>Phone:</Text> {company.phone}
+                </Text>
+                <Text>
+                  <Text style={styles.bold}>Email:</Text> {company.email}
+                </Text>
+              </View>
+            </View>
+            <View style={{ textAlign: "right" }}>
+              <Text style={{ ...styles.title, color: company.themeColor }}>
+                {title}
+              </Text>
+              <View style={styles.smallText}>
+                <Text>
+                  <Text style={styles.bold}>Invoice No.:</Text>{" "}
+                  {bill.billNumber}
+                </Text>
+                <Text>
+                  <Text style={styles.bold}>Date:</Text> {formatDate(bill.date)}
+                </Text>
+                {!isInternational && (
+                  <Text>
+                    <Text style={styles.bold}>Due Date:</Text>{" "}
+                    {formatDate(bill.dueDate)}
+                  </Text>
+                )}
+                {bill.deliveryNote && (
+                  <Text>
+                    <Text style={styles.bold}>Delivery Note:</Text>{" "}
+                    {bill.deliveryNote}
+                  </Text>
+                )}
+                {bill.modeOfPayment && (
+                  <Text>
+                    <Text style={styles.bold}>Payment Mode:</Text>{" "}
+                    {bill.modeOfPayment}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {isInternational && (
+          <View style={{ alignItems: "center", marginBottom: mmToPt(3) }}>
+            <Text style={{ ...styles.title, color: company.themeColor }}>
+              EXPORT INVOICE
+            </Text>
+          </View>
+        )}
+
+        {/* International Details */}
+        {isInternational && bill.internationalDetails && (
+          <View
+            style={{
+              border: "0.8pt solid #444", // light outer border (remove if unwanted)
+              padding: 8,
+              marginBottom: 10, // reduced bottom margin
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 9.5,
+                fontWeight: "bold",
+                textAlign: "center",
+                marginBottom: 6,
+              }}
+            >
+              Shipping & Export Details
+            </Text>
+
+            <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 2 }}>
+              {bill.internationalDetails.preCarriageBy && (
+                <View style={{ width: "50%", paddingRight: 8 }}>
+                  <Text style={{ fontSize: 8.5 }}>
+                    <Text style={{ fontWeight: "bold" }}>Pre-Carriage By:</Text>{" "}
+                    {bill.internationalDetails.preCarriageBy}
+                  </Text>
+                </View>
+              )}
+              {bill.internationalDetails.vesselsFlightNo && (
+                <View style={{ width: "50%" }}>
+                  <Text style={{ fontSize: 8.5 }}>
+                    <Text style={{ fontWeight: "bold" }}>
+                      Vessels/Flight No.:
+                    </Text>{" "}
+                    {bill.internationalDetails.vesselsFlightNo}
+                  </Text>
+                </View>
+              )}
+              {bill.internationalDetails.placeOfReceiptByPreCarriage && (
+                <View style={{ width: "50%", paddingRight: 8 }}>
+                  <Text style={{ fontSize: 8.5 }}>
+                    <Text style={{ fontWeight: "bold" }}>
+                      Place Of Receipt:
+                    </Text>{" "}
+                    {bill.internationalDetails.placeOfReceiptByPreCarriage}
+                  </Text>
+                </View>
+              )}
+              {bill.internationalDetails.portOfLoading && (
+                <View style={{ width: "50%" }}>
+                  <Text style={{ fontSize: 8.5 }}>
+                    <Text style={{ fontWeight: "bold" }}>Port of Loading:</Text>{" "}
+                    {bill.internationalDetails.portOfLoading}
+                  </Text>
+                </View>
+              )}
+              {bill.internationalDetails.portOfDischarge && (
+                <View style={{ width: "50%", paddingRight: 8 }}>
+                  <Text style={{ fontSize: 8.5 }}>
+                    <Text style={{ fontWeight: "bold" }}>
+                      Port of Discharge:
+                    </Text>{" "}
+                    {bill.internationalDetails.portOfDischarge}
+                  </Text>
+                </View>
+              )}
+              {bill.internationalDetails.finalDestination && (
+                <View style={{ width: "50%" }}>
+                  <Text style={{ fontSize: 8.5 }}>
+                    <Text style={{ fontWeight: "bold" }}>
+                      Final Destination:
+                    </Text>{" "}
+                    {bill.internationalDetails.finalDestination}
+                  </Text>
+                </View>
+              )}
+              {bill.internationalDetails.countryOfOrigin && (
+                <View style={{ width: "50%", paddingRight: 8 }}>
+                  <Text style={{ fontSize: 8.5 }}>
+                    <Text style={{ fontWeight: "bold" }}>
+                      Country Of Origin:
+                    </Text>{" "}
+                    {bill.internationalDetails.countryOfOrigin}
+                  </Text>
+                </View>
+              )}
+              {bill.internationalDetails.countryOfFinalDestination && (
+                <View style={{ width: "50%" }}>
+                  <Text style={{ fontSize: 8.5 }}>
+                    <Text style={{ fontWeight: "bold" }}>
+                      Country Of Destination:
+                    </Text>{" "}
+                    {bill.internationalDetails.countryOfFinalDestination}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Client Details */}
+        <View style={{ flexDirection: "row", marginBottom: mmToPt(3) }}>
+          <View style={{ ...styles.border, padding: mmToPt(2), width: "50%" }}>
+            <Text
+              style={{
+                ...styles.bold,
+                fontSize: 8,
+                marginBottom: 4,
+                color: company.themeColor,
+                borderBottom: "1pt solid black",
+              }}
+            >
+              {isInternational ? "Consignee" : "Consignee (Ship to)"}
+            </Text>
+            <Text style={{ ...styles.bold, fontSize: 7 }}>
+              {bill.client.name}
+            </Text>
+            <Text style={{ ...styles.smallText, marginTop: 4 }}>
+              {addressLines(
+                bill.client.shippingAddress || bill.client.billingAddress
+              )}
+            </Text>
+            {gstEnabled && !isInternational && (
+              <View style={{ ...styles.smallText, marginTop: 4 }}>
+                <Text>
+                  <Text style={styles.bold}>GSTIN/UIN:</Text>{" "}
+                  {bill.client.gstin}
+                </Text>
+                <Text>
+                  <Text style={styles.bold}>State:</Text> {bill.client.state},{" "}
+                  <Text style={styles.bold}>Code:</Text> {bill.client.stateCode}
+                </Text>
+              </View>
+            )}
+            {bill.client.phone && (
+              <Text style={styles.smallText}>
+                <Text style={styles.bold}>Phone:</Text> {bill.client.phone}
+              </Text>
+            )}
+          </View>
+          <View
+            style={{
+              ...styles.border,
+              borderLeft: 0,
+              padding: mmToPt(2),
+              width: "50%",
+            }}
+          >
+            <Text
+              style={{
+                ...styles.bold,
+                fontSize: 8,
+                marginBottom: 4,
+                color: company.themeColor,
+                borderBottom: "1pt solid black",
+              }}
+            >
+              {isInternational
+                ? "Buyer (If other than consignee)"
+                : "Buyer (Bill to)"}
+            </Text>
+            <Text style={{ ...styles.bold, fontSize: 7 }}>
+              {bill.client.name}
+            </Text>
+            <Text style={{ ...styles.smallText, marginTop: 4 }}>
+              {addressLines(bill.client.billingAddress)}
+            </Text>
+            {gstEnabled && !isInternational && (
+              <View style={{ ...styles.smallText, marginTop: 4 }}>
+                <Text>
+                  <Text style={styles.bold}>GSTIN/UIN:</Text>{" "}
+                  {bill.client.gstin}
+                </Text>
+                <Text>
+                  <Text style={styles.bold}>State:</Text> {bill.client.state},{" "}
+                  <Text style={styles.bold}>Code:</Text> {bill.client.stateCode}
+                </Text>
+              </View>
+            )}
+            {bill.placeOfSupply && !isInternational && (
+              <Text style={{ ...styles.smallText, marginTop: 4 }}>
+                <Text style={styles.bold}>Place of Supply:</Text>{" "}
+                {bill.placeOfSupply}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {/* Items Table */}
+        <View style={styles.section}>
+          <View
+            style={{
+              ...styles.tableHeader,
+              backgroundColor: company.themeColor,
+            }}
+          >
+            <Text
+              style={{
+                width: slWidth,
+                ...styles.textCenter,
+                ...styles.tableCell,
+              }}
+            >
+              Sl
+            </Text>
+            <Text style={{ flex: 1, ...styles.tableCell }}>
+              Description of Goods
+            </Text>
+            {gstEnabled && (
+              <Text
+                style={{
+                  width: hsnWidth,
+                  ...styles.textCenter,
+                  ...styles.tableCell,
+                }}
+              >
+                HSN/SAC
+              </Text>
+            )}
+            {gstEnabled && !isInternational && (
+              <Text
+                style={{
+                  width: gstRateWidth,
+                  ...styles.textCenter,
+                  ...styles.tableCell,
+                }}
+              >
+                GST%
+              </Text>
+            )}
+            <Text
+              style={{
+                width: qtyWidth,
+                ...styles.textCenter,
+                ...styles.tableCell,
+              }}
+            >
+              Qty
+            </Text>
+            <Text
+              style={{
+                width: unitWidth,
+                ...styles.textCenter,
+                ...styles.tableCell,
+              }}
+            >
+              Unit
+            </Text>
+            <Text
+              style={{
+                width: rateWidth,
+                ...styles.textCenter,
+                ...styles.tableCell,
+              }}
+            >
+              Rate
+            </Text>
+            <Text
+              style={{
+                width: amountWidth,
+                ...styles.textRight,
+                ...styles.tableCell,
+              }}
+            >
+              Amount
+            </Text>
+          </View>
+          {bill.items.map((item, index) => (
+            <View
+              key={index}
+              style={{
+                ...styles.tableRow,
+                backgroundColor: index % 2 === 0 ? "#f0f0f0" : "white",
+              }}
+            >
+              <Text
+                style={{
+                  width: slWidth,
+                  ...styles.textCenter,
+                  ...styles.tableCell,
+                }}
+              >
+                {index + 1}
+              </Text>
+              <View style={{ flex: 1, ...styles.tableCell }}>
+                <Text>{item.productName}</Text>
+                {bill.internationalDetails &&
+                  (bill.internationalDetails.grossWeight ||
+                    bill.internationalDetails.netWeight) && (
+                    <Text style={{ fontSize: 7, ...styles.gray, marginTop: 2 }}>
+                      {bill.internationalDetails.grossWeight &&
+                        `Gross Wt: ${bill.internationalDetails.grossWeight} kg`}
+                      {bill.internationalDetails.grossWeight &&
+                        bill.internationalDetails.netWeight &&
+                        " | "}
+                      {bill.internationalDetails.netWeight &&
+                        `Net Wt: ${bill.internationalDetails.netWeight} kg`}
+                    </Text>
+                  )}
+              </View>
+              {gstEnabled && (
+                <Text
+                  style={{
+                    width: hsnWidth,
+                    ...styles.textCenter,
+                    ...styles.tableCell,
+                  }}
+                >
+                  {item.hsnCode}
+                </Text>
+              )}
+              {gstEnabled && !isInternational && (
+                <Text
+                  style={{
+                    width: gstRateWidth,
+                    ...styles.textCenter,
+                    ...styles.tableCell,
+                  }}
+                >
+                  {item.gstRate}%
+                </Text>
+              )}
+              <Text
+                style={{
+                  width: qtyWidth,
+                  ...styles.textCenter,
+                  ...styles.tableCell,
+                }}
+              >
+                {item.quantity}
+              </Text>
+              <Text
+                style={{
+                  width: unitWidth,
+                  ...styles.textCenter,
+                  ...styles.tableCell,
+                }}
+              >
+                {item.unit}
+              </Text>
+              <Text
+                style={{
+                  width: rateWidth,
+                  ...styles.textRight,
+                  ...styles.tableCell,
+                }}
+              >
+                {formatCurrency(item.ratePerUnit)}
+              </Text>
+              <Text
+                style={{
+                  width: amountWidth,
+                  ...styles.textRight,
+                  ...styles.tableCell,
+                }}
+              >
+                {formatCurrency(item.amount)}
+              </Text>
+            </View>
+          ))}
+          {/* Subtotal */}
+          <View
+            style={{
+              ...styles.tableRow,
+              backgroundColor: "#f0f0f0",
+              ...styles.bold,
+            }}
+          >
+            <Text
+              style={{
+                flex: 1,
+                ...styles.textRight,
+                ...styles.tableCell,
+                paddingRight: 8,
+              }}
+            >
+              Subtotal
+            </Text>
+            <Text
+              style={{
+                width: amountWidth,
+                ...styles.textRight,
+                ...styles.tableCell,
+              }}
+            >
+              {formatCurrency(bill.subtotal)}
+            </Text>
+          </View>
+          {/* Taxes */}
+          {gstEnabled &&
+            !isInternational &&
+            (isInterState ? (
+              <View style={styles.tableRow}>
+                <Text
+                  style={{
+                    flex: 1,
+                    ...styles.textRight,
+                    ...styles.tableCell,
+                    paddingRight: 8,
+                  }}
+                >
+                  IGST
+                </Text>
+                <Text
+                  style={{
+                    width: amountWidth,
+                    ...styles.textRight,
+                    ...styles.tableCell,
+                  }}
+                >
+                  {formatCurrency(bill.totalTax)}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.tableRow}>
+                  <Text
+                    style={{
+                      flex: 1,
+                      ...styles.textRight,
+                      ...styles.tableCell,
+                      paddingRight: 8,
+                    }}
+                  >
+                    CGST
+                  </Text>
+                  <Text
+                    style={{
+                      width: amountWidth,
+                      ...styles.textRight,
+                      ...styles.tableCell,
+                    }}
+                  >
+                    {formatCurrency(
+                      bill.items.reduce(
+                        (sum, item) => sum + (item.cgst || 0),
+                        0
+                      )
+                    )}
+                  </Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text
+                    style={{
+                      flex: 1,
+                      ...styles.textRight,
+                      ...styles.tableCell,
+                      paddingRight: 8,
+                    }}
+                  >
+                    SGST
+                  </Text>
+                  <Text
+                    style={{
+                      width: amountWidth,
+                      ...styles.textRight,
+                      ...styles.tableCell,
+                    }}
+                  >
+                    {formatCurrency(
+                      bill.items.reduce(
+                        (sum, item) => sum + (item.sgst || 0),
+                        0
+                      )
+                    )}
+                  </Text>
+                </View>
+              </>
+            ))}
+          {/* Total */}
+          <View
+            style={{
+              ...styles.tableRow,
+              backgroundColor: company.themeColor,
+              color: "white",
+              ...styles.bold,
+            }}
+          >
+            <Text
+              style={{
+                flex: 1,
+                ...styles.textRight,
+                ...styles.tableCell,
+                paddingRight: 8,
+              }}
+            >
+              Total
+            </Text>
+            <Text
+              style={{
+                width: amountWidth,
+                ...styles.textRight,
+                ...styles.tableCell,
+                ...styles.currencyText,
+              }}
+            >
+              {formatCurrency(bill.total)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Notes */}
+        {(bill.notes || company.defaultNote) && (
+          <View
+            style={{
+              ...styles.border,
+              padding: mmToPt(2.5),
+              marginBottom: mmToPt(3),
+            }}
+          >
+            <Text
+              style={{
+                ...styles.bold,
+                fontSize: 8,
+                marginBottom: 4,
+                color: company.themeColor,
+              }}
+            >
+              Notes / Terms
+            </Text>
+            <Text style={styles.smallText}>
+              {bill.notes || company.defaultNote}
+            </Text>
+          </View>
+        )}
+
+        {/* Return History */}
+        {bill.returnComment && (
+          <View
+            style={{
+              ...styles.border,
+              padding: mmToPt(2),
+              marginBottom: mmToPt(3),
+            }}
+          >
+            <Text
+              style={{
+                ...styles.bold,
+                fontSize: 8,
+                marginBottom: 4,
+                color: company.themeColor,
+              }}
+            >
+              Return History
+            </Text>
+            <Text style={styles.smallText}>
+              {bill.returnComment}
+            </Text>
+          </View>
+        )}
+
+        {/* Footer */}
+        <View style={{ flexDirection: "row", marginTop: mmToPt(3) }}>
+          <View style={{ ...styles.border, padding: mmToPt(2), width: "50%" }}>
+            <Text
+              style={{
+                ...styles.bold,
+                fontSize: 8,
+                marginBottom: 4,
+                color: company.themeColor,
+                borderBottom: "1pt solid black",
+              }}
+            >
+              Company Bank Details
+            </Text>
+            <View style={{ ...styles.smallText, marginTop: 4 }}>
+              <Text>
+                <Text style={styles.bold}>A/c Holder:</Text>{" "}
+                {company.bankDetails.accountHolder}
+              </Text>
+              <Text>
+                <Text style={styles.bold}>Bank Name:</Text>{" "}
+                {company.bankDetails.bankName}
+              </Text>
+              <Text>
+                <Text style={styles.bold}>A/c Number:</Text>{" "}
+                {company.bankDetails.accountNumber}
+              </Text>
+              <Text>
+                <Text style={styles.bold}>Branch & IFSC:</Text>{" "}
+                {company.bankDetails.branchAndIFSC}
+              </Text>
+            </View>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 8,
+              }}
+            >
+              {qrDataURL && (
+                <Image src={qrDataURL} style={{ width: 50, height: 50 }} />
+              )}
+              <Text style={{ fontSize: 7, ...styles.gray, marginLeft: 8 }}>
+                {qrDataURL
+                  ? "Scan & Pay\n(UPI)"
+                  : "Add UPI ID in Settings\nto enable Scan & Pay"}
+              </Text>
+            </View>
+          </View>
+          <View
+            style={{
+              ...styles.border,
+              borderLeft: 0,
+              padding: mmToPt(2),
+              width: "50%",
+              justifyContent: "space-between",
+            }}
+          >
+            <View>
+              <Text
+                style={{
+                  ...styles.bold,
+                  fontSize: 8,
+                  marginBottom: 4,
+                  color: company.themeColor,
+                  borderBottom: "1pt solid black",
+                }}
+              >
+                Declaration
+              </Text>
+              <Text style={{ fontSize: 7, marginTop: 4 }}>
+                {isInternational
+                  ? "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. We intend to claim benefit under RoDTEP scheme as applicable."
+                  : "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct."}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Signatures */}
+        <View style={{ flexDirection: "row", ...styles.border, borderTop: 0 }}>
+          <View
+            style={{
+              width: "50%",
+              padding: 12,
+              borderRight: "1pt solid black",
+            }}
+          >
+            <Text style={{ fontSize: 8, ...styles.bold, marginBottom: 4 }}>
+              Customer's Seal and Signature
+            </Text>
+            <View style={{ height: 48, borderBottom: "1pt dashed gray" }} />
+            <Text
+              style={{
+                fontSize: 7,
+                textAlign: "center",
+                marginTop: 4,
+                ...styles.gray,
+              }}
+            >
+              {bill.client.name}
+            </Text>
+          </View>
+          <View style={{ width: "50%", padding: 12, alignItems: "flex-end" }}>
+            <Text style={{ fontSize: 8, ...styles.bold, marginBottom: 4 }}>
+              for {company.name}
+            </Text>
+            <View style={{ height: 48 }} />
+            <Text
+              style={{
+                fontSize: 7,
+                borderTop: "1pt solid black",
+                paddingTop: 4,
+              }}
+            >
+              Authorised Signatory
+            </Text>
+          </View>
+        </View>
+
+        <Text
+          style={{
+            fontSize: 7,
+            textAlign: "center",
+            marginTop: 8,
+            ...styles.gray,
+          }}
+        >
+          This is a Computer Generated {isInternational ? "INVOICE" : "Invoice"}
+        </Text>
+      </Page>
+    </Document>
+  );
+};
+
+export function BillView({ bill }: BillViewProps) {
+  const billRef = useRef<HTMLDivElement>(null);
+  const [company, setCompany] = useState<any>(null);
+  const [scale, setScale] = useState(1);
+  const [qrDataURL, setQrDataURL] = useState<string>("");
+
+  const publicBillUrl = `${window.location.origin}/view/bill/${bill.id}`;
+
+  useEffect(() => {
+    const loadCompany = async () => {
+      const companyData = await getCompanyProfile();
+      setCompany(companyData);
+    };
+    loadCompany();
+  }, []);
+
+  useEffect(() => {
+    const upiId = (company?.upiId || "").trim();
+    if (!upiId) {
+      setQrDataURL("");
+      return;
+    }
+
+    // UPI "Scan & Pay" payload
+    const amount = Number(bill.total || 0).toFixed(2);
+    const upiPayUri =
+      `upi://pay?pa=${encodeURIComponent(upiId)}` +
+      `&pn=${encodeURIComponent(company?.name || "")}` +
+      `&am=${encodeURIComponent(amount)}` +
+      `&cu=INR` +
+      `&tn=${encodeURIComponent(`Invoice ${bill.billNumber}`)}`;
+
+    QRCode.toDataURL(upiPayUri, { width: 220, margin: 1 })
+      .then(setQrDataURL)
+      .catch((err) => {
+        console.error("Failed to generate UPI QR:", err);
+        setQrDataURL("");
+      });
+  }, [company?.upiId, company?.name, bill.total, bill.billNumber]);
+
+  useEffect(() => {
+    const calculateScale = () => {
+      const containerWidth = window.innerWidth;
+      const a4Width = 210;
+      const mmToPx = 3.7795275591;
+      const a4WidthPx = a4Width * mmToPx;
+
+      if (containerWidth < a4WidthPx + 40) {
+        const newScale = (containerWidth - 40) / a4WidthPx;
+        setScale(Math.max(0.4, Math.min(1, newScale)));
+      } else {
+        setScale(1);
+      }
+    };
+
+    calculateScale();
+    window.addEventListener("resize", calculateScale);
+    return () => window.removeEventListener("resize", calculateScale);
+  }, []);
+
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href =
+      "https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap"; // Fallback CDN for variable/regular
+    // OR local: but since variable font, use CDN for simplicity if local fails
+    document.head.appendChild(link);
+
+    // Alternative: If you prefer local variable font in HTML (more exact match)
+    // const style = document.createElement("style");
+    // style.textContent = `
+    //   @font-face {
+    //     font-family: 'Inter';
+    //     src: url('/fonts/NotoSans-VariableFont_wdth,wght.ttf') format('truetype-variations');
+    //     font-weight: 100 900;
+    //     font-stretch: 75% 125%;
+    //     font-display: swap;
+    //   }
+    // `;
+    // document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(link);
+      // or remove style
+    };
+  }, []);
+
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = `
+      @media print {
+        body * { visibility: hidden; }
+        #bill-print, #bill-print * { visibility: visible; }
+        #bill-print { 
+          position: absolute; 
+          left: 0; 
+          top: 0; 
+          width: 210mm !important; 
+          min-height: 297mm !important; 
+          max-width: 210mm !important;
+          margin: 0 !important;
+          padding: 5mm !important;
+          box-shadow: none !important;
+          font-size: 10px !important;
+          transform: none !important;
+        }
+        #bill-print table {
+          font-size: 9px !important;
+        }
+        #bill-print th, #bill-print td {
+          padding: 1mm !important;
+        }
+        @page { 
+          size: A4; 
+          margin: 0; 
+        }
+      }
+      @media screen and (max-width: 768px) {
+        #bill-print-wrapper {
+          overflow: hidden;
+          display: flex;
+          justify-content: center;
+          padding: 10px;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  // const handlePrintPDF = async () => {
+  //   if (!qrDataURL || !company) return;
+  //   const blob = await pdf(
+  //     <BillPDF bill={bill} company={company} qrDataURL={qrDataURL} />
+  //   ).toBlob();
+  //   const url = URL.createObjectURL(blob);
+  //   const iframe = document.createElement("iframe");
+  //   iframe.style.display = "none";
+  //   iframe.src = url;
+  //   document.body.appendChild(iframe);
+  //   iframe.onload = () => {
+  //     setTimeout(() => {
+  //       iframe.contentWindow?.focus();
+  //       iframe.contentWindow?.print();
+  //     }, 1000);
+  //   };
+  // };
+
+  const handlePrintPDF = async () => {
+    if (!company) return;
+
+    try {
+      const blob = await pdf(
+        <BillPDF bill={bill} company={company} qrDataURL={qrDataURL} />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+
+      // Open in new tab (works on mobile/desktop)
+      const newWindow = window.open(url, "_blank");
+      if (newWindow) {
+        newWindow.focus();
+      } else {
+        // Fallback: If popup blocked, force download
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${bill.billNumber}.pdf`;
+        a.click();
+        alert(
+          "Popup blocked. PDF downloaded instead. Open and print from your downloads."
+        );
+      }
+
+      // Optional: Auto-revoke after 30s to free memory
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      alert("Failed to generate PDF. Please try again.");
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    const clientPhone = bill.client.phone
+      ? bill.client.phone.replace(/\D/g, "")
+      : "";
+    const message = `Hi ${bill.client.name},\n\n📄 *${
+      isInternational ? "INVOICE" : "Invoice"
+    } Details*\n━━━━━━━━━━━━━━━━━━━━\nInvoice No: ${
+      bill.billNumber
+    }\nDate: ${formatDate(bill.date)}\nAmount: ${formatCurrency(bill.total)}\n${
+      !isInternational ? `Status: ${bill.paymentStatus.toUpperCase()}\n` : ""
+    }\n🔗 *View Full Invoice Online:*\n${publicBillUrl}\n\nThank you for your business!`;
+
+    const whatsappUrl = clientPhone
+      ? `https://wa.me/${clientPhone}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+    window.open(whatsappUrl, "_blank");
+  };
+
+  const formatAddress = (address: string) => {
+    return address.split(",").map((line, i, arr) => (
+      <span key={i}>
+        {line.trim()}
+        {i < arr.length - 1 && <br />}
+      </span>
+    ));
+  };
+
+  const isInternational = bill.billType === "international";
+
+  if (!company) {
+    return <div>Please setup company profile first</div>;
+  }
+
+  const gstEnabled = company.gstEnabled ?? true;
+  const isInterState =
+    bill.gstType === "igst" ||
+    (!bill.gstType && company.stateCode !== bill.client.stateCode);
+
+  return (
+    <div className="w-full max-w-full">
+      <div className="mb-3 sm:mb-4 flex flex-wrap gap-2 print:hidden px-2 sm:px-0">
+        <PDFDownloadLink
+          document={
+            <BillPDF bill={bill} company={company} qrDataURL={qrDataURL} />
+          }
+          fileName={`${bill.billNumber}.pdf`}
+        >
+          {({ loading }) => (
+            <Button
+              disabled={loading}
+              className="flex-1 sm:flex-none text-xs sm:text-sm touch-manipulation"
+            >
+              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+              {loading ? "Generating..." : "Download PDF"}
+            </Button>
+          )}
+        </PDFDownloadLink>
+        <Button
+          onClick={handlePrintPDF}
+          variant="outline"
+          className="flex-1 sm:flex-none text-xs sm:text-sm touch-manipulation"
+        >
+          <Printer className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+          Print
+        </Button>
+        <Button
+          onClick={handleWhatsAppShare}
+          variant="outline"
+          className="flex-1 sm:flex-none bg-green-50 hover:bg-green-100 text-green-700 border-green-200 text-xs sm:text-sm touch-manipulation"
+        >
+          <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+          WhatsApp Share
+        </Button>
+      </div>
+      <div id="bill-print-wrapper" className="w-full">
+        <div
+          ref={billRef}
+          id="bill-print"
+          className="bg-white shadow-2xl"
+          style={{
+            width: "210mm",
+            minWidth: "210mm",
+            maxWidth: "210mm",
+            minHeight: "297mm",
+            margin: "0 auto",
+            fontFamily: "Inter, Arial, sans-serif !important",
+            padding: "5mm",
+            boxSizing: "border-box",
+            fontSize: "10px",
+            lineHeight: "1.4",
+            transform: `scale(${scale})`,
+            transformOrigin: "top center",
+          }}
+        >
+          {isInternational ? (
+            <div>
+              {/* Export / Proforma style (matches International PDF layout) */}
+              <div className="border border-black mb-3 p-2">
+                <p className="text-[10px] font-bold text-center leading-snug">
+                  SUPPLY MEANT FOR EXPORT UNDER BOND OR LETTER OF UNDERTAKING
+                  <br />
+                  WITHOUT PAYMENT OF IGST
+                </p>
+                <p className="text-[11px] font-bold text-center mt-1">
+                  PARFORMA INVOICE
+                </p>
+              </div>
+
+              {/* Exporter + Invoice + Buyer */}
+              <div className="border border-black mb-3">
+                <div className="flex gap-3 p-2">
+                  <div className="w-1/2">
+                    <p className="font-bold text-[10px] mb-1">Exporter</p>
+                    <p className="text-[10px] font-semibold">
+                      {String(company.name || "").toUpperCase()}
+                    </p>
+                    <div className="text-[10px] leading-relaxed">
+                      {formatAddress(company.address)}
+                    </div>
+                    <p className="text-[10px] mt-1">
+                      <strong>TEL:</strong> {company.phone || "N.A."}
+                    </p>
+                    <p className="text-[10px]">
+                      <strong>GST NO:</strong> {company.gstin || "N.A."}
+                    </p>
+                  </div>
+
+                  <div className="w-1/2 text-right">
+                    <p className="text-[10px]">
+                      <strong>Invoice No. & Date:</strong> {bill.billNumber}{" "}
+                      {formatDate(bill.date)}
+                    </p>
+                    <p className="text-[10px] mt-0.5">
+                      <strong>Buyer's Order No. & Date:</strong> Not Applicable
+                    </p>
+
+                    <div className="mt-2">
+                      <p className="font-bold text-[10px]">
+                        Buyers (If other than consignee)
+                      </p>
+                      <p className="text-[10px] font-semibold">
+                        {String(bill.client.name || "").toUpperCase()}
+                      </p>
+                      <div className="text-[10px] leading-relaxed">
+                        {formatAddress(bill.client.billingAddress)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between gap-3 border-t border-black p-2 text-[10px]">
+                  <p>
+                    <strong>Country Of Origin Of Goods:</strong>{" "}
+                    {bill.internationalDetails?.countryOfOrigin || "INDIA"}
+                  </p>
+                  <p className="text-right">
+                    <strong>Country Of Final Destination:</strong>{" "}
+                    {bill.internationalDetails?.countryOfFinalDestination ||
+                      "HONG KONG"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Shipping & Export Details */}
+              <p className="text-[10px] font-bold text-center mb-2">
+                Shipping & Export Details
+              </p>
+              {bill.internationalDetails && (
+                <div className="border border-black/60 mb-3 p-2">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
+                    {bill.internationalDetails.preCarriageBy && (
+                      <p>
+                        <strong>Pre-Carriage By:</strong>{" "}
+                        {bill.internationalDetails.preCarriageBy}
+                      </p>
+                    )}
+                    {bill.internationalDetails.vesselsFlightNo && (
+                      <p>
+                        <strong>Vessels/Flight No.:</strong>{" "}
+                        {bill.internationalDetails.vesselsFlightNo}
+                      </p>
+                    )}
+                    {bill.internationalDetails.placeOfReceiptByPreCarriage && (
+                      <p>
+                        <strong>Place Of Receipt:</strong>{" "}
+                        {bill.internationalDetails.placeOfReceiptByPreCarriage}
+                      </p>
+                    )}
+                    {bill.internationalDetails.finalDestination && (
+                      <p>
+                        <strong>Final Destination:</strong>{" "}
+                        {bill.internationalDetails.finalDestination}
+                      </p>
+                    )}
+                    {bill.internationalDetails.portOfLoading && (
+                      <p>
+                        <strong>Port of Loading:</strong>{" "}
+                        {bill.internationalDetails.portOfLoading}
+                      </p>
+                    )}
+                    {bill.internationalDetails.portOfDischarge && (
+                      <p>
+                        <strong>Port of Discharge:</strong>{" "}
+                        {bill.internationalDetails.portOfDischarge}
+                      </p>
+                    )}
+                    {bill.internationalDetails.countryOfOrigin && (
+                      <p>
+                        <strong>Country Of Origin:</strong>{" "}
+                        {bill.internationalDetails.countryOfOrigin}
+                      </p>
+                    )}
+                    {bill.internationalDetails.countryOfFinalDestination && (
+                      <p>
+                        <strong>Country Of Destination:</strong>{" "}
+                        {bill.internationalDetails.countryOfFinalDestination}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Items Table */}
+              <div className="border border-black mb-3">
+                <table className="w-full border-collapse text-[10px]">
+                  <thead>
+                    <tr className="bg-gray-100 border-b border-black">
+                      <th
+                        className="p-1.5 text-center border-r border-black"
+                        style={{ width: "18%" }}
+                      >
+                        Sl
+                      </th>
+                      <th
+                        className="p-1.5 text-left border-r border-black"
+                        style={{ width: "34%" }}
+                      >
+                        Description of Goods
+                      </th>
+                      {gstEnabled && (
+                        <th
+                          className="p-1.5 text-center border-r border-black"
+                          style={{ width: "12%" }}
+                        >
+                          HSN/SAC
+                        </th>
+                      )}
+                      <th
+                        className="p-1.5 text-center border-r border-black"
+                        style={{ width: "10%" }}
+                      >
+                        Qty
+                      </th>
+                      <th
+                        className="p-1.5 text-center border-r border-black"
+                        style={{ width: "8%" }}
+                      >
+                        Unit
+                      </th>
+                      <th
+                        className="p-1.5 text-right border-r border-black"
+                        style={{ width: "10%" }}
+                      >
+                        Rate
+                      </th>
+                      <th className="p-1.5 text-right" style={{ width: "12%" }}>
+                        Amount
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bill.items.map((item, index) => (
+                      <tr key={index} className="border-b border-black/10">
+                        <td className="p-1.5 text-center border-r border-black/10">
+                          {index + 1}
+                        </td>
+                        <td className="p-1.5 border-r border-black/10">
+                          <div>{item.productName}</div>
+                          {bill.internationalDetails?.grossWeight && (
+                            <div className="text-[9px] text-gray-600 mt-0.5">
+                              GW: {bill.internationalDetails.grossWeight} kg |
+                              NW: {bill.internationalDetails.netWeight || "N/A"}{" "}
+                              kg
+                            </div>
+                          )}
+                        </td>
+                        {gstEnabled && (
+                          <td className="p-1.5 text-center border-r border-black/10">
+                            {item.hsnCode || "-"}
+                          </td>
+                        )}
+                        <td className="p-1.5 text-center border-r border-black/10">
+                          {item.quantity}
+                        </td>
+                        <td className="p-1.5 text-center border-r border-black/10">
+                          {item.unit || "PCS"}
+                        </td>
+                        <td className="p-1.5 text-right border-r border-black/10">
+                          {formatCurrency(item.ratePerUnit)}
+                        </td>
+                        <td className="p-1.5 text-right">
+                          {formatCurrency(item.amount)}
+                        </td>
+                      </tr>
+                    ))}
+
+                    <tr className="border-t border-black bg-gray-50">
+                      <td
+                        colSpan={gstEnabled ? 6 : 5}
+                        className="p-1.5 text-right font-bold"
+                      >
+                        Subtotal
+                      </td>
+                      <td className="p-1.5 text-right font-bold">
+                        {formatCurrency(bill.subtotal)}
+                      </td>
+                    </tr>
+                    <tr className="border-t border-black bg-gray-200">
+                      <td
+                        colSpan={gstEnabled ? 6 : 5}
+                        className="p-2 text-right font-bold"
+                      >
+                        TOTAL
+                      </td>
+                      <td className="p-2 text-right font-bold">
+                        {formatCurrency(bill.total)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Declaration */}
+              <div className="border border-black mb-3 p-2">
+                <p className="font-bold text-[10px] mb-1">DECLARATION:</p>
+                <p className="text-[10px] leading-relaxed">
+                  THE DIAMONDS HEREIN INVOICED ARE EXCLUSIVELY OF LAB GROWN
+                  DIAMOND BASED ON PERSONAL KNOWLEDGE AND/OR WRITTEN GUARANTEES
+                  PROVIDED BY THE SUPPLIER OF THESE DIAMONDS.
+                </p>
+                <p className="text-[10px] leading-relaxed mt-1">
+                  TOTAL US DOLLARS : {numberToWords(Math.round(bill.total))}
+                </p>
+                <p className="text-[10px] leading-relaxed mt-1">
+                  WE INTEND TO CLAIM BENEFIT UNDER RoDTEP SCHEME AS APPLICABLE
+                </p>
+                <p className="text-[10px] leading-relaxed mt-1">
+                  The diamonds herein invoiced have been purchased from
+                  legitimate sources not involved in funding conflict and in
+                  compliance with United Nations resolutions. The seller hereby
+                  guarantees that the supplier of these diamonds is conflict
+                  free, based on personal knowledge and/or written guarantees
+                  provided by the supplier of these diamonds.
+                </p>
+              </div>
+
+              {/* Payment + Signature */}
+              <div className="grid grid-cols-2 gap-0 pt-1">
+                <div className="pr-2">
+                  <p className="font-bold text-[10px] mb-1">
+                    PAYMENT INSTRUCTIONS:
+                  </p>
+                  <p className="text-[10px]">
+                    {company.bankDetails?.accountHolder || "N.A."}
+                  </p>
+                  <p className="text-[10px]">
+                    A/c No.: {company.bankDetails?.accountNumber || "N.A."}
+                  </p>
+                  <p className="text-[10px]">
+                    Bank: {company.bankDetails?.bankName || "N.A."}
+                  </p>
+                  <p className="text-[10px]">
+                    Branch & IFSC: {company.bankDetails?.branchAndIFSC || "N.A."}
+                  </p>
+                  {qrDataURL && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <img
+                        src={qrDataURL}
+                        alt="Scan & Pay QR"
+                        className="w-[55px] h-[55px]"
+                      />
+                      <p className="text-[10px] text-gray-700">Scan & Pay (UPI)</p>
+                    </div>
+                  )}
+                </div>
+                <div className="text-right pl-2">
+                  <p className="text-[10px]">
+                    Signature & Date: {formatDate(new Date().toISOString())}
+                  </p>
+                  <p className="text-[10px] font-bold mt-1">
+                    FOR {String(company.name || "").toUpperCase()}
+                  </p>
+                  <div className="h-12" />
+                  <p className="text-[10px]">Proprietor</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* The HTML preview content remains unchanged */}
+              {/* Header */}
+              <div className="border-2 border-black mb-3">
+            <div className="flex justify-between items-start gap-3 p-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  {company.logo && (
+                    <img
+                      src={company.logo}
+                      alt={company.name}
+                      className="h-7 w-7 object-contain"
+                    />
+                  )}
+                  <h1
+                    className="text-base font-bold"
+                    style={{ color: company.themeColor }}
+                  >
+                    {company.name}
+                  </h1>
+                </div>
+                <div className="text-[10px] leading-relaxed mt-1">
+                  {formatAddress(company.address)}
+                </div>
+                {gstEnabled && (
+                  <div className="text-[10px] mt-1">
+                    <p>
+                      <strong>GSTIN/UIN:</strong> {company.gstin}
+                    </p>
+                    <p>
+                      <strong>State:</strong> {company.state},{" "}
+                      <strong>Code:</strong> {company.stateCode}
+                    </p>
+                  </div>
+                )}
+                <div className="text-[10px] mt-1">
+                  <p>
+                    <strong>Phone:</strong> {company.phone}
+                  </p>
+                  <p>
+                    <strong>Email:</strong> {company.email}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <h2
+                  className="text-lg font-bold mb-2"
+                  style={{ color: company.themeColor }}
+                >
+                  {isInternational
+                    ? "INVOICE"
+                    : gstEnabled
+                    ? "TAX INVOICE"
+                    : "INVOICE"}
+                </h2>
+                <div className="text-[10px] space-y-0.5">
+                  <p>
+                    <strong>Invoice No.:</strong> {bill.billNumber}
+                  </p>
+                  <p>
+                    <strong>Date:</strong> {formatDate(bill.date)}
+                  </p>
+                  {!isInternational && (
+                    <p>
+                      <strong>Due Date:</strong> {formatDate(bill.dueDate)}
+                    </p>
+                  )}
+                  {bill.deliveryNote && (
+                    <p>
+                      <strong>Delivery Note:</strong> {bill.deliveryNote}
+                    </p>
+                  )}
+                  {bill.modeOfPayment && (
+                    <p>
+                      <strong>Payment Mode:</strong> {bill.modeOfPayment}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {isInternational && (
+            <div className="flex justify-center mb-3">
+              <h2
+                className="text-lg font-bold"
+                style={{ color: company.themeColor }}
+              >
+                EXPORT INVOICE
+              </h2>
+            </div>
+          )}
+
+          {/* International Details */}
+          {isInternational && bill.internationalDetails && (
+            <div className="border border-black mb-3 p-2">
+              <h3
+                className="font-bold text-[10px] mb-2 border-b border-black pb-1"
+                style={{ color: company.themeColor }}
+              >
+                Shipping & Export Details
+              </h3>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
+                {bill.internationalDetails.preCarriageBy && (
+                  <p>
+                    <strong>Pre-Carriage By:</strong>{" "}
+                    {bill.internationalDetails.preCarriageBy}
+                  </p>
+                )}
+                {bill.internationalDetails.vesselsFlightNo && (
+                  <p>
+                    <strong>Vessels/Flight No.:</strong>{" "}
+                    {bill.internationalDetails.vesselsFlightNo}
+                  </p>
+                )}
+                {bill.internationalDetails.placeOfReceiptByPreCarriage && (
+                  <p>
+                    <strong>Place Of Receipt:</strong>{" "}
+                    {bill.internationalDetails.placeOfReceiptByPreCarriage}
+                  </p>
+                )}
+                {bill.internationalDetails.portOfLoading && (
+                  <p>
+                    <strong>Port of Loading:</strong>{" "}
+                    {bill.internationalDetails.portOfLoading}
+                  </p>
+                )}
+                {bill.internationalDetails.portOfDischarge && (
+                  <p>
+                    <strong>Port of Discharge:</strong>{" "}
+                    {bill.internationalDetails.portOfDischarge}
+                  </p>
+                )}
+                {bill.internationalDetails.finalDestination && (
+                  <p>
+                    <strong>Final Destination:</strong>{" "}
+                    {bill.internationalDetails.finalDestination}
+                  </p>
+                )}
+                {bill.internationalDetails.countryOfOrigin && (
+                  <p>
+                    <strong>Country Of Origin:</strong>{" "}
+                    {bill.internationalDetails.countryOfOrigin}
+                  </p>
+                )}
+                {bill.internationalDetails.countryOfFinalDestination && (
+                  <p>
+                    <strong>Country Of Destination:</strong>{" "}
+                    {bill.internationalDetails.countryOfFinalDestination}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Client Details */}
+          <div className="grid grid-cols-2 gap-0 mb-3">
+            <div className="border border-black p-2">
+              <h3
+                className="font-bold text-[10px] mb-1 border-b border-black pb-1"
+                style={{ color: company.themeColor }}
+              >
+                {isInternational ? "Consignee" : "Consignee (Ship to)"}
+              </h3>
+              <p className="font-semibold text-[11px]">{bill.client.name}</p>
+              <div className="text-[10px] leading-relaxed mt-1">
+                {formatAddress(
+                  bill.client.shippingAddress || bill.client.billingAddress
+                )}
+              </div>
+              {gstEnabled && !isInternational && (
+                <div className="text-[10px] mt-1">
+                  <p>
+                    <strong>GSTIN/UIN:</strong> {bill.client.gstin}
+                  </p>
+                  <p>
+                    <strong>State:</strong> {bill.client.state},{" "}
+                    <strong>Code:</strong> {bill.client.stateCode}
+                  </p>
+                </div>
+              )}
+              {bill.client.phone && (
+                <p className="text-[10px]">
+                  <strong>Phone:</strong> {bill.client.phone}
+                </p>
+              )}
+            </div>
+            <div className="border border-black border-l-0 p-2">
+              <h3
+                className="font-bold text-[10px] mb-1 border-b border-black pb-1"
+                style={{ color: company.themeColor }}
+              >
+                {isInternational
+                  ? "Buyer (If other than consignee)"
+                  : "Buyer (Bill to)"}
+              </h3>
+              <p className="font-semibold text-[11px]">{bill.client.name}</p>
+              <div className="text-[10px] leading-relaxed mt-1">
+                {formatAddress(bill.client.billingAddress)}
+              </div>
+              {gstEnabled && !isInternational && (
+                <div className="text-[10px] mt-1">
+                  <p>
+                    <strong>GSTIN/UIN:</strong> {bill.client.gstin}
+                  </p>
+                  <p>
+                    <strong>State:</strong> {bill.client.state},{" "}
+                    <strong>Code:</strong> {bill.client.stateCode}
+                  </p>
+                </div>
+              )}
+              {bill.placeOfSupply && !isInternational && (
+                <p className="text-[10px] mt-1">
+                  <strong>Place of Supply:</strong> {bill.placeOfSupply}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Items Table */}
+          <div className="mb-3">
+            <table className="w-full border-collapse text-[10px]">
+              <thead>
+                <tr
+                  style={{
+                    backgroundColor: company.themeColor,
+                    color: "white",
+                  }}
+                >
+                  <th
+                    className="border border-black p-1.5 text-center"
+                    style={{ width: "30px" }}
+                  >
+                    Sl
+                  </th>
+                  <th className="border border-black p-1.5 text-left">
+                    Description of Goods
+                  </th>
+                  {gstEnabled && (
+                    <th
+                      className="border border-black p-1.5 text-center"
+                      style={{ width: "60px" }}
+                    >
+                      HSN/SAC
+                    </th>
+                  )}
+                  {gstEnabled && !isInternational && (
+                    <th
+                      className="border border-black p-1.5 text-center"
+                      style={{ width: "40px" }}
+                    >
+                      GST%
+                    </th>
+                  )}
+                  <th
+                    className="border border-black p-1.5 text-center"
+                    style={{ width: "50px" }}
+                  >
+                    Qty
+                  </th>
+                  <th
+                    className="border border-black p-1.5 text-center"
+                    style={{ width: "45px" }}
+                  >
+                    Unit
+                  </th>
+                  <th
+                    className="border border-black p-1.5 text-center"
+                    style={{ width: "60px" }}
+                  >
+                    Rate
+                  </th>
+                  <th
+                    className="border border-black p-1.5 text-right"
+                    style={{ width: "70px" }}
+                  >
+                    Amount
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {bill.items.map((item, index) => (
+                  <tr
+                    key={index}
+                    className={index % 2 === 0 ? "bg-gray-50" : ""}
+                  >
+                    <td className="border border-black p-1.5 text-center">
+                      {index + 1}
+                    </td>
+                    <td className="border border-black p-1.5">
+                      <div>{item.productName}</div>
+                      {bill.internationalDetails &&
+                        (bill.internationalDetails.grossWeight ||
+                          bill.internationalDetails.netWeight) && (
+                          <div className="text-[9px] text-gray-600 mt-1">
+                            {bill.internationalDetails.grossWeight && (
+                              <span>
+                                Gross Wt:{" "}
+                                {bill.internationalDetails.grossWeight} kg
+                              </span>
+                            )}
+                            {bill.internationalDetails.grossWeight &&
+                              bill.internationalDetails.netWeight && (
+                                <span className="mx-1">|</span>
+                              )}
+                            {bill.internationalDetails.netWeight && (
+                              <span>
+                                Net Wt: {bill.internationalDetails.netWeight} kg
+                              </span>
+                            )}
+                          </div>
+                        )}
+                    </td>
+                    {gstEnabled && (
+                      <td className="border border-black p-1.5 text-center text-[9px]">
+                        {item.hsnCode}
+                      </td>
+                    )}
+                    {gstEnabled && !isInternational && (
+                      <td className="border border-black p-1.5 text-center">
+                        {item.gstRate}%
+                      </td>
+                    )}
+                    <td className="border border-black p-1.5 text-center">
+                      {item.quantity}
+                    </td>
+                    <td className="border border-black p-1.5 text-center">
+                      {item.unit}
+                    </td>
+                    <td className="border border-black p-1.5 text-right">
+                      {formatCurrency(item.ratePerUnit)}
+                    </td>
+                    <td className="border border-black p-1.5 text-right">
+                      {formatCurrency(item.amount)}
+                    </td>
+                  </tr>
+                ))}
+                {/* Subtotal */}
+                <tr className="font-semibold bg-gray-100">
+                  <td
+                    colSpan={gstEnabled ? (isInternational ? 6 : 7) : 5}
+                    className="border border-black p-1.5 text-right"
+                  >
+                    Subtotal
+                  </td>
+                  <td className="border border-black p-1.5 text-right">
+                    {formatCurrency(bill.subtotal)}
+                  </td>
+                </tr>
+                {/* Tax Rows */}
+                {gstEnabled &&
+                  !isInternational &&
+                  (isInterState ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="border border-black p-1.5 text-right"
+                      >
+                        IGST
+                      </td>
+                      <td className="border border-black p-1.5 text-right">
+                        {formatCurrency(bill.totalTax)}
+                      </td>
+                    </tr>
+                  ) : (
+                    <>
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="border border-black p-1.5 text-right"
+                        >
+                          CGST
+                        </td>
+                        <td className="border border-black p-1.5 text-right">
+                          {formatCurrency(
+                            bill.items.reduce((sum, item) => sum + item.cgst, 0)
+                          )}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="border border-black p-1.5 text-right"
+                        >
+                          SGST
+                        </td>
+                        <td className="border border-black p-1.5 text-right">
+                          {formatCurrency(
+                            bill.items.reduce((sum, item) => sum + item.sgst, 0)
+                          )}
+                        </td>
+                      </tr>
+                    </>
+                  ))}
+                {/* Total */}
+                <tr
+                  className="font-bold"
+                  style={{
+                    backgroundColor: company.themeColor,
+                    color: "white",
+                  }}
+                >
+                  <td
+                    colSpan={gstEnabled ? (isInternational ? 6 : 7) : 5}
+                    className="border border-black p-1.5 text-right"
+                  >
+                    Total
+                  </td>
+                  <td className="border border-black p-1.5 text-right">
+                    {formatCurrency(bill.total)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Notes */}
+          {(bill.notes || company.defaultNote) && (
+            <div className="border border-black p-2.5 mb-3">
+              <h3
+                className="font-bold text-[10px] mb-1"
+                style={{ color: company.themeColor }}
+              >
+                Notes / Terms
+              </h3>
+              <p className="text-[10px] whitespace-pre-wrap">
+                {bill.notes || company.defaultNote}
+              </p>
+            </div>
+          )}
+
+          {/* Return History */}
+          {bill.returnComment && (
+            <div className="border border-black p-2 mb-3">
+              <h3
+                className="font-bold text-[10px] mb-1"
+                style={{ color: company.themeColor }}
+              >
+                Return History
+              </h3>
+              <p className="text-[10px] whitespace-pre-wrap">
+                {bill.returnComment}
+              </p>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="grid grid-cols-2 gap-0 mt-3">
+            <div className="border border-black p-2">
+              <h3
+                className="font-bold text-[10px] mb-1 border-b border-black pb-1"
+                style={{ color: company.themeColor }}
+              >
+                Company Bank Details
+              </h3>
+              <div className="text-[10px] space-y-0.5 mt-1">
+                <p>
+                  <strong>A/c Holder:</strong>{" "}
+                  {company.bankDetails.accountHolder}
+                </p>
+                <p>
+                  <strong>Bank Name:</strong> {company.bankDetails.bankName}
+                </p>
+                <p>
+                  <strong>A/c Number:</strong>{" "}
+                  {company.bankDetails.accountNumber}
+                </p>
+                <p>
+                  <strong>Branch & IFSC:</strong>{" "}
+                  {company.bankDetails.branchAndIFSC}
+                </p>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                {qrDataURL && (
+                  <>
+                    <img
+                      src={qrDataURL}
+                      alt="Scan & Pay QR"
+                      className="w-[50px] h-[50px]"
+                    />
+                    <p className="text-[9px] text-gray-600 break-words">
+                      Scan & Pay
+                      <br />
+                      (UPI)
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="border border-black border-l-0 p-2 flex flex-col justify-between">
+              <div>
+                <h3
+                  className="font-bold text-[10px] mb-1 border-b border-black pb-1"
+                  style={{ color: company.themeColor }}
+                >
+                  Declaration
+                </h3>
+                <p className="text-[9px] mt-1 leading-relaxed">
+                  {isInternational
+                    ? "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. We intend to claim benefit under RoDTEP scheme as applicable."
+                    : "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct."}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Signatures */}
+          <div className="grid grid-cols-2 gap-0 border border-black border-t-0">
+            <div className="p-3 border-r border-black">
+              <p className="text-[10px] font-bold mb-1">
+                Customer's Seal and Signature
+              </p>
+              <div className="h-12 border-b border-dashed border-gray-400"></div>
+              <p className="text-[9px] text-center mt-1 text-gray-600">
+                {bill.client.name}
+              </p>
+            </div>
+            <div className="p-3 text-right">
+              <p className="text-[10px] font-bold mb-1">for {company.name}</p>
+              <div className="h-12"></div>
+              <p className="text-[9px] border-t border-black pt-1 inline-block">
+                Authorised Signatory
+              </p>
+            </div>
+          </div>
+
+          <p className="text-[9px] text-center mt-2 text-gray-500">
+            This is a Computer Generated{" "}
+            {isInternational ? "INVOICE" : "Invoice"}
+          </p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
