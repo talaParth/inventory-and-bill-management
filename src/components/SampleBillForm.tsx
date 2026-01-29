@@ -42,6 +42,7 @@ import {
   AlertCircle,
   ArrowLeft,
   UserPlus,
+  PlusCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -59,6 +60,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { ClientForm } from "./ClientForm";
+import { ProductForm } from "./ProductForm";
 
 interface SampleBillFormProps {
   bill?: SampleBill;
@@ -78,6 +80,10 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
   const [productComboOpenIndex, setProductComboOpenIndex] = useState<
     number | null
   >(null);
+  const [createProductOpen, setCreateProductOpen] = useState(false);
+  const [createProductForIndex, setCreateProductForIndex] = useState<number | null>(
+    null
+  );
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -129,6 +135,33 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
   }, [bill, isEdit]);
 
   const isIGST = gstType === "igst";
+
+  const applyProductToBillItem = (index: number, product: Product) => {
+    const updated = [...billItems];
+    const item = { ...updated[index] };
+    item.productId = product.id;
+    item.productName = product.name;
+    item.hsnCode = product.hsnCode;
+    item.gstRate = product.gstRate;
+    item.unit = product.unit;
+    item.ratePerUnit = product.sellingPrice || product.price || 0;
+    item.amount = roundToTwoDecimals(item.quantity * item.ratePerUnit);
+    if (!gstEnabled) {
+      item.cgst = 0;
+      item.sgst = 0;
+      item.igst = 0;
+    } else if (isIGST) {
+      item.igst = (item.amount * item.gstRate) / 100;
+      item.cgst = 0;
+      item.sgst = 0;
+    } else {
+      item.cgst = (item.amount * item.gstRate) / 200;
+      item.sgst = (item.amount * item.gstRate) / 200;
+      item.igst = 0;
+    }
+    updated[index] = item;
+    setBillItems(updated);
+  };
 
   const addItem = () => {
     setBillItems([
@@ -555,6 +588,19 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
         }}
       />
 
+      <ProductForm
+        open={createProductOpen}
+        onOpenChange={setCreateProductOpen}
+        onSuccess={(newProduct) => {
+          setProducts((prev) => [...prev, newProduct]);
+          if (createProductForIndex !== null) {
+            applyProductToBillItem(createProductForIndex, newProduct);
+          }
+          setCreateProductOpen(false);
+          setCreateProductForIndex(null);
+        }}
+      />
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Bill Items</CardTitle>
@@ -604,8 +650,35 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
                             <Command>
                               <CommandInput placeholder="Search product..." />
                               <CommandList>
-                                <CommandEmpty>No product found.</CommandEmpty>
+                                <CommandEmpty>
+                                  <div className="py-6 text-center">
+                                    <p className="text-sm text-muted-foreground mb-4">No product found.</p>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setCreateProductForIndex(index);
+                                        setCreateProductOpen(true);
+                                        setProductComboOpenIndex(null);
+                                      }}
+                                    >
+                                      <PlusCircle className="h-4 w-4 mr-2" />
+                                      Create New Product
+                                    </Button>
+                                  </div>
+                                </CommandEmpty>
                                 <CommandGroup>
+                                  <CommandItem
+                                    onSelect={() => {
+                                      setCreateProductForIndex(index);
+                                      setCreateProductOpen(true);
+                                      setProductComboOpenIndex(null);
+                                    }}
+                                    className="flex items-center text-primary font-medium"
+                                  >
+                                    <PlusCircle className="h-4 w-4 mr-2" />
+                                    Add New Product
+                                  </CommandItem>
                                   {availableProducts.map((product) => (
                                     <CommandItem
                                       key={product.id}
