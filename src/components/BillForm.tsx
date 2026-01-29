@@ -629,6 +629,7 @@
 //                                       <CommandItem
 //                                         key={product.id}
 //                                         value={product.name}
+
 //                                         onSelect={() => {
 //                                           updateItem(
 //                                             index,
