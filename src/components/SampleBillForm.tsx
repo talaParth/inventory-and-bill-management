@@ -72,17 +72,6 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientComboOpen, setClientComboOpen] = useState(false);
   const [createClientOpen, setCreateClientOpen] = useState(false);
-  const [creatingClient, setCreatingClient] = useState(false);
-  const [clientFormData, setClientFormData] = useState({
-    name: "",
-    billingAddress: "",
-    shippingAddress: "",
-    gstin: "",
-    state: "",
-    stateCode: "",
-    phone: "",
-    email: "",
-  });
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [gstType, setGstType] = useState<"igst" | "cgst_sgst">("cgst_sgst");
   const [saving, setSaving] = useState(false);
@@ -140,63 +129,6 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
   }, [bill, isEdit]);
 
   const isIGST = gstType === "igst";
-
-  const resetClientForm = (prefillName?: string) => {
-    setClientFormData({
-      name: prefillName || "",
-      billingAddress: "",
-      shippingAddress: "",
-      gstin: "",
-      state: "",
-      stateCode: "",
-      phone: "",
-      email: "",
-    });
-  };
-
-  const handleCreateClient = async () => {
-    const name = clientFormData.name.trim();
-    const billingAddress = clientFormData.billingAddress.trim();
-    const gstin = clientFormData.gstin.trim();
-    const state = clientFormData.state.trim();
-    const stateCode = clientFormData.stateCode.trim();
-
-    if (!name) return toast.error("Client name is required");
-    if (!billingAddress) return toast.error("Billing address is required");
-    if (!gstin) return toast.error("GSTIN is required (use N.A. if not applicable)");
-    if (!state) return toast.error("State is required");
-    if (!stateCode) return toast.error("State code is required");
-
-    setCreatingClient(true);
-    try {
-      const newClient: Client = {
-        id: crypto.randomUUID(),
-        name,
-        billingAddress,
-        shippingAddress: clientFormData.shippingAddress.trim() || undefined,
-        gstin,
-        state,
-        stateCode,
-        phone: clientFormData.phone.trim() || undefined,
-        email: clientFormData.email.trim() || undefined,
-        createdAt: new Date().toISOString(),
-      };
-
-      await saveClient(newClient);
-
-      const refreshed = await getClients();
-      setClients(refreshed);
-      setSelectedClient(newClient);
-      setClientComboOpen(false);
-      setCreateClientOpen(false);
-      toast.success("Client created");
-    } catch (e) {
-      console.error("Failed to create client:", e);
-      toast.error("Failed to create client");
-    } finally {
-      setCreatingClient(false);
-    }
-  };
 
   const addItem = () => {
     setBillItems([
@@ -613,30 +545,15 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
       </Card>
 
       {/* Client Creation Dialog */}
-      <Dialog open={createClientOpen} onOpenChange={setCreateClientOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Client</DialogTitle>
-          </DialogHeader>
-          <ClientForm
-            formData={clientFormData}
-            setFormData={setClientFormData}
-          />
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setCreateClientOpen(false)}
-              disabled={creatingClient}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleCreateClient} disabled={creatingClient}>
-              {creatingClient && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Client
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ClientForm
+        open={createClientOpen}
+        onOpenChange={setCreateClientOpen}
+        onSuccess={(newClient) => {
+          setSelectedClient(newClient);
+          setClients((prev) => [...prev, newClient]);
+          setCreateClientOpen(false);
+        }}
+      />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
