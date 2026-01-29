@@ -41,6 +41,7 @@ import {
   ChevronsUpDown,
   AlertCircle,
   ArrowLeft,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -50,6 +51,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { ClientForm } from "./ClientForm";
 
 interface SampleBillFormProps {
   bill?: SampleBill;
@@ -62,6 +71,18 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientComboOpen, setClientComboOpen] = useState(false);
+  const [createClientOpen, setCreateClientOpen] = useState(false);
+  const [creatingClient, setCreatingClient] = useState(false);
+  const [clientFormData, setClientFormData] = useState({
+    name: "",
+    billingAddress: "",
+    shippingAddress: "",
+    gstin: "",
+    state: "",
+    stateCode: "",
+    phone: "",
+    email: "",
+  });
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [gstType, setGstType] = useState<"igst" | "cgst_sgst">("cgst_sgst");
   const [saving, setSaving] = useState(false);
@@ -119,6 +140,63 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
   }, [bill, isEdit]);
 
   const isIGST = gstType === "igst";
+
+  const resetClientForm = (prefillName?: string) => {
+    setClientFormData({
+      name: prefillName || "",
+      billingAddress: "",
+      shippingAddress: "",
+      gstin: "",
+      state: "",
+      stateCode: "",
+      phone: "",
+      email: "",
+    });
+  };
+
+  const handleCreateClient = async () => {
+    const name = clientFormData.name.trim();
+    const billingAddress = clientFormData.billingAddress.trim();
+    const gstin = clientFormData.gstin.trim();
+    const state = clientFormData.state.trim();
+    const stateCode = clientFormData.stateCode.trim();
+
+    if (!name) return toast.error("Client name is required");
+    if (!billingAddress) return toast.error("Billing address is required");
+    if (!gstin) return toast.error("GSTIN is required (use N.A. if not applicable)");
+    if (!state) return toast.error("State is required");
+    if (!stateCode) return toast.error("State code is required");
+
+    setCreatingClient(true);
+    try {
+      const newClient: Client = {
+        id: crypto.randomUUID(),
+        name,
+        billingAddress,
+        shippingAddress: clientFormData.shippingAddress.trim() || undefined,
+        gstin,
+        state,
+        stateCode,
+        phone: clientFormData.phone.trim() || undefined,
+        email: clientFormData.email.trim() || undefined,
+        createdAt: new Date().toISOString(),
+      };
+
+      await saveClient(newClient);
+
+      const refreshed = await getClients();
+      setClients(refreshed);
+      setSelectedClient(newClient);
+      setClientComboOpen(false);
+      setCreateClientOpen(false);
+      toast.success("Client created");
+    } catch (e) {
+      console.error("Failed to create client:", e);
+      toast.error("Failed to create client");
+    } finally {
+      setCreatingClient(false);
+    }
+  };
 
   const addItem = () => {
     setBillItems([
@@ -387,8 +465,35 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
                   <Command>
                     <CommandInput placeholder="Search client..." />
                     <CommandList>
-                      <CommandEmpty>No client found.</CommandEmpty>
+                      <CommandEmpty>
+                        <div className="py-6 text-center">
+                          <p className="text-sm text-muted-foreground mb-4">No client found.</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setCreateClientOpen(true);
+                              setClientComboOpen(false);
+                            }}
+                          >
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Create New Client
+                          </Button>
+                        </div>
+                      </CommandEmpty>
                       <CommandGroup>
+                        <CommandItem
+                          onSelect={() => {
+                            setCreateClientOpen(true);
+                            setClientComboOpen(false);
+                          }}
+                          className="flex items-center text-primary font-medium"
+                        >
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Add New Client
+                        </CommandItem>
                         {clients.map((client) => (
                           <CommandItem
                             key={client.id}
@@ -506,6 +611,32 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Client Creation Dialog */}
+      <Dialog open={createClientOpen} onOpenChange={setCreateClientOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Client</DialogTitle>
+          </DialogHeader>
+          <ClientForm
+            formData={clientFormData}
+            setFormData={setClientFormData}
+          />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCreateClientOpen(false)}
+              disabled={creatingClient}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCreateClient} disabled={creatingClient}>
+              {creatingClient && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Client
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
