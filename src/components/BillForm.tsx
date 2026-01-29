@@ -516,8 +516,6 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
         billCounter = await getBillCounter();
       }
 
-      const otherChargesNum = parseFloat(formData.otherCharges || "0") || 0;
-
       const newBill: Bill = {
         id: bill?.id || crypto.randomUUID(),
         billNumber:
