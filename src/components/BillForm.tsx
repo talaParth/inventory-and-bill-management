@@ -997,6 +997,7 @@ import {
   Check,
   ChevronsUpDown,
   UserPlus,
+  PlusCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -1014,6 +1015,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { ClientForm } from "./ClientForm";
+import { ProductForm } from "./ProductForm";
 
 interface BillFormProps {
   bill?: Bill;
@@ -2017,11 +2019,41 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                           </PopoverTrigger>
                           <PopoverContent className="w-full p-0" align="start">
                             <Command>
-                              <CommandInput placeholder="Search product..." />
-                              <CommandList>
-                                <CommandEmpty>No product found.</CommandEmpty>
-                                <CommandGroup>
-                                  {availableProducts.map((product) => {
+                            <CommandInput placeholder="Search product..." />
+                            <CommandList>
+                              <CommandEmpty>
+                                <div className="py-6 text-center">
+                                  <p className="text-sm text-muted-foreground mb-4">No product found.</p>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setCreateProductForIndex(index);
+                                      setCreateProductOpen(true);
+                                      setProductComboOpenIndex(null);
+                                    }}
+                                  >
+                                    <PlusCircle className="h-4 w-4 mr-2" />
+                                    Create New Product
+                                  </Button>
+                                </div>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                <CommandItem
+                                  onSelect={() => {
+                                    setCreateProductForIndex(index);
+                                    setCreateProductOpen(true);
+                                    setProductComboOpenIndex(null);
+                                  }}
+                                  className="flex items-center text-primary font-medium"
+                                >
+                                  <PlusCircle className="h-4 w-4 mr-2" />
+                                  Add New Product
+                                </CommandItem>
+                                <CommandSeparator />
+                                {availableProducts.map((product) => {
                                     const availStock = isEdit
                                       ? product.stock +
                                         getOriginalQuantity(product.id)
@@ -2353,6 +2385,17 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
           setClients([...clients, newClient]);
           setSelectedClient(newClient);
         }} 
+      />
+
+      <ProductForm
+        open={createProductOpen}
+        onOpenChange={setCreateProductOpen}
+        onSuccess={(newProduct) => {
+          setProducts([...products, newProduct]);
+          if (createProductForIndex !== null) {
+            applyProductToBillItem(createProductForIndex, newProduct);
+          }
+        }}
       />
     </div>
   );
