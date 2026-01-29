@@ -83,13 +83,13 @@ export default function BillCreators() {
               <Card 
                 key={bill.id} 
                 className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => navigate(bill.isSample ? `/sample-bills/${bill.id}` : `/bills/${bill.id}`)}
+                onClick={() => navigate('isSample' in bill ? `/sample-bills/${bill.id}` : `/bills/${bill.id}`)}
               >
                 <CardContent className="p-4 flex justify-between items-center">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold">{bill.billNumber}</span>
-                      {bill.isSample && <Badge variant="outline">Sample</Badge>}
+                      {('isSample' in bill) && <Badge variant="outline">Sample</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground">{bill.client.name}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -99,7 +99,7 @@ export default function BillCreators() {
                   </div>
                   <div className="text-right">
                     <p className="font-bold">{formatCurrency(bill.total)}</p>
-                    <Badge variant={bill.paymentStatus === 'paid' ? 'success' : 'secondary'}>
+                    <Badge variant={bill.paymentStatus === 'paid' ? 'secondary' : 'outline'}>
                       {bill.paymentStatus}
                     </Badge>
                   </div>
