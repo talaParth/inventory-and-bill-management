@@ -1015,17 +1015,36 @@ Thank you!`;
                 </div>
 
                 {/* Notes */}
-                {(bill.notes || company.defaultNote) && (
+                {(bill.notes || company.defaultNote || bill.createdBy) && (
                   <div className="border border-black p-2.5 mb-3">
-                    <h3
-                      className="font-bold text-[10px] mb-1 break-words"
-                      style={{ color: company.themeColor }}
-                    >
-                      Notes / Terms
-                    </h3>
-                    <p className="text-[10px] whitespace-pre-wrap break-words">
-                      {bill.notes || company.defaultNote}
-                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      {(bill.notes || company.defaultNote) && (
+                        <div>
+                          <h3
+                            className="font-bold text-[10px] mb-1 break-words"
+                            style={{ color: company.themeColor }}
+                          >
+                            Notes / Terms
+                          </h3>
+                          <p className="text-[10px] whitespace-pre-wrap break-words">
+                            {bill.notes || company.defaultNote}
+                          </p>
+                        </div>
+                      )}
+                      {bill.createdBy && (
+                        <div className="text-right">
+                          <h3
+                            className="font-bold text-[10px] mb-1 break-words"
+                            style={{ color: company.themeColor }}
+                          >
+                            Created By
+                          </h3>
+                          <p className="text-[10px] font-semibold break-words">
+                            {bill.createdBy}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 

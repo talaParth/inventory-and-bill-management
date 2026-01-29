@@ -96,6 +96,7 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
     otherCharges: "",
     discount: "",
     discountType: "amount" as "amount" | "percentage",
+    createdBy: "",
   });
 
   const [companyProfile, setCompanyProfile] = useState<any>(null);
@@ -128,6 +129,7 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
           otherCharges: bill.otherCharges ? String(bill.otherCharges) : "",
           discount: bill.discount ? String(bill.discount) : "",
           discountType: bill.discountType || "amount",
+          createdBy: bill.createdBy || "",
         });
       }
     };
@@ -348,6 +350,7 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
         modeOfPayment: formData.modeOfPayment,
         placeOfSupply: formData.placeOfSupply,
         notes: formData.notes,
+        createdBy: formData.createdBy || undefined,
         createdAt: bill?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         isSample: true,
@@ -530,6 +533,28 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
                   setFormData({ ...formData, deliveryNote: e.target.value })
                 }
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Created By</Label>
+              <Select
+                value={formData.createdBy}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, createdBy: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select person" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {(companyProfile?.billCreators || []).map((creator: string) => (
+                    <SelectItem key={creator} value={creator}>
+                      {creator}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

@@ -26,6 +26,7 @@ export interface CompanyProfile {
     fixedCommissionAmount?: number; // Fixed commission amount (if type is fixed)
   };
   expenseCategories?: string[]; // Custom expense categories
+  billCreators?: string[]; // Names of people who can create bills
 }
 
 export interface Client {
@@ -86,6 +87,7 @@ export interface Bill {
   expenses?: number;
   roundOff: number;
   total: number;
+  createdBy?: string;
   paymentTerms: number;
   dueDate: string;
   paymentStatus: "paid" | "pending" | "overdue";
@@ -130,6 +132,7 @@ export interface SampleBill {
   otherCharges?: number;
   roundOff: number;
   total: number;
+  createdBy?: string;
   paymentTerms: number;
   dueDate: string;
   paymentStatus: "paid" | "pending" | "overdue";
