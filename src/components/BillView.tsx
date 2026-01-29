@@ -2655,6 +2655,35 @@ export function BillView({ bill }: BillViewProps) {
                     {formatCurrency(bill.subtotal)}
                   </td>
                 </tr>
+                {bill.discount !== undefined && bill.discount > 0 && (
+                  <tr>
+                    <td
+                      colSpan={gstEnabled ? (isInternational ? 6 : 7) : 5}
+                      className="border border-black p-1.5 text-right text-red-600"
+                    >
+                      Discount{" "}
+                      {bill.discountType === "percentage"
+                        ? `(${bill.discount}%)`
+                        : ""}
+                    </td>
+                    <td className="border border-black p-1.5 text-right text-red-600">
+                      -{formatCurrency(bill.discount)}
+                    </td>
+                  </tr>
+                )}
+                {bill.otherCharges !== undefined && bill.otherCharges > 0 && (
+                  <tr>
+                    <td
+                      colSpan={gstEnabled ? (isInternational ? 6 : 7) : 5}
+                      className="border border-black p-1.5 text-right"
+                    >
+                      Other Charges
+                    </td>
+                    <td className="border border-black p-1.5 text-right">
+                      {formatCurrency(bill.otherCharges)}
+                    </td>
+                  </tr>
+                )}
                 {/* Tax Rows */}
                 {gstEnabled &&
                   !isInternational &&
