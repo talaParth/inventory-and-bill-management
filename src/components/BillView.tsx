@@ -1345,6 +1345,58 @@ export const BillPDF = ({
               {formatCurrency(bill.subtotal)}
             </Text>
           </View>
+          {/* Discount and Other Charges for Domestic */}
+          {bill.discount !== undefined && bill.discount > 0 && (
+            <View style={styles.tableRow}>
+              <Text
+                style={{
+                  flex: 1,
+                  ...styles.textRight,
+                  ...styles.tableCell,
+                  paddingRight: 8,
+                  color: "#b91c1c",
+                }}
+              >
+                Discount{" "}
+                {bill.discountType === "percentage"
+                  ? `(${bill.discount}%)`
+                  : ""}
+              </Text>
+              <Text
+                style={{
+                  width: amountWidth,
+                  ...styles.textRight,
+                  ...styles.tableCell,
+                  color: "#b91c1c",
+                }}
+              >
+                -{formatCurrency(bill.discount)}
+              </Text>
+            </View>
+          )}
+          {bill.otherCharges !== undefined && bill.otherCharges > 0 && (
+            <View style={styles.tableRow}>
+              <Text
+                style={{
+                  flex: 1,
+                  ...styles.textRight,
+                  ...styles.tableCell,
+                  paddingRight: 8,
+                }}
+              >
+                Other Charges
+              </Text>
+              <Text
+                style={{
+                  width: amountWidth,
+                  ...styles.textRight,
+                  ...styles.tableCell,
+                }}
+              >
+                {formatCurrency(bill.otherCharges)}
+              </Text>
+            </View>
+          )}
           {/* Taxes */}
           {gstEnabled &&
             !isInternational &&
@@ -2144,6 +2196,35 @@ export function BillView({ bill }: BillViewProps) {
                         {formatCurrency(bill.subtotal)}
                       </td>
                     </tr>
+                    {bill.discount !== undefined && bill.discount > 0 && (
+                      <tr className="border-t border-black text-red-600">
+                        <td
+                          colSpan={gstEnabled ? 6 : 5}
+                          className="p-1.5 text-right font-bold"
+                        >
+                          Discount{" "}
+                          {bill.discountType === "percentage"
+                            ? `(${bill.discount}%)`
+                            : ""}
+                        </td>
+                        <td className="p-1.5 text-right font-bold">
+                          -{formatCurrency(bill.discount)}
+                        </td>
+                      </tr>
+                    )}
+                    {bill.otherCharges !== undefined && bill.otherCharges > 0 && (
+                      <tr className="border-t border-black">
+                        <td
+                          colSpan={gstEnabled ? 6 : 5}
+                          className="p-1.5 text-right font-bold"
+                        >
+                          Other Charges
+                        </td>
+                        <td className="p-1.5 text-right font-bold">
+                          {formatCurrency(bill.otherCharges)}
+                        </td>
+                      </tr>
+                    )}
                     <tr className="border-t border-black bg-gray-200">
                       <td
                         colSpan={gstEnabled ? 6 : 5}
