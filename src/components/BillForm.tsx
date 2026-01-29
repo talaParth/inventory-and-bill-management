@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -93,7 +92,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [gstType, setGstType] = useState<"igst" | "cgst_sgst">("cgst_sgst");
   const [billType, setBillType] = useState<"domestic" | "international">(
-    "domestic"
+    "domestic",
   );
   const [saving, setSaving] = useState(false);
   const [productComboOpenIndex, setProductComboOpenIndex] = useState<
@@ -101,9 +100,9 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
   >(null);
   const [productSearch, setProductSearch] = useState("");
   const [createProductOpen, setCreateProductOpen] = useState(false);
-  const [createProductForIndex, setCreateProductForIndex] = useState<number | null>(
-    null
-  );
+  const [createProductForIndex, setCreateProductForIndex] = useState<
+    number | null
+  >(null);
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -214,7 +213,8 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
 
     if (!name) return toast.error("Client name is required");
     if (!billingAddress) return toast.error("Billing address is required");
-    if (!gstin) return toast.error("GSTIN is required (use N.A. if not applicable)");
+    if (!gstin)
+      return toast.error("GSTIN is required (use N.A. if not applicable)");
     if (!state) return toast.error("State is required");
     if (!stateCode) return toast.error("State code is required");
 
@@ -349,16 +349,16 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
           newItem.igst = 0;
         } else if (isIGST) {
           newItem.igst = roundToTwoDecimals(
-            (newItem.amount * newItem.gstRate) / 100
+            (newItem.amount * newItem.gstRate) / 100,
           );
           newItem.cgst = 0;
           newItem.sgst = 0;
         } else {
           newItem.cgst = roundToTwoDecimals(
-            (newItem.amount * newItem.gstRate) / 200
+            (newItem.amount * newItem.gstRate) / 200,
           );
           newItem.sgst = roundToTwoDecimals(
-            (newItem.amount * newItem.gstRate) / 200
+            (newItem.amount * newItem.gstRate) / 200,
           );
           newItem.igst = 0;
         }
@@ -371,7 +371,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
   const getOriginalQuantity = (productId: string): number => {
     if (!isEdit) return 0;
     const originalItem = originalBillItems.find(
-      (item) => item.productId === productId
+      (item) => item.productId === productId,
     );
     return originalItem ? originalItem.quantity : 0;
   };
@@ -396,7 +396,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
     }
 
     const invalidItems = billItems.filter(
-      (item) => !item.productId || !item.productName
+      (item) => !item.productId || !item.productName,
     );
     if (invalidItems.length > 0) {
       toast.error("Please select a product for all items");
@@ -436,7 +436,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
               ))}
             </ul>
           </div>,
-          { duration: 5000 }
+          { duration: 5000 },
         );
         return;
       }
@@ -484,28 +484,29 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                 ))}
               </ul>
             </div>,
-            { duration: 5000 }
+            { duration: 5000 },
           );
           return;
         }
       }
 
+      const otherChargesNum = parseFloat(formData.otherCharges || "0") || 0;
       const discountValue = formData.discount?.trim() || "";
       const discountNum =
         discountValue === "" ? 0 : parseFloat(discountValue) || 0;
       const totals = calculateBillTotals(
         billItems,
         companyProfile,
-        formData.otherCharges || 0,
+        otherChargesNum,
         discountNum,
-        formData.discountType
+        formData.discountType,
       );
       const dueDate = calculateDueDate(formData.date, formData.paymentTerms);
       const paidAmountNum = parseFloat(formData.paidAmount || "0") || 0;
       const paymentStatus = getPaymentStatus(
         dueDate,
         paidAmountNum,
-        totals.total
+        totals.total,
       );
 
       let billCounter = 0;
@@ -523,7 +524,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
           bill?.billNumber ||
           generateBillNumber(
             billCounter,
-            companyProfile.name.substring(0, 6).toUpperCase()
+            companyProfile.name.substring(0, 6).toUpperCase(),
           ),
         date: formData.date,
         clientId: selectedClient.id,
@@ -552,26 +553,26 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
         internationalDetails:
           billType === "international"
             ? {
-              preCarriageBy: internationalData.preCarriageBy,
-              vesselsFlightNo: internationalData.vesselsFlightNo,
-              portOfDischarge: internationalData.portOfDischarge,
-              placeOfReceiptByPreCarriage:
-                internationalData.placeOfReceiptByPreCarriage,
-              portOfLoading: internationalData.portOfLoading,
-              finalDestination: internationalData.finalDestination,
-              grossWeight:
-                parseFloat(internationalData.grossWeight) || undefined,
-              netWeight: parseFloat(internationalData.netWeight) || undefined,
-              countryOfOrigin: internationalData.countryOfOrigin,
-              countryOfFinalDestination:
-                internationalData.countryOfFinalDestination,
-            }
+                preCarriageBy: internationalData.preCarriageBy,
+                vesselsFlightNo: internationalData.vesselsFlightNo,
+                portOfDischarge: internationalData.portOfDischarge,
+                placeOfReceiptByPreCarriage:
+                  internationalData.placeOfReceiptByPreCarriage,
+                portOfLoading: internationalData.portOfLoading,
+                finalDestination: internationalData.finalDestination,
+                grossWeight:
+                  parseFloat(internationalData.grossWeight) || undefined,
+                netWeight: parseFloat(internationalData.netWeight) || undefined,
+                countryOfOrigin: internationalData.countryOfOrigin,
+                countryOfFinalDestination:
+                  internationalData.countryOfFinalDestination,
+              }
             : undefined,
       };
 
       await saveBill(newBill);
       toast.success(
-        isEdit ? "Bill updated successfully" : "Bill created successfully"
+        isEdit ? "Bill updated successfully" : "Bill created successfully",
       );
       navigate(`/bills/${newBill.id}`);
     } catch (error) {
@@ -582,14 +583,15 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
     }
   };
 
+  const otherChargesNum = parseFloat(formData.otherCharges || "0") || 0;
   const discountValue = formData.discount?.trim() || "";
   const discountNum = discountValue === "" ? 0 : parseFloat(discountValue) || 0;
   const totals = calculateBillTotals(
     billItems,
     companyProfile,
-    formData.otherCharges || 0,
+    otherChargesNum,
     discountNum,
-    formData.discountType
+    formData.discountType,
   );
 
   return (
@@ -645,7 +647,9 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                     <CommandList>
                       <CommandEmpty>
                         <div className="py-6 text-center">
-                          <p className="text-sm text-muted-foreground mb-4">No client found.</p>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            No client found.
+                          </p>
                           <Button
                             variant="outline"
                             size="sm"
@@ -687,7 +691,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                                 "mr-2 h-4 w-4",
                                 selectedClient?.id === client.id
                                   ? "opacity-100"
-                                  : "opacity-0"
+                                  : "opacity-0",
                               )}
                             />
                             {client.name}
@@ -970,7 +974,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
 
               const availableProducts = products.filter(
                 (p) =>
-                  !selectedProductIds.includes(p.id) || p.id === item.productId
+                  !selectedProductIds.includes(p.id) || p.id === item.productId,
               );
 
               const availableStock = getAvailableStock(item.productId);
@@ -1006,7 +1010,9 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                               <CommandList>
                                 <CommandEmpty>
                                   <div className="py-6 text-center">
-                                    <p className="text-sm text-muted-foreground mb-4">No product found.</p>
+                                    <p className="text-sm text-muted-foreground mb-4">
+                                      No product found.
+                                    </p>
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -1033,13 +1039,13 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                                     className="flex items-center text-primary font-medium"
                                   >
                                     <PlusCircle className="h-4 w-4 mr-2" />
-                                    Add New Productdddd
+                                    Add New Product
                                   </CommandItem>
                                   <CommandSeparator />
                                   {availableProducts.map((product) => {
                                     const availStock = isEdit
                                       ? product.stock +
-                                      getOriginalQuantity(product.id)
+                                        getOriginalQuantity(product.id)
                                       : product.stock;
                                     return (
                                       <CommandItem
@@ -1049,7 +1055,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                                           updateItem(
                                             index,
                                             "productId",
-                                            product.id
+                                            product.id,
                                           );
                                           setProductComboOpenIndex(null);
                                         }}
@@ -1059,7 +1065,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                                             "mr-2 h-4 w-4",
                                             item.productId === product.id
                                               ? "opacity-100"
-                                              : "opacity-0"
+                                              : "opacity-0",
                                           )}
                                         />
                                         <div className="flex flex-col">
@@ -1144,7 +1150,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                             updateItem(
                               index,
                               "ratePerUnit",
-                              parseFloat(e.target.value) || 0
+                              parseFloat(e.target.value) || 0,
                             )
                           }
                         />
@@ -1160,7 +1166,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                               updateItem(
                                 index,
                                 "gstRate",
-                                parseFloat(e.target.value) || 0
+                                parseFloat(e.target.value) || 0,
                               )
                             }
                           />
@@ -1184,7 +1190,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                           {" + "}
                           {isIGST ? "IGST" : "CGST+SGST"}: ₹
                           {formatToTwoDecimals(
-                            item.igst || item.cgst + item.sgst
+                            item.igst || item.cgst + item.sgst,
                           )}
                           {isIGST && (
                             <span className="ml-2 text-xs text-orange-500">

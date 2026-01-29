@@ -294,13 +294,14 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
 
     setSaving(true);
     try {
+      const otherChargesNum = parseFloat(formData.otherCharges || "0") || 0;
       const discountValue = formData.discount?.trim() || "";
       const discountNum =
         discountValue === "" ? 0 : parseFloat(discountValue) || 0;
       const totals = calculateBillTotals(
         billItems,
         companyProfile,
-        formData.otherCharges || 0,
+        otherChargesNum,
         discountNum,
         formData.discountType
       );
@@ -369,12 +370,13 @@ export function SampleBillForm({ bill, isEdit = false }: SampleBillFormProps) {
     }
   };
 
+  const otherChargesNum = parseFloat(formData.otherCharges || "0") || 0;
   const discountValue = formData.discount?.trim() || "";
   const discountNum = discountValue === "" ? 0 : parseFloat(discountValue) || 0;
   const totals = calculateBillTotals(
     billItems,
     companyProfile,
-    formData.otherCharges || 0,
+    otherChargesNum,
     discountNum,
     formData.discountType
   );
