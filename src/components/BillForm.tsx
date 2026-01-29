@@ -89,6 +89,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
     phone: "",
     email: "",
   });
+  const [originalBillItems, setOriginalBillItems] = useState<BillItem[]>([]);
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [gstType, setGstType] = useState<"igst" | "cgst_sgst">("cgst_sgst");
   const [billType, setBillType] = useState<"domestic" | "international">(
