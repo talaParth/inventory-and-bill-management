@@ -1053,17 +1053,9 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
   >(null);
   const [productSearch, setProductSearch] = useState("");
   const [createProductOpen, setCreateProductOpen] = useState(false);
-  const [creatingProduct, setCreatingProduct] = useState(false);
   const [createProductForIndex, setCreateProductForIndex] = useState<number | null>(
     null
   );
-  const [productFormData, setProductFormData] = useState({
-    name: "",
-    hsnCode: "",
-    gstRate: "",
-    unit: "",
-    sellingPrice: "",
-  });
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -1209,16 +1201,6 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
     }
   };
 
-  const resetProductForm = (prefillName?: string) => {
-    setProductFormData({
-      name: prefillName || "",
-      hsnCode: "",
-      gstRate: "",
-      unit: companyProfile?.defaultUnit || "kg",
-      sellingPrice: "",
-    });
-  };
-
   const applyProductToBillItem = (index: number, product: Product) => {
     const updated = [...billItems];
     const item = { ...updated[index] };
@@ -1244,53 +1226,6 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
     }
     updated[index] = item;
     setBillItems(updated);
-  };
-
-  const handleCreateProduct = async () => {
-    const name = productFormData.name.trim();
-    const unit = productFormData.unit.trim();
-    const gstRateNum = parseFloat(productFormData.gstRate || "0") || 0;
-    const sellingPriceNum = parseFloat(productFormData.sellingPrice || "0") || 0;
-
-    if (!name) return toast.error("Product name is required");
-    if (!unit) return toast.error("Unit is required");
-
-    setCreatingProduct(true);
-    try {
-      const newProduct: Product = {
-        id: crypto.randomUUID(),
-        name,
-        hsnCode: productFormData.hsnCode.trim(),
-        gstRate: gstRateNum,
-        unit,
-        sellingPrice: sellingPriceNum,
-        price: sellingPriceNum,
-        purchasePrice: 0,
-        stock: 0,
-        whereToBuy: "",
-        weight: "",
-        createdAt: new Date().toISOString(),
-      };
-
-      await saveProduct(newProduct);
-
-      const refreshed = await getProducts();
-      setProducts(refreshed);
-
-      if (createProductForIndex !== null) {
-        applyProductToBillItem(createProductForIndex, newProduct);
-      }
-
-      setProductComboOpenIndex(null);
-      setCreateProductOpen(false);
-      setCreateProductForIndex(null);
-      toast.success("Product created");
-    } catch (e) {
-      console.error("Failed to create product:", e);
-      toast.error("Failed to create product");
-    } finally {
-      setCreatingProduct(false);
-    }
   };
 
   const addItem = () => {
