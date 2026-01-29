@@ -1313,10 +1313,12 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                 <span>-₹{formatToTwoDecimals(totals.discount)}</span>
               </div>
             )}
-            {(formData.otherCharges || 0) > 0 && (
+            {(parseFloat(String(formData.otherCharges)) || 0) > 0 && (
               <div className="flex justify-between text-lg">
                 <span>Other Charges:</span>
-                <span>₹{formatToTwoDecimals(formData.otherCharges)}</span>
+                <span>
+                  ₹{formatToTwoDecimals(parseFloat(String(formData.otherCharges)) || 0)}
+                </span>
               </div>
             )}
             {totals.roundOff !== 0 && (
