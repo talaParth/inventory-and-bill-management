@@ -20,6 +20,7 @@ import {
   FolderOpen,
   StickyNote,
   FileStack,
+  UserCheck,
 } from "lucide-react";
 import { getCompanyProfile } from "@/lib/storage";
 interface LayoutProps {
@@ -85,6 +86,7 @@ export function Layout({ children }: LayoutProps) {
     { path: "/clients", icon: Users, label: "Clients" },
     { path: "/files", icon: FolderOpen, label: "Files" },
     { path: "/notes", icon: StickyNote, label: "Notes" },
+    { path: "/bill-creators", icon: UserCheck, label: "Creators" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
   const isActive = (path: string) => {

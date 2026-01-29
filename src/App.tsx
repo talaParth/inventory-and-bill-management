@@ -25,6 +25,7 @@ import Passbook from "@/pages/Passbook";
 import Files from "@/pages/Files";
 import Notes from "@/pages/Notes";
 import SampleBill from "@/pages/SampleBill";
+import BillCreators from "@/pages/BillCreators";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { Suspense } from "react";
 import { SampleBillForm } from "./components/SampleBillForm";
@@ -67,6 +68,7 @@ const App = () => (
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/files" element={<Files />} />
                       <Route path="/notes" element={<Notes />} />
+                      <Route path="/bill-creators" element={<BillCreators />} />
                       <Route path="*" element={<NotFound />} />
                       <Route path="/sample-bills" element={<SampleBills />} />
                       <Route
