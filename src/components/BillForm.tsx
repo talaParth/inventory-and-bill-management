@@ -40,9 +40,11 @@
 //   Loader2,
 //   Check,
 //   ChevronsUpDown,
+//   UserPlus,
 // } from "lucide-react";
 // import { cn } from "@/lib/utils";
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+// import { ClientForm } from "./ClientForm";
 
 // interface BillFormProps {
 //   bill?: Bill;
@@ -994,6 +996,7 @@ import {
   Loader2,
   Check,
   ChevronsUpDown,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -1010,6 +1013,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import { ClientForm } from "./ClientForm";
 
 interface BillFormProps {
   bill?: Bill;
@@ -1654,8 +1658,36 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                   <Command>
                     <CommandInput placeholder="Search client..." />
                     <CommandList>
-                      <CommandEmpty>No client found.</CommandEmpty>
+                      <CommandEmpty>
+                        <div className="py-6 text-center">
+                          <p className="text-sm text-muted-foreground mb-4">No client found.</p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setCreateClientOpen(true);
+                              setClientComboOpen(false);
+                            }}
+                          >
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Create New Client
+                          </Button>
+                        </div>
+                      </CommandEmpty>
                       <CommandGroup>
+                        <CommandItem
+                          onSelect={() => {
+                            setCreateClientOpen(true);
+                            setClientComboOpen(false);
+                          }}
+                          className="flex items-center text-primary font-medium"
+                        >
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Add New Client
+                        </CommandItem>
+                        <CommandSeparator />
                         {clients.map((client) => (
                           <CommandItem
                             key={client.id}
@@ -2313,6 +2345,15 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
           Cancel
         </Button>
       </div>
+
+      <ClientForm 
+        open={createClientOpen} 
+        onOpenChange={setCreateClientOpen} 
+        onSuccess={(newClient) => {
+          setClients([...clients, newClient]);
+          setSelectedClient(newClient);
+        }} 
+      />
     </div>
   );
 }
