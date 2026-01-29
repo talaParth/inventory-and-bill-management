@@ -127,11 +127,11 @@ export default function Bills() {
     toast.success('Bill deleted successfully');
   };
 
-  const handlePaymentCollected = async (amount: number) => {
+  const handlePaymentCollected = async (amount: number, type: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other") => {
     if (selectedBill) {
-      await updateBillPayment(selectedBill.id, amount);
+      await updateBillPayment(selectedBill.id, amount, type);
       await loadBills();
-      toast.success(`Payment of ${formatCurrency(amount)} collected successfully`);
+      toast.success(`Payment of ${formatCurrency(amount)} via ${type} collected successfully`);
     }
   };
 

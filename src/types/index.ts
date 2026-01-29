@@ -92,6 +92,7 @@ export interface Bill {
   dueDate: string;
   paymentStatus: "paid" | "pending" | "overdue";
   paidAmount: number;
+  paymentType?: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other";
   gstType: "igst" | "cgst_sgst";
   notes?: string;
   returnComment?: string;
@@ -137,6 +138,7 @@ export interface SampleBill {
   dueDate: string;
   paymentStatus: "paid" | "pending" | "overdue";
   paidAmount: number;
+  paymentType?: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other";
   gstType: "igst" | "cgst_sgst";
   notes?: string;
   deliveryNote?: string;

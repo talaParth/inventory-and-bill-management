@@ -10,6 +10,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Bill } from '@/types';
 import { formatCurrency } from '@/lib/billUtils';
 import { Loader2 } from 'lucide-react';
@@ -18,12 +25,13 @@ interface PaymentDialogProps {
   bill: Bill;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPaymentCollected: (amount: number) => void;
+  onPaymentCollected: (amount: number, type: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other") => void;
 }
 
 export function PaymentDialog({ bill, open, onOpenChange, onPaymentCollected }: PaymentDialogProps) {
   const pendingAmount = bill.total - bill.paidAmount;
   const [paymentAmount, setPaymentAmount] = useState(pendingAmount.toString());
+  const [paymentType, setPaymentType] = useState<"Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other">("Cash");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,7 +42,7 @@ export function PaymentDialog({ bill, open, onOpenChange, onPaymentCollected }: 
     await new Promise(resolve => setTimeout(resolve, 800));
 
     const amount = parseFloat(paymentAmount);
-    onPaymentCollected(amount);
+    onPaymentCollected(amount, paymentType);
     setLoading(false);
     onOpenChange(false);
   };
@@ -94,6 +102,26 @@ export function PaymentDialog({ bill, open, onOpenChange, onPaymentCollected }: 
                 Full Payment
               </Button>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="payment-type" className="text-sm">Payment Type</Label>
+            <Select
+              value={paymentType}
+              onValueChange={(value: any) => setPaymentType(value)}
+              disabled={loading}
+            >
+              <SelectTrigger id="payment-type">
+                <SelectValue placeholder="Select payment type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Cash">Cash</SelectItem>
+                <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                <SelectItem value="UPI">UPI</SelectItem>
+                <SelectItem value="Cheque">Cheque</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <DialogFooter className="gap-2 flex-col sm:flex-row">

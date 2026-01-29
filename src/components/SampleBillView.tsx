@@ -1055,6 +1055,30 @@ Thank you!`;
                       className="font-bold text-[10px] mb-1 border-b border-black pb-1 break-words"
                       style={{ color: company.themeColor }}
                     >
+                      Payment Information
+                    </h3>
+                    <div className="text-[10px] space-y-0.5 mt-1 break-words">
+                      <p>
+                        <strong>Status:</strong> {bill.paymentStatus.toUpperCase()}
+                      </p>
+                      {bill.paymentType && (
+                        <p>
+                          <strong>Mode:</strong> {bill.paymentType}
+                        </p>
+                      )}
+                      <p>
+                        <strong>Paid:</strong> {formatCurrency(bill.paidAmount)}
+                      </p>
+                      <p>
+                        <strong>Balance:</strong> {formatCurrency(bill.total - bill.paidAmount)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border border-black border-l-0 p-2">
+                    <h3
+                      className="font-bold text-[10px] mb-1 border-b border-black pb-1 break-words"
+                      style={{ color: company.themeColor }}
+                    >
                       Company Bank Details
                     </h3>
                     <div className="text-[10px] space-y-0.5 mt-1 break-words">

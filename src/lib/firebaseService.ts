@@ -482,7 +482,8 @@ export const incrementBillCounter = async (): Promise<number> => {
 
 export const updateBillPayment = async (
   billId: string,
-  paidAmount: number
+  paidAmount: number,
+  paymentType?: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other"
 ): Promise<void> => {
   try {
     const billRef = doc(db, COLLECTIONS.BILLS, billId);
@@ -497,6 +498,7 @@ export const updateBillPayment = async (
       await updateDoc(billRef, {
         paidAmount: newPaidAmount,
         paymentStatus,
+        paymentType: paymentType || bill.paymentType,
       });
     }
   } catch (error) {
@@ -1788,7 +1790,8 @@ export const deleteSampleBill = async (id: string): Promise<void> => {
 // Update sample bill payment
 export const updateSampleBillPayment = async (
   billId: string,
-  paidAmount: number
+  paidAmount: number,
+  paymentType?: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other"
 ): Promise<void> => {
   try {
     const billRef = doc(db, SAMPLE_BILLS_COLLECTION, billId);
@@ -1803,6 +1806,7 @@ export const updateSampleBillPayment = async (
       await updateDoc(billRef, {
         paidAmount: newPaidAmount,
         paymentStatus,
+        paymentType: paymentType || bill.paymentType,
       });
     }
   } catch (error) {
