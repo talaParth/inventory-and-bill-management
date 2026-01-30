@@ -1986,23 +1986,18 @@ export function BillView({ bill }: BillViewProps) {
 
       const url = URL.createObjectURL(blob);
 
-      // Open in new tab (works on mobile/desktop)
+      // Create a hidden link and open it in a new window/tab
+      // Using window.open is usually enough to trigger the browser's PDF viewer
       const newWindow = window.open(url, "_blank");
       if (newWindow) {
         newWindow.focus();
       } else {
-        // Fallback: If popup blocked, force download
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${bill.billNumber}.pdf`;
-        a.click();
-        alert(
-          "Popup blocked. PDF downloaded instead. Open and print from your downloads."
-        );
+        // Fallback for popup blockers: suggest user to allow popups or download manually
+        alert("Please allow popups to view and print the PDF.");
       }
 
-      // Optional: Auto-revoke after 30s to free memory
-      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      // Optional: Auto-revoke after 60s to free memory
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (error) {
       console.error("PDF generation failed:", error);
       alert("Failed to generate PDF. Please try again.");
