@@ -32,7 +32,6 @@ import {
   Expense,
   UploadedFile,
   Note,
-  InventoryItemInput,
   InventoryAddResult,
   ProductConflict,
   SampleBill,
