@@ -798,6 +798,16 @@ export const addPurchaseItemsToInventory = async (
   }
 };
 
+export interface InventoryItemInput {
+  description: string;
+  hsnCode?: string;
+  quantity: number;
+  unit: string;
+  purchasePrice: number;
+  sellingPrice: number;
+  gstRate?: number;
+}
+
 const updateExistingProduct = async (
   existingProduct: Product,
   item: InventoryItemInput,
@@ -893,6 +903,8 @@ const createNewProduct = async (
     sellingPrice: item.sellingPrice || item.purchasePrice,
     stock: item.quantity,
     createdAt: new Date().toISOString(),
+    whereToBuy: bill.vendorName || "",
+    weight: "",
   };
 
   const productRef = doc(db, COLLECTIONS.PRODUCTS, newProduct.id);
