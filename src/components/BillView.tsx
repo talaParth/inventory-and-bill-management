@@ -1510,28 +1510,90 @@ export const BillPDF = ({
           </View>
         </View>
 
-        {/* Notes */}
-        {(bill.notes || company.defaultNote) && (
+        {/* Notes and Payment History */}
+        {(bill.notes || company.defaultNote || (bill.payments && bill.payments.length > 0)) && (
           <View
             style={{
-              ...styles.border,
-              padding: mmToPt(2.5),
-              marginBottom: mmToPt(3),
+              flexDirection: "row",
+              border: "1pt solid black",
+              borderTop: 0,
             }}
           >
-            <Text
-              style={{
-                ...styles.bold,
-                fontSize: 8,
-                marginBottom: 4,
-                color: company.themeColor,
-              }}
-            >
-              Notes / Terms
-            </Text>
-            <Text style={styles.smallText}>
-              {bill.notes || company.defaultNote}
-            </Text>
+            {/* Notes Section */}
+            {(bill.notes || company.defaultNote) && (
+              <View
+                style={{
+                  flex: 1,
+                  padding: mmToPt(2.5),
+                  borderRight: (bill.payments && bill.payments.length > 0) ? "1pt solid black" : "0",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 8,
+                    fontWeight: "bold",
+                    marginBottom: 4,
+                    color: company.themeColor,
+                  }}
+                >
+                  Notes / Terms
+                </Text>
+                <Text style={{ fontSize: 8 }}>
+                  {bill.notes || company.defaultNote}
+                </Text>
+              </View>
+            )}
+
+            {/* Payment History Section */}
+            {bill.payments && bill.payments.length > 0 && (
+              <View style={{ flex: 1, padding: mmToPt(2.5) }}>
+                <Text
+                  style={{
+                    fontSize: 8,
+                    fontWeight: "bold",
+                    marginBottom: 4,
+                    color: company.themeColor,
+                  }}
+                >
+                  Payment History
+                </Text>
+                <View style={{ gap: 2 }}>
+                  {bill.payments.map((payment, index) => (
+                    <View
+                      key={payment.id || index}
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        fontSize: 7,
+                        borderBottom: "0.5pt solid #f3f4f6",
+                        paddingBottom: 1,
+                      }}
+                    >
+                      <Text>
+                        {payment.method} ({formatDate(payment.date)})
+                      </Text>
+                      <Text style={{ fontWeight: "bold" }}>
+                        {formatCurrency(payment.amount)}
+                      </Text>
+                    </View>
+                  ))}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      marginTop: 2,
+                      paddingTop: 2,
+                      borderTop: "1pt solid #e5e7eb",
+                    }}
+                  >
+                    <Text style={{ fontWeight: "bold" }}>Total Paid</Text>
+                    <Text style={{ fontWeight: "bold", color: company.themeColor }}>
+                      {formatCurrency(bill.paidAmount)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -1539,24 +1601,22 @@ export const BillPDF = ({
         {bill.returnComment && (
           <View
             style={{
-              ...styles.border,
+              border: "1pt solid black",
+              borderTop: 0,
               padding: mmToPt(2),
-              marginBottom: mmToPt(3),
             }}
           >
             <Text
               style={{
-                ...styles.bold,
                 fontSize: 8,
+                fontWeight: "bold",
                 marginBottom: 4,
                 color: company.themeColor,
               }}
             >
               Return History
             </Text>
-            <Text style={styles.smallText}>
-              {bill.returnComment}
-            </Text>
+            <Text style={{ fontSize: 8 }}>{bill.returnComment}</Text>
           </View>
         )}
 
