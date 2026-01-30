@@ -65,6 +65,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter",
     fontSize: 8,
     padding: mmToPt(5),
+    lineHeight: 1.2,
   },
   currencyText: {
     fontFamily: "Inter",
@@ -90,17 +91,18 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     marginBottom: 8,
   },
   smallText: {
-    fontSize: 8,
+    fontSize: 9,
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#000", // Will override with themeColor
+    backgroundColor: "#000",
     color: "white",
+    fontSize: 9,
   },
   tableRow: {
     flexDirection: "row",
@@ -108,6 +110,7 @@ const styles = StyleSheet.create({
   tableCell: {
     padding: 4,
     border: "1pt solid black",
+    fontSize: 9,
   },
   textRight: {
     textAlign: "right",
@@ -1608,7 +1611,7 @@ export const BillPDF = ({
           <View
             style={{
               border: "1pt solid black",
-              borderTop: 0,
+              borderTop: "1pt solid black",
               padding: mmToPt(2),
             }}
           >
@@ -1631,6 +1634,7 @@ export const BillPDF = ({
           style={{
             flexDirection: "row",
             border: "1pt solid black",
+            borderTop: "1pt solid black",
             marginTop: mmToPt(3),
           }}
         >
@@ -1724,7 +1728,7 @@ export const BillPDF = ({
         <View
           style={{
             border: "1pt solid black",
-            borderTop: 0,
+            borderTop: "1pt solid black",
             padding: mmToPt(2),
           }}
         >
@@ -1759,7 +1763,7 @@ export const BillPDF = ({
           style={{
             flexDirection: "row",
             border: "1pt solid black",
-            borderTop: 0,
+            borderTop: "1pt solid black",
           }}
         >
           <View
