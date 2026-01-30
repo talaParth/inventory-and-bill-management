@@ -72,6 +72,16 @@ export interface BillItem {
   igst: number;
 }
 
+export type PaymentMethod = "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other";
+
+export interface PaymentTransaction {
+  id: string;
+  amount: number;
+  method: PaymentMethod;
+  date: string;
+  note?: string;
+}
+
 export interface Bill {
   id: string;
   billNumber: string;
@@ -92,7 +102,8 @@ export interface Bill {
   dueDate: string;
   paymentStatus: "paid" | "pending" | "overdue";
   paidAmount: number;
-  paymentType?: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other";
+  paymentType?: PaymentMethod; // For legacy support/display
+  payments?: PaymentTransaction[]; // New field for multiple payments
   gstType: "igst" | "cgst_sgst";
   notes?: string;
   returnComment?: string;
@@ -138,7 +149,8 @@ export interface SampleBill {
   dueDate: string;
   paymentStatus: "paid" | "pending" | "overdue";
   paidAmount: number;
-  paymentType?: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other";
+  paymentType?: PaymentMethod; // For legacy support/display
+  payments?: PaymentTransaction[]; // New field for multiple payments
   gstType: "igst" | "cgst_sgst";
   notes?: string;
   deliveryNote?: string;
