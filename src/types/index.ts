@@ -103,7 +103,7 @@ export interface Bill {
   paymentStatus: "paid" | "pending" | "overdue";
   paidAmount: number;
   paymentType?: PaymentMethod; // For legacy support/display
-  payments?: PaymentTransaction[]; // New field for multiple payments
+  payments: PaymentTransaction[]; // Required field for multiple payments
   gstType: "igst" | "cgst_sgst";
   notes?: string;
   returnComment?: string;
@@ -150,7 +150,7 @@ export interface SampleBill {
   paymentStatus: "paid" | "pending" | "overdue";
   paidAmount: number;
   paymentType?: PaymentMethod; // For legacy support/display
-  payments?: PaymentTransaction[]; // New field for multiple payments
+  payments: PaymentTransaction[]; // Required field for multiple payments
   gstType: "igst" | "cgst_sgst";
   notes?: string;
   deliveryNote?: string;

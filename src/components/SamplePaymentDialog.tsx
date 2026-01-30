@@ -25,7 +25,7 @@ interface SamplePaymentDialogProps {
   bill: SampleBill;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPaymentCollected: (amount: number, type: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other") => void;
+  onPaymentCollected: (amount: number, type: PaymentMethod, note?: string) => void;
 }
 
 export function SamplePaymentDialog({
@@ -36,7 +36,8 @@ export function SamplePaymentDialog({
 }: SamplePaymentDialogProps) {
   const pendingAmount = bill.total - bill.paidAmount;
   const [paymentAmount, setPaymentAmount] = useState(pendingAmount.toString());
-  const [paymentType, setPaymentType] = useState<"Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other">("Cash");
+  const [paymentType, setPaymentType] = useState<PaymentMethod>("Cash");
+  const [paymentNote, setPaymentNote] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,9 +47,10 @@ export function SamplePaymentDialog({
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const amount = parseFloat(paymentAmount);
-    onPaymentCollected(amount, paymentType);
+    onPaymentCollected(amount, paymentType, paymentNote);
     setLoading(false);
     onOpenChange(false);
+    setPaymentNote("");
   };
 
   return (
@@ -136,6 +138,18 @@ export function SamplePaymentDialog({
                 <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="payment-note" className="text-sm">Note (Optional)</Label>
+            <Input
+              id="payment-note"
+              value={paymentNote}
+              onChange={(e) => setPaymentNote(e.target.value)}
+              placeholder="Enter payment reference or note"
+              disabled={loading}
+              className="text-sm"
+            />
           </div>
 
           <DialogFooter className="gap-2 flex-col sm:flex-row">

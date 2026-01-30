@@ -483,7 +483,8 @@ export const incrementBillCounter = async (): Promise<number> => {
 export const updateBillPayment = async (
   billId: string,
   paidAmount: number,
-  paymentType?: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other"
+  paymentType: PaymentMethod,
+  note?: string
 ): Promise<void> => {
   try {
     const billRef = doc(db, COLLECTIONS.BILLS, billId);
@@ -495,10 +496,21 @@ export const updateBillPayment = async (
       const paymentStatus =
         newPaidAmount >= bill.total ? "paid" : bill.paymentStatus;
 
+      const newPayment: PaymentTransaction = {
+        id: Math.random().toString(36).substr(2, 9),
+        amount: paidAmount,
+        method: paymentType,
+        date: new Date().toISOString(),
+        note: note,
+      };
+
+      const payments = Array.isArray(bill.payments) ? [...bill.payments, newPayment] : [newPayment];
+
       await updateDoc(billRef, {
         paidAmount: newPaidAmount,
         paymentStatus,
-        paymentType: paymentType || bill.paymentType,
+        paymentType: paymentType, // Update main payment type to last used
+        payments: removeUndefined(payments),
       });
     }
   } catch (error) {
