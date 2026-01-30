@@ -1560,123 +1560,183 @@ export const BillPDF = ({
           </View>
         )}
 
-        {/* Footer */}
-        <View style={{ flexDirection: "row", marginTop: mmToPt(3) }}>
-          <View style={{ ...styles.border, padding: mmToPt(2), width: "50%" }}>
-            <Text
+        {/* Footer Grid */}
+        <View
+          style={{
+            flexDirection: "row",
+            border: "1pt solid black",
+            marginTop: mmToPt(3),
+          }}
+        >
+          {/* Payment Information */}
+          <View style={{ flex: 1, padding: mmToPt(2), borderRight: "1pt solid black" }}>
+            <View
               style={{
-                ...styles.bold,
-                fontSize: 8,
-                marginBottom: 4,
-                color: company.themeColor,
                 borderBottom: "1pt solid black",
+                paddingBottom: mmToPt(1),
+                marginBottom: mmToPt(1),
               }}
             >
-              Company Bank Details
-            </Text>
-            <View style={{ ...styles.smallText, marginTop: 4 }}>
-              <Text>
-                <Text style={styles.bold}>A/c Holder:</Text>{" "}
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: "bold",
+                  color: company.themeColor,
+                }}
+              >
+                Payment Information
+              </Text>
+            </View>
+            <View style={{ gap: mmToPt(0.5) }}>
+              <Text style={{ fontSize: 9 }}>
+                <Text style={{ fontWeight: "bold" }}>Status:</Text>{" "}
+                {bill.paymentStatus.toUpperCase()}
+              </Text>
+              <Text style={{ fontSize: 9 }}>
+                <Text style={{ fontWeight: "bold" }}>Paid:</Text>{" "}
+                {formatCurrency(bill.paidAmount)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Company Bank Details */}
+          <View style={{ flex: 1, padding: mmToPt(2) }}>
+            <View
+              style={{
+                borderBottom: "1pt solid black",
+                paddingBottom: mmToPt(1),
+                marginBottom: mmToPt(1),
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: "bold",
+                  color: company.themeColor,
+                }}
+              >
+                Company Bank Details
+              </Text>
+            </View>
+            <View style={{ gap: mmToPt(0.5) }}>
+              <Text style={{ fontSize: 9 }}>
+                <Text style={{ fontWeight: "bold" }}>A/c Holder:</Text>{" "}
                 {company.bankDetails.accountHolder}
               </Text>
-              <Text>
-                <Text style={styles.bold}>Bank Name:</Text>{" "}
+              <Text style={{ fontSize: 9 }}>
+                <Text style={{ fontWeight: "bold" }}>Bank Name:</Text>{" "}
                 {company.bankDetails.bankName}
               </Text>
-              <Text>
-                <Text style={styles.bold}>A/c Number:</Text>{" "}
+              <Text style={{ fontSize: 9 }}>
+                <Text style={{ fontWeight: "bold" }}>A/c Number:</Text>{" "}
                 {company.bankDetails.accountNumber}
               </Text>
-              <Text>
-                <Text style={styles.bold}>Branch & IFSC:</Text>{" "}
+              <Text style={{ fontSize: 9 }}>
+                <Text style={{ fontWeight: "bold" }}>Branch & IFSC:</Text>{" "}
                 {company.bankDetails.branchAndIFSC}
               </Text>
             </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: 8,
-              }}
-            >
-              {qrDataURL && (
-                <Image src={qrDataURL} style={{ width: 50, height: 50 }} />
-              )}
-              <Text style={{ fontSize: 7, ...styles.gray, marginLeft: 8 }}>
-                {qrDataURL
-                  ? "Scan & Pay\n(UPI)"
-                  : "Add UPI ID in Settings\nto enable Scan & Pay"}
-              </Text>
-            </View>
-          </View>
-          <View
-            style={{
-              ...styles.border,
-              borderLeft: 0,
-              padding: mmToPt(2),
-              width: "50%",
-              justifyContent: "space-between",
-            }}
-          >
-            <View>
-              <Text
+            {qrDataURL && (
+              <View
                 style={{
-                  ...styles.bold,
-                  fontSize: 8,
-                  marginBottom: 4,
-                  color: company.themeColor,
-                  borderBottom: "1pt solid black",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: mmToPt(2),
+                  gap: mmToPt(2),
                 }}
               >
-                Declaration
-              </Text>
-              <Text style={{ fontSize: 7, marginTop: 4 }}>
-                {isInternational
-                  ? "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. We intend to claim benefit under RoDTEP scheme as applicable."
-                  : "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct."}
-              </Text>
-            </View>
+                <Image src={qrDataURL} style={{ width: 50, height: 50 }} />
+                <Text style={{ fontSize: 8, color: "#4b5563" }}>
+                  Scan & Pay{"\n"}(UPI)
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
-        {/* Signatures */}
-        <View style={{ flexDirection: "row", ...styles.border, borderTop: 0 }}>
+        {/* Declaration - Spans full width */}
+        <View
+          style={{
+            border: "1pt solid black",
+            borderTop: 0,
+            padding: mmToPt(2),
+          }}
+        >
           <View
             style={{
-              width: "50%",
-              padding: 12,
+              borderBottom: "1pt solid black",
+              paddingBottom: mmToPt(1),
+              marginBottom: mmToPt(1),
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "bold",
+                color: company.themeColor,
+              }}
+            >
+              Declaration
+            </Text>
+          </View>
+          <Text style={{ fontSize: 9, lineHeight: 1.4 }}>
+            {isInternational
+              ? "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. We intend to claim benefit under RoDTEP scheme as applicable."
+              : isSampleBill
+              ? "This is a SAMPLE BILL for demonstration purposes only. Not valid for actual transactions."
+              : "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct."}
+          </Text>
+        </View>
+
+        {/* Signatures */}
+        <View
+          style={{
+            flexDirection: "row",
+            border: "1pt solid black",
+            borderTop: 0,
+          }}
+        >
+          <View
+            style={{
+              flex: 1,
+              padding: mmToPt(3),
               borderRight: "1pt solid black",
             }}
           >
-            <Text style={{ fontSize: 8, ...styles.bold, marginBottom: 4 }}>
+            <Text style={{ fontSize: 10, fontWeight: "bold", marginBottom: 4 }}>
               Customer's Seal and Signature
             </Text>
-            <View style={{ height: 48, borderBottom: "1pt dashed gray" }} />
+            <View
+              style={{
+                height: 48,
+                borderBottom: "1pt dashed #9ca3af",
+              }}
+            />
             <Text
               style={{
-                fontSize: 7,
+                fontSize: 9,
                 textAlign: "center",
                 marginTop: 4,
-                ...styles.gray,
+                color: "#4b5563",
               }}
             >
               {bill.client.name}
             </Text>
           </View>
-          <View style={{ width: "50%", padding: 12, alignItems: "flex-end" }}>
-            <Text style={{ fontSize: 8, ...styles.bold, marginBottom: 4 }}>
+          <View style={{ flex: 1, padding: mmToPt(3), textAlign: "right" }}>
+            <Text style={{ fontSize: 10, fontWeight: "bold", marginBottom: 4 }}>
               for {company.name}
             </Text>
             <View style={{ height: 48 }} />
-            <Text
+            <View
               style={{
-                fontSize: 7,
                 borderTop: "1pt solid black",
                 paddingTop: 4,
+                alignSelf: "flex-end",
               }}
             >
-              Authorised Signatory
-            </Text>
+              <Text style={{ fontSize: 9 }}>Authorised Signatory</Text>
+            </View>
           </View>
         </View>
 
