@@ -2752,7 +2752,7 @@ export function BillView({ bill }: BillViewProps) {
           </div>
 
           {/* Notes */}
-          {(bill.notes || company.defaultNote || bill.createdBy) && (
+          {(bill.notes || company.defaultNote || bill.createdBy || (bill.payments && bill.payments.length > 0)) && (
             <div className="border border-black p-2.5 mb-3">
               <div className="grid grid-cols-2 gap-4">
                 {(bill.notes || company.defaultNote) && (
@@ -2768,7 +2768,25 @@ export function BillView({ bill }: BillViewProps) {
                     </p>
                   </div>
                 )}
-                {bill.createdBy && (
+                {bill.payments && bill.payments.length > 0 && (
+                  <div className="print:hidden">
+                    <h3
+                      className="font-bold text-[10px] mb-1"
+                      style={{ color: company.themeColor }}
+                    >
+                      Payment History
+                    </h3>
+                    <div className="space-y-1">
+                      {bill.payments.map((payment, index) => (
+                        <div key={payment.id || index} className="flex justify-between text-[9px] border-b border-gray-100 pb-0.5 last:border-0">
+                          <span>{payment.method} ({formatDate(payment.date)})</span>
+                          <span className="font-semibold">{formatCurrency(payment.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {bill.createdBy && !bill.payments?.length && (
                   <div className="text-right">
                     <h3
                       className="font-bold text-[10px] mb-1"

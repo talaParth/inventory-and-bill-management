@@ -498,7 +498,7 @@ export const updateBillPayment = async (
 
     if (billSnap.exists()) {
       const bill = billSnap.data() as Bill;
-      const newPaidAmount = bill.paidAmount + paidAmount;
+      const newPaidAmount = (bill.paidAmount || 0) + paidAmount;
       const paymentStatus =
         newPaidAmount >= bill.total ? "paid" : bill.paymentStatus;
 
