@@ -2831,16 +2831,8 @@ export function BillView({ bill }: BillViewProps) {
                   <p>
                     <strong>Status:</strong> {bill.paymentStatus.toUpperCase()}
                   </p>
-                  {bill.paymentType && (
-                    <p>
-                      <strong>Mode:</strong> {bill.paymentType}
-                    </p>
-                  )}
                   <p>
                     <strong>Paid:</strong> {formatCurrency(bill.paidAmount)}
-                  </p>
-                  <p>
-                    <strong>Balance:</strong> {formatCurrency(bill.total - bill.paidAmount)}
                   </p>
                 </div>
               </div>
