@@ -36,6 +36,8 @@ import {
   InventoryAddResult,
   ProductConflict,
   SampleBill,
+  PaymentMethod,
+  PaymentTransaction,
 } from "@/types";
 
 // Collection names

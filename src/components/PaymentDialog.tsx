@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Bill } from '@/types';
+import { Bill, PaymentMethod } from '@/types';
 import { formatCurrency } from '@/lib/billUtils';
 import { Loader2 } from 'lucide-react';
 
