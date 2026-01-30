@@ -406,6 +406,11 @@ export const saveBill = async (bill: Bill): Promise<void> => {
       batch.set(transactionRef, transaction);
     }
 
+    // Ensure payments array exists for new bills
+    if (!bill.payments) {
+      bill.payments = [];
+    }
+
     await batch.commit();
   } catch (error) {
     console.error("Error saving bill:", error);
@@ -1803,7 +1808,8 @@ export const deleteSampleBill = async (id: string): Promise<void> => {
 export const updateSampleBillPayment = async (
   billId: string,
   paidAmount: number,
-  paymentType?: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other"
+  paymentType: PaymentMethod,
+  note?: string
 ): Promise<void> => {
   try {
     const billRef = doc(db, SAMPLE_BILLS_COLLECTION, billId);
@@ -1815,10 +1821,21 @@ export const updateSampleBillPayment = async (
       const paymentStatus =
         newPaidAmount >= bill.total ? "paid" : bill.paymentStatus;
 
+      const newPayment: PaymentTransaction = {
+        id: Math.random().toString(36).substr(2, 9),
+        amount: paidAmount,
+        method: paymentType,
+        date: new Date().toISOString(),
+        note: note,
+      };
+
+      const payments = Array.isArray(bill.payments) ? [...bill.payments, newPayment] : [newPayment];
+
       await updateDoc(billRef, {
         paidAmount: newPaidAmount,
         paymentStatus,
-        paymentType: paymentType || bill.paymentType,
+        paymentType: paymentType,
+        payments: removeUndefined(payments),
       });
     }
   } catch (error) {
