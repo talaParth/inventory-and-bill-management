@@ -1517,6 +1517,7 @@ export const BillPDF = ({
               flexDirection: "row",
               border: "1pt solid black",
               borderTop: 0,
+              minHeight: mmToPt(30),
             }}
           >
             {/* Notes Section */}
@@ -1532,13 +1533,15 @@ export const BillPDF = ({
                   style={{
                     fontSize: 8,
                     fontWeight: "bold",
-                    marginBottom: 4,
+                    marginBottom: 6,
                     color: company.themeColor,
+                    borderBottom: "0.5pt solid " + company.themeColor,
+                    paddingBottom: 2,
                   }}
                 >
                   Notes / Terms
                 </Text>
-                <Text style={{ fontSize: 8 }}>
+                <Text style={{ fontSize: 8, lineHeight: 1.4 }}>
                   {bill.notes || company.defaultNote}
                 </Text>
               </View>
@@ -1551,25 +1554,28 @@ export const BillPDF = ({
                   style={{
                     fontSize: 8,
                     fontWeight: "bold",
-                    marginBottom: 4,
+                    marginBottom: 6,
                     color: company.themeColor,
+                    borderBottom: "0.5pt solid " + company.themeColor,
+                    paddingBottom: 2,
                   }}
                 >
                   Payment History
                 </Text>
-                <View style={{ gap: 2 }}>
+                <View style={{ gap: 3 }}>
                   {bill.payments.map((payment, index) => (
                     <View
                       key={payment.id || index}
                       style={{
                         flexDirection: "row",
                         justifyContent: "space-between",
-                        fontSize: 7,
-                        borderBottom: "0.5pt solid #f3f4f6",
-                        paddingBottom: 1,
+                        fontSize: 7.5,
+                        borderBottom: "0.3pt solid #eee",
+                        paddingBottom: 2,
+                        paddingTop: 1,
                       }}
                     >
-                      <Text>
+                      <Text style={{ color: "#333" }}>
                         {payment.method} ({formatDate(payment.date)})
                       </Text>
                       <Text style={{ fontWeight: "bold" }}>
@@ -1581,13 +1587,13 @@ export const BillPDF = ({
                     style={{
                       flexDirection: "row",
                       justifyContent: "space-between",
-                      marginTop: 2,
-                      paddingTop: 2,
-                      borderTop: "1pt solid #e5e7eb",
+                      marginTop: 4,
+                      paddingTop: 4,
+                      borderTop: "1pt solid #ddd",
                     }}
                   >
-                    <Text style={{ fontWeight: "bold" }}>Total Paid</Text>
-                    <Text style={{ fontWeight: "bold", color: company.themeColor }}>
+                    <Text style={{ fontWeight: "bold", fontSize: 8 }}>Total Paid</Text>
+                    <Text style={{ fontWeight: "bold", color: company.themeColor, fontSize: 8 }}>
                       {formatCurrency(bill.paidAmount)}
                     </Text>
                   </View>
