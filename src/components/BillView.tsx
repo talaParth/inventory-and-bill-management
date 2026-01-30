@@ -2818,46 +2818,46 @@ export function BillView({ bill }: BillViewProps) {
             </div>
           )}
 
-          {/* Footer */}
-            <div className="grid grid-cols-2 gap-0 mt-3">
-              <div className="border border-black p-2">
-                <h3
-                  className="font-bold text-[10px] mb-1 border-b border-black pb-1"
-                  style={{ color: company.themeColor }}
-                >
-                  Payment Information
-                </h3>
-                <div className="text-[10px] space-y-0.5 mt-1">
-                  <p>
-                    <strong>Status:</strong> {bill.paymentStatus.toUpperCase()}
-                  </p>
-                  <p>
-                    <strong>Paid:</strong> {formatCurrency(bill.paidAmount)}
-                  </p>
-                </div>
-              </div>
-              <div className="border border-black border-l-0 p-2">
-                <h3
-                  className="font-bold text-[10px] mb-1 border-b border-black pb-1"
-                  style={{ color: company.themeColor }}
-                >
-                  Company Bank Details
-                </h3>
+          {/* Footer Grid */}
+          <div className="grid grid-cols-2 gap-0 mt-3 border border-black">
+            {/* Payment Information */}
+            <div className="p-2 border-r border-black">
+              <h3
+                className="font-bold text-[10px] mb-1 border-b border-black pb-1"
+                style={{ color: company.themeColor }}
+              >
+                Payment Information
+              </h3>
               <div className="text-[10px] space-y-0.5 mt-1">
                 <p>
-                  <strong>A/c Holder:</strong>{" "}
-                  {company.bankDetails.accountHolder}
+                  <strong>Status:</strong> {bill.paymentStatus.toUpperCase()}
+                </p>
+                <p>
+                  <strong>Paid:</strong> {formatCurrency(bill.paidAmount)}
+                </p>
+              </div>
+            </div>
+
+            {/* Company Bank Details */}
+            <div className="p-2">
+              <h3
+                className="font-bold text-[10px] mb-1 border-b border-black pb-1"
+                style={{ color: company.themeColor }}
+              >
+                Company Bank Details
+              </h3>
+              <div className="text-[10px] space-y-0.5 mt-1">
+                <p>
+                  <strong>A/c Holder:</strong> {company.bankDetails.accountHolder}
                 </p>
                 <p>
                   <strong>Bank Name:</strong> {company.bankDetails.bankName}
                 </p>
                 <p>
-                  <strong>A/c Number:</strong>{" "}
-                  {company.bankDetails.accountNumber}
+                  <strong>A/c Number:</strong> {company.bankDetails.accountNumber}
                 </p>
                 <p>
-                  <strong>Branch & IFSC:</strong>{" "}
-                  {company.bankDetails.branchAndIFSC}
+                  <strong>Branch & IFSC:</strong> {company.bankDetails.branchAndIFSC}
                 </p>
               </div>
               <div className="mt-2 flex items-center gap-2">
@@ -2877,20 +2877,20 @@ export function BillView({ bill }: BillViewProps) {
                 )}
               </div>
             </div>
-            <div className="border border-black border-l-0 p-2 flex flex-col justify-between">
-              <div>
-                <h3
-                  className="font-bold text-[10px] mb-1 border-b border-black pb-1"
-                  style={{ color: company.themeColor }}
-                >
-                  Declaration
-                </h3>
-                <p className="text-[9px] mt-1 leading-relaxed">
-                  {isInternational
-                    ? "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. We intend to claim benefit under RoDTEP scheme as applicable."
-                    : "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct."}
-                </p>
-              </div>
+
+            {/* Declaration - Spans full width */}
+            <div className="col-span-2 border-t border-black p-2">
+              <h3
+                className="font-bold text-[10px] mb-1 border-b border-black pb-1"
+                style={{ color: company.themeColor }}
+              >
+                Declaration
+              </h3>
+              <p className="text-[9px] mt-1 leading-relaxed">
+                {isInternational
+                  ? "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. We intend to claim benefit under RoDTEP scheme as applicable."
+                  : "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct."}
+              </p>
             </div>
           </div>
 

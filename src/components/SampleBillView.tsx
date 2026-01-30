@@ -1048,9 +1048,10 @@ Thank you!`;
                   </div>
                 )}
 
-                {/* Footer */}
-                <div className="grid grid-cols-2 gap-0 mt-3">
-                  <div className="border border-black p-2">
+                {/* Footer Grid */}
+                <div className="grid grid-cols-2 gap-0 mt-3 border border-black">
+                  {/* Payment Information */}
+                  <div className="p-2 border-r border-black">
                     <h3
                       className="font-bold text-[10px] mb-1 border-b border-black pb-1 break-words"
                       style={{ color: company.themeColor }}
@@ -1066,7 +1067,9 @@ Thank you!`;
                       </p>
                     </div>
                   </div>
-                  <div className="border border-black border-l-0 p-2">
+
+                  {/* Company Bank Details */}
+                  <div className="p-2">
                     <h3
                       className="font-bold text-[10px] mb-1 border-b border-black pb-1 break-words"
                       style={{ color: company.themeColor }}
@@ -1075,19 +1078,16 @@ Thank you!`;
                     </h3>
                     <div className="text-[10px] space-y-0.5 mt-1 break-words">
                       <p>
-                        <strong>A/c Holder:</strong>{" "}
-                        {company.bankDetails.accountHolder}
+                        <strong>A/c Holder:</strong> {company.bankDetails.accountHolder}
                       </p>
                       <p>
                         <strong>Bank Name:</strong> {company.bankDetails.bankName}
                       </p>
                       <p>
-                        <strong>A/c Number:</strong>{" "}
-                        {company.bankDetails.accountNumber}
+                        <strong>A/c Number:</strong> {company.bankDetails.accountNumber}
                       </p>
                       <p>
-                        <strong>Branch & IFSC:</strong>{" "}
-                        {company.bankDetails.branchAndIFSC}
+                        <strong>Branch & IFSC:</strong> {company.bankDetails.branchAndIFSC}
                       </p>
                     </div>
                     <div className="mt-2 flex items-center gap-2">
@@ -1107,19 +1107,19 @@ Thank you!`;
                       )}
                     </div>
                   </div>
-                  <div className="border border-black border-l-0 p-2 flex flex-col justify-between">
-                    <div>
-                      <h3
-                        className="font-bold text-[10px] mb-1 border-b border-black pb-1 break-words"
-                        style={{ color: company.themeColor }}
-                      >
-                        Declaration
-                      </h3>
-                      <p className="text-[9px] mt-1 leading-relaxed break-words">
-                        This is a SAMPLE BILL for demonstration purposes only. Not
-                        valid for actual transactions.
-                      </p>
-                    </div>
+
+                  {/* Declaration - Spans full width */}
+                  <div className="col-span-2 border-t border-black p-2">
+                    <h3
+                      className="font-bold text-[10px] mb-1 border-b border-black pb-1 break-words"
+                      style={{ color: company.themeColor }}
+                    >
+                      Declaration
+                    </h3>
+                    <p className="text-[9px] mt-1 leading-relaxed break-words">
+                      This is a SAMPLE BILL for demonstration purposes only. Not
+                      valid for actual transactions.
+                    </p>
                   </div>
                 </div>
 
