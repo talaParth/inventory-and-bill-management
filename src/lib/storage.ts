@@ -54,7 +54,6 @@ export {
   saveNote,
   deleteNote,
   updateNoteStatus,
-  type InventoryItemInput,
   getProductSalesData,
   getSampleBills,
   deleteSampleBill,
@@ -62,4 +61,5 @@ export {
   saveSampleBill,
   getSampleBillCounter,
   incrementSampleBillCounter,
+  type InventoryItemInput,
 } from "./firebaseService";

@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getBills, deleteBill, updateBillPayment } from '@/lib/storage';
-import { Bill } from '@/types';
+import { Bill, PaymentMethod } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/billUtils';
 import { Plus, Search, Eye, Edit, Trash2, Filter, IndianRupee, Loader2, Calendar, User, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
@@ -127,9 +127,9 @@ export default function Bills() {
     toast.success('Bill deleted successfully');
   };
 
-  const handlePaymentCollected = async (amount: number, type: "Cash" | "Bank Transfer" | "UPI" | "Cheque" | "Other") => {
+  const handlePaymentCollected = async (amount: number, type: PaymentMethod, note?: string) => {
     if (selectedBill) {
-      await updateBillPayment(selectedBill.id, amount, type);
+      await updateBillPayment(selectedBill.id, amount, type, note);
       await loadBills();
       toast.success(`Payment of ${formatCurrency(amount)} via ${type} collected successfully`);
     }
