@@ -1519,8 +1519,9 @@ export const BillPDF = ({
             style={{
               flexDirection: "row",
               border: "1pt solid black",
-              borderTop: 0,
+              borderTop: "1pt solid black",
               minHeight: mmToPt(30),
+              marginTop: mmToPt(3),
             }}
           >
             {/* Notes Section */}
@@ -1534,7 +1535,7 @@ export const BillPDF = ({
               >
                 <Text
                   style={{
-                    fontSize: 8,
+                    fontSize: 9,
                     fontWeight: "bold",
                     marginBottom: 6,
                     color: company.themeColor,
@@ -1544,7 +1545,7 @@ export const BillPDF = ({
                 >
                   Notes / Terms
                 </Text>
-                <Text style={{ fontSize: 8, lineHeight: 1.4 }}>
+                <Text style={{ fontSize: 8.5, lineHeight: 1.4 }}>
                   {bill.notes || company.defaultNote}
                 </Text>
               </View>
@@ -1555,7 +1556,7 @@ export const BillPDF = ({
               <View style={{ flex: 1, padding: mmToPt(2.5) }}>
                 <Text
                   style={{
-                    fontSize: 8,
+                    fontSize: 9,
                     fontWeight: "bold",
                     marginBottom: 6,
                     color: company.themeColor,
@@ -1572,7 +1573,7 @@ export const BillPDF = ({
                       style={{
                         flexDirection: "row",
                         justifyContent: "space-between",
-                        fontSize: 7.5,
+                        fontSize: 8,
                         borderBottom: "0.3pt solid #eee",
                         paddingBottom: 2,
                         paddingTop: 1,
@@ -1595,8 +1596,8 @@ export const BillPDF = ({
                       borderTop: "1pt solid #ddd",
                     }}
                   >
-                    <Text style={{ fontWeight: "bold", fontSize: 8 }}>Total Paid</Text>
-                    <Text style={{ fontWeight: "bold", color: company.themeColor, fontSize: 8 }}>
+                    <Text style={{ fontWeight: "bold", fontSize: 8.5 }}>Total Paid</Text>
+                    <Text style={{ fontWeight: "bold", color: company.themeColor, fontSize: 8.5 }}>
                       {formatCurrency(bill.paidAmount)}
                     </Text>
                   </View>
@@ -1649,7 +1650,7 @@ export const BillPDF = ({
             >
               <Text
                 style={{
-                  fontSize: 10,
+                  fontSize: 9,
                   fontWeight: "bold",
                   color: company.themeColor,
                 }}
@@ -1658,11 +1659,11 @@ export const BillPDF = ({
               </Text>
             </View>
             <View style={{ gap: mmToPt(0.5) }}>
-              <Text style={{ fontSize: 9 }}>
+              <Text style={{ fontSize: 8.5 }}>
                 <Text style={{ fontWeight: "bold" }}>Status:</Text>{" "}
                 {bill.paymentStatus.toUpperCase()}
               </Text>
-              <Text style={{ fontSize: 9 }}>
+              <Text style={{ fontSize: 8.5 }}>
                 <Text style={{ fontWeight: "bold" }}>Paid:</Text>{" "}
                 {formatCurrency(bill.paidAmount)}
               </Text>
@@ -1680,7 +1681,7 @@ export const BillPDF = ({
             >
               <Text
                 style={{
-                  fontSize: 10,
+                  fontSize: 9,
                   fontWeight: "bold",
                   color: company.themeColor,
                 }}
@@ -1689,19 +1690,19 @@ export const BillPDF = ({
               </Text>
             </View>
             <View style={{ gap: mmToPt(0.5) }}>
-              <Text style={{ fontSize: 9 }}>
+              <Text style={{ fontSize: 8.5 }}>
                 <Text style={{ fontWeight: "bold" }}>A/c Holder:</Text>{" "}
                 {company.bankDetails.accountHolder}
               </Text>
-              <Text style={{ fontSize: 9 }}>
+              <Text style={{ fontSize: 8.5 }}>
                 <Text style={{ fontWeight: "bold" }}>Bank Name:</Text>{" "}
                 {company.bankDetails.bankName}
               </Text>
-              <Text style={{ fontSize: 9 }}>
+              <Text style={{ fontSize: 8.5 }}>
                 <Text style={{ fontWeight: "bold" }}>A/c Number:</Text>{" "}
                 {company.bankDetails.accountNumber}
               </Text>
-              <Text style={{ fontSize: 9 }}>
+              <Text style={{ fontSize: 8.5 }}>
                 <Text style={{ fontWeight: "bold" }}>Branch & IFSC:</Text>{" "}
                 {company.bankDetails.branchAndIFSC}
               </Text>
@@ -1716,7 +1717,7 @@ export const BillPDF = ({
                 }}
               >
                 <Image src={qrDataURL} style={{ width: 50, height: 50 }} />
-                <Text style={{ fontSize: 8, color: "#4b5563" }}>
+                <Text style={{ fontSize: 7, color: "#4b5563" }}>
                   Scan & Pay{"\n"}(UPI)
                 </Text>
               </View>
@@ -1741,7 +1742,7 @@ export const BillPDF = ({
           >
             <Text
               style={{
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight: "bold",
                 color: company.themeColor,
               }}
@@ -1749,7 +1750,7 @@ export const BillPDF = ({
               Declaration
             </Text>
           </View>
-          <Text style={{ fontSize: 9, lineHeight: 1.4 }}>
+          <Text style={{ fontSize: 8.5, lineHeight: 1.4 }}>
             {isInternational
               ? "We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. We intend to claim benefit under RoDTEP scheme as applicable."
               : isSampleBill
