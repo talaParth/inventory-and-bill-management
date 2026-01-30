@@ -1065,17 +1065,18 @@ export const BillPDF = ({
           <View style={{ ...styles.border, padding: mmToPt(2), width: "50%" }}>
             <Text
               style={{
-                ...styles.bold,
-                fontSize: 8,
-                marginBottom: 4,
+                fontSize: 9,
+                fontWeight: "bold",
                 color: company.themeColor,
-                borderBottom: "1pt solid black",
+                marginBottom: 6,
+                borderBottom: "0.5pt solid " + company.themeColor,
+                paddingBottom: 2,
               }}
             >
               {isInternational ? "Consignee" : "Consignee (Ship to)"}
             </Text>
-            <Text style={{ ...styles.bold, fontSize: 7 }}>
-              {bill.client.name}
+            <Text style={{ ...styles.bold, fontSize: 9 }}>
+              {bill.client.name.toUpperCase()}
             </Text>
             <Text style={{ ...styles.smallText, marginTop: 4 }}>
               {addressLines(
@@ -1110,19 +1111,20 @@ export const BillPDF = ({
           >
             <Text
               style={{
-                ...styles.bold,
-                fontSize: 8,
-                marginBottom: 4,
+                fontSize: 9,
+                fontWeight: "bold",
                 color: company.themeColor,
-                borderBottom: "1pt solid black",
+                marginBottom: 6,
+                borderBottom: "0.5pt solid " + company.themeColor,
+                paddingBottom: 2,
               }}
             >
               {isInternational
                 ? "Buyer (If other than consignee)"
                 : "Buyer (Bill to)"}
             </Text>
-            <Text style={{ ...styles.bold, fontSize: 7 }}>
-              {bill.client.name}
+            <Text style={{ ...styles.bold, fontSize: 9 }}>
+              {bill.client.name.toUpperCase()}
             </Text>
             <Text style={{ ...styles.smallText, marginTop: 4 }}>
               {addressLines(bill.client.billingAddress)}
@@ -1539,7 +1541,7 @@ export const BillPDF = ({
                     fontWeight: "bold",
                     marginBottom: 6,
                     color: company.themeColor,
-                    borderBottom: "0.5pt solid " + company.themeColor,
+                    borderBottom: "0.5pt solid black",
                     paddingBottom: 2,
                   }}
                 >
@@ -1560,7 +1562,7 @@ export const BillPDF = ({
                     fontWeight: "bold",
                     marginBottom: 6,
                     color: company.themeColor,
-                    borderBottom: "0.5pt solid " + company.themeColor,
+                    borderBottom: "0.5pt solid black",
                     paddingBottom: 2,
                   }}
                 >
