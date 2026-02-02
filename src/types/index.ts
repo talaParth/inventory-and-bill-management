@@ -273,6 +273,8 @@ export interface PurchaseBill {
   totalTax: number;
   total: number;
   paymentStatus: "paid" | "pending" | "overdue";
+  paidAmount: number;
+  payments: PaymentTransaction[];
   notes?: string;
   extractedRawText?: string; // Raw text from AI extraction
   extractionErrors?: AIExtractionError[]; // Errors detected during AI extraction
