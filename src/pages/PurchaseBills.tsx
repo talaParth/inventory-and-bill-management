@@ -49,6 +49,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { PaymentDialog } from "@/components/PaymentDialog";
 import {
   formatCurrency,
   formatDate,
@@ -99,6 +100,8 @@ export default function PurchaseBills() {
   const [viewImageBill, setViewImageBill] = useState<PurchaseBill | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedBill, setEditedBill] = useState<PurchaseBill | null>(null);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedBillForPayment, setSelectedBillForPayment] = useState<PurchaseBill | null>(null);
   const [loadingPayment, setLoadingPayment] = useState<string | null>(null);
   const [loadingInventory, setLoadingInventory] = useState<string | null>(null);
   const [savingEditedBill, setSavingEditedBill] = useState(false);
@@ -405,26 +408,37 @@ export default function PurchaseBills() {
     });
   };
 
-  const handleTogglePayment = async (bill: PurchaseBill) => {
-    setLoadingPayment(bill.id);
-    try {
-      const newStatus = bill.paymentStatus === "paid" ? "pending" : "paid";
-      await updatePurchaseBillPayment(bill.id, newStatus);
-      await loadBills();
-      toast({
-        title: "Updated",
-        description: `Bill marked as ${newStatus}`,
-      });
-    } catch (error) {
-      console.error("Error updating payment status:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update payment status",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingPayment(null);
+  const handlePaymentCollected = async (amount: number, type: any, note?: string) => {
+    if (selectedBillForPayment) {
+      setLoadingPayment(selectedBillForPayment.id);
+      try {
+        await updatePurchaseBillPayment(selectedBillForPayment.id, amount, type, note);
+        await loadBills();
+        toast({
+          title: "Payment Collected",
+          description: `Payment of ${formatCurrency(amount)} via ${type} recorded.`,
+        });
+      } catch (error) {
+        console.error("Error collecting payment:", error);
+        toast({
+          title: "Error",
+          description: "Failed to record payment",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingPayment(null);
+      }
     }
+  };
+
+  const openPaymentDialog = (bill: PurchaseBill) => {
+    setSelectedBillForPayment(bill);
+    setPaymentDialogOpen(true);
+  };
+
+  const handleTogglePayment = async (bill: PurchaseBill) => {
+    // Legacy support or fallback
+    openPaymentDialog(bill);
   };
 
   const handleAddToInventory = async (bill: PurchaseBill) => {
@@ -1993,6 +2007,14 @@ export default function PurchaseBills() {
         onResolve={handleConflictResolution}
         onCancel={handleConflictCancel}
       />
+      {selectedBillForPayment && (
+        <PaymentDialog
+          bill={selectedBillForPayment as any}
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          onPaymentCollected={handlePaymentCollected}
+        />
+      )}
     </div>
   );
 }

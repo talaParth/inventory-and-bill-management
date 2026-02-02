@@ -676,11 +676,36 @@ export const deletePurchaseBill = async (id: string): Promise<void> => {
 
 export const updatePurchaseBillPayment = async (
   billId: string,
-  status: "paid" | "pending"
+  paidAmount: number,
+  paymentType: PaymentMethod,
+  note?: string
 ): Promise<void> => {
   try {
     const billRef = doc(db, COLLECTIONS.PURCHASE_BILLS, billId);
-    await updateDoc(billRef, { paymentStatus: status });
+    const billSnap = await getDoc(billRef);
+
+    if (billSnap.exists()) {
+      const bill = billSnap.data() as PurchaseBill;
+      const newPaidAmount = (bill.paidAmount || 0) + paidAmount;
+      const paymentStatus =
+        newPaidAmount >= bill.total ? "paid" : bill.paymentStatus;
+
+      const newPayment: PaymentTransaction = {
+        id: Math.random().toString(36).substr(2, 9),
+        amount: paidAmount,
+        method: paymentType,
+        date: new Date().toISOString(),
+        note: note,
+      };
+
+      const payments = Array.isArray(bill.payments) ? [...bill.payments, newPayment] : [newPayment];
+
+      await updateDoc(billRef, {
+        paidAmount: newPaidAmount,
+        paymentStatus,
+        payments: removeUndefined(payments),
+      });
+    }
   } catch (error) {
     console.error("Error updating purchase bill payment:", error);
     throw error;
