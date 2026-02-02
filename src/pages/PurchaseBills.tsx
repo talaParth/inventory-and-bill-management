@@ -55,7 +55,9 @@ import {
   formatDate,
   calculateSellingPriceFromCommission,
 } from "@/lib/billUtils";
+import { PurchaseReturnForm } from "@/components/PurchaseReturnForm";
 import {
+  RotateCcw,
   Upload,
   Camera,
   Search,
@@ -101,6 +103,8 @@ export default function PurchaseBills() {
   const [selectedBill, setSelectedBill] = useState<PurchaseBill | null>(null);
   const [viewImageBill, setViewImageBill] = useState<PurchaseBill | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [selectedBillForReturn, setSelectedBillForReturn] = useState<PurchaseBill | null>(null);
   const [editedBill, setEditedBill] = useState<PurchaseBill | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedBillForPayment, setSelectedBillForPayment] = useState<PurchaseBill | null>(null);
@@ -364,6 +368,8 @@ export default function PurchaseBills() {
         totalTax: extracted.totalTax,
         total: extracted.total,
         paymentStatus: "pending",
+        paidAmount: 0,
+        payments: [],
         extractedRawText: extracted.rawText,
         extractionErrors: extracted.errors,
         createdAt: new Date().toISOString(),
@@ -665,22 +671,6 @@ export default function PurchaseBills() {
     if (!editedBill) return;
     const items = editedBill.items.filter((_, i) => i !== index);
     setEditedBill({ ...editedBill, items });
-  };
-
-  const updateEditedVendorName = (nextVendorName: string) => {
-    setEditedBill((prev) => {
-      if (!prev) return null;
-      const previousVendorName = prev.vendorName || "";
-      const items = (prev.items || []).map((it) => {
-        const currentWhere = String((it as any).whereToBuy || "").trim();
-        // Only auto-update if the field is empty OR was previously auto-filled
-        if (!currentWhere || currentWhere === previousVendorName) {
-          return { ...it, whereToBuy: nextVendorName };
-        }
-        return it;
-      });
-      return { ...prev, vendorName: nextVendorName, items };
-    });
   };
 
   const saveEditedBill = async () => {
@@ -1099,20 +1089,33 @@ export default function PurchaseBills() {
                           </div>
                         )}
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openPaymentDialog(bill);
-                          }}
-                          disabled={bill.paymentStatus === "paid"}
-                        >
-                          <IndianRupee className="h-3.5 w-3.5" />
-                          Pay
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBillForReturn(bill);
+                              setReturnDialogOpen(true);
+                            }}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Return
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openPaymentDialog(bill);
+                            }}
+                            disabled={bill.paymentStatus === "paid"}
+                          >
+                            <IndianRupee className="h-3.5 w-3.5" />
+                            Pay
+                          </Button>
                         {!bill.itemsAddedToInventory && (
                           <Button
                             variant="outline"
@@ -2152,6 +2155,12 @@ export default function PurchaseBills() {
           onPaymentCollected={handlePaymentCollected}
         />
       )}
+      <PurchaseReturnForm
+        open={returnDialogOpen}
+        onOpenChange={setReturnDialogOpen}
+        bill={selectedBillForReturn!}
+        onSuccess={loadBills}
+      />
     </div>
   );
 }

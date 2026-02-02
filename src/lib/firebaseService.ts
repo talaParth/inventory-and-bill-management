@@ -735,8 +735,8 @@ export const savePurchaseReturn = async (
       const updatedReturns = [...currentReturns, returnOrder];
       
       // Calculate new totals
-      const newTotal = bill.total - returnOrder.totalReturnValue;
-      const newPaymentStatus = bill.paidAmount >= newTotal ? "paid" : bill.paymentStatus;
+      const newTotal = (bill.total || 0) - returnOrder.totalReturnValue;
+      const newPaymentStatus = (bill.paidAmount || 0) >= newTotal ? "paid" : bill.paymentStatus;
 
       batch.update(billRef, {
         returns: removeUndefined(updatedReturns),
@@ -748,25 +748,22 @@ export const savePurchaseReturn = async (
 
     // 3. Adjust Stock if requested
     if (adjustStock) {
-      const products = await getProducts();
       for (const item of returnOrder.items) {
-        const product = products.find(p => p.name.toLowerCase() === item.description.toLowerCase());
-        if (product) {
-          const productRef = doc(db, COLLECTIONS.PRODUCTS, product.id);
-          const newStock = Math.max(0, product.stock - item.quantity);
-          batch.update(productRef, { stock: newStock });
-
-          // Record inventory transaction
-          const transRef = doc(collection(db, COLLECTIONS.INVENTORY));
-          batch.set(transRef, removeUndefined({
-            id: transRef.id,
-            productId: product.id,
-            billId: returnOrder.purchaseBillId,
-            type: "return",
-            quantity: item.quantity,
-            date: returnOrder.returnDate,
-            userId
-          }));
+        // Find product by description and update stock
+        const productsQuery = query(
+          collection(db, COLLECTIONS.PRODUCTS),
+          where("userId", "==", userId)
+        );
+        const productsSnap = await getDocs(productsQuery);
+        const productDoc = productsSnap.docs.find(d => 
+          (d.data().name as string).toLowerCase() === item.description.toLowerCase()
+        );
+        
+        if (productDoc) {
+          const productRef = productDoc.ref;
+          const currentStock = productDoc.data().stock || 0;
+          const newStock = Math.max(0, currentStock - item.quantity);
+          batch.update(productRef, { stock: Math.round(newStock * 100) / 100 });
         }
       }
     }
