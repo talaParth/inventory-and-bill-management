@@ -17,19 +17,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Bill, PaymentMethod } from '@/types';
+import { Bill, PurchaseBill, PaymentMethod } from '@/types';
 import { formatCurrency } from '@/lib/billUtils';
 import { Loader2 } from 'lucide-react';
 
 interface PaymentDialogProps {
-  bill: Bill;
+  bill: Bill | PurchaseBill;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPaymentCollected: (amount: number, type: PaymentMethod, note?: string) => void;
 }
 
 export function PaymentDialog({ bill, open, onOpenChange, onPaymentCollected }: PaymentDialogProps) {
-  const pendingAmount = bill.total - bill.paidAmount;
+  const isPurchase = 'vendorName' in bill;
+  const clientName = isPurchase ? (bill as PurchaseBill).vendorName : (bill as Bill).client?.name || 'Unknown';
+  const pendingAmount = bill.total - (bill.paidAmount || 0);
   const [paymentAmount, setPaymentAmount] = useState(pendingAmount.toString());
   const [paymentType, setPaymentType] = useState<PaymentMethod>("Cash");
   const [paymentNote, setPaymentNote] = useState("");
@@ -53,9 +55,11 @@ export function PaymentDialog({ bill, open, onOpenChange, onPaymentCollected }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-base sm:text-lg">Collect Payment</DialogTitle>
+          <DialogTitle className="text-base sm:text-lg">
+            {isPurchase ? 'Pay Vendor' : 'Collect Payment'}
+          </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm break-words">
-            Bill: {bill.billNumber} • Client: {bill.client.name}
+            Bill: {bill.billNumber || 'N/A'} • {isPurchase ? 'Vendor' : 'Client'}: {clientName}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
@@ -66,16 +70,18 @@ export function PaymentDialog({ bill, open, onOpenChange, onPaymentCollected }: 
             </div>
             <div className="flex justify-between text-xs sm:text-sm">
               <span className="text-muted-foreground">Paid Amount:</span>
-              <span className="font-semibold break-words">{formatCurrency(bill.paidAmount)}</span>
+              <span className="font-semibold break-words">{formatCurrency(bill.paidAmount || 0)}</span>
             </div>
             <div className="flex justify-between text-sm sm:text-base pt-2 border-t">
-              <span className="font-semibold">Pending Amount:</span>
+              <span className="font-semibold">{isPurchase ? 'Remaining to Pay:' : 'Pending Amount:'}</span>
               <span className="font-bold text-warning break-words">{formatCurrency(pendingAmount)}</span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="payment-amount" className="text-sm">Payment Amount</Label>
+            <Label htmlFor="payment-amount" className="text-sm">
+              {isPurchase ? 'Payment Amount' : 'Collection Amount'}
+            </Label>
             <Input
               id="payment-amount"
               type="number"
@@ -155,7 +161,7 @@ export function PaymentDialog({ bill, open, onOpenChange, onPaymentCollected }: 
                   Processing...
                 </>
               ) : (
-                'Collect Payment'
+                isPurchase ? 'Record Payment' : 'Collect Payment'
               )}
             </Button>
           </DialogFooter>
