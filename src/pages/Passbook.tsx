@@ -75,14 +75,27 @@ export default function Passbook() {
 
             // Add sales (positive amounts for received payments)
             bills.forEach(bill => {
-                if (bill.paymentStatus === 'paid') {
+                if (bill.payments && bill.payments.length > 0) {
+                    bill.payments.forEach(payment => {
+                        allEntries.push({
+                            id: `payment-${payment.id}`,
+                            date: payment.date,
+                            type: 'payment',
+                            description: `Payment Received - Bill #${bill.billNumber} (${payment.method})${payment.note ? ` - ${payment.note}` : ''}`,
+                            amount: payment.amount,
+                            balance: 0,
+                            details: { ...bill, currentPayment: payment },
+                        });
+                    });
+                } else if (bill.paymentStatus === 'paid' || (bill.paidAmount && bill.paidAmount > 0)) {
+                    // Fallback for bills without explicit payments array (legacy data)
                     allEntries.push({
                         id: `sale-${bill.id}`,
                         date: bill.date,
                         type: 'sale',
                         description: `Sale - Bill #${bill.billNumber} to ${bill.client.name}`,
-                        amount: bill.paidAmount,
-                        balance: 0, // Will be calculated later
+                        amount: bill.paidAmount || bill.total,
+                        balance: 0,
                         details: bill,
                     });
                 }
@@ -204,6 +217,7 @@ export default function Passbook() {
     const getTypeIcon = (type: string) => {
         switch (type) {
             case 'sale':
+            case 'payment':
                 return <TrendingUp className="h-4 w-4 text-green-600" />;
             case 'purchase':
                 return <TrendingDown className="h-4 w-4 text-red-600" />;
@@ -219,6 +233,7 @@ export default function Passbook() {
     const getTypeBadgeColor = (type: string) => {
         switch (type) {
             case 'sale':
+            case 'payment':
                 return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
             case 'purchase':
                 return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
@@ -347,6 +362,7 @@ export default function Passbook() {
                                 <SelectContent>
                                     <SelectItem value="all">All Types</SelectItem>
                                     <SelectItem value="sale">Sales (+)</SelectItem>
+                                    <SelectItem value="payment">Collections (+)</SelectItem>
                                     <SelectItem value="purchase">Purchases (-)</SelectItem>
                                     <SelectItem value="expense">Expenses (-)</SelectItem>
                                     <SelectItem value="return">Returns (-)</SelectItem>
