@@ -250,6 +250,19 @@ export default function Passbook() {
     const totalExpenses = Math.abs(entries.filter(e => e.amount < 0).reduce((sum, e) => sum + e.amount, 0));
     const netBalance = entries.length > 0 ? entries[entries.length - 1].balance : 0;
 
+    const paymentMethodTotals = entries
+        .filter(e => e.type === 'payment' || (e.type === 'sale' && e.amount > 0))
+        .reduce((acc, entry) => {
+            let method = 'Other';
+            if (entry.type === 'payment') {
+                method = entry.details?.currentPayment?.method || 'Other';
+            } else if (entry.type === 'sale') {
+                method = entry.details?.paymentType || 'Other';
+            }
+            acc[method] = (acc[method] || 0) + entry.amount;
+            return acc;
+        }, {} as Record<string, number>);
+
     const categories = [...new Set(entries.filter(e => e.category).map(e => e.category!))];
 
     const exportToExcel = () => {
@@ -341,6 +354,28 @@ export default function Passbook() {
                         </p>
                     </CardContent>
                 </Card>
+            </div>
+
+            {/* Collection by Payment Mode */}
+            <div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    Collections by Payment Mode
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                    {['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Other'].map((method) => (
+                        <Card key={method} className="border border-border shadow-sm hover:shadow-md transition-shadow">
+                            <CardHeader className="p-3 pb-1">
+                                <CardTitle className="text-xs font-medium text-muted-foreground uppercase">{method}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-3 pt-0">
+                                <div className="text-lg font-bold text-foreground">
+                                    {formatCurrency(paymentMethodTotals[method as any] || 0)}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             </div>
 
             {/* Filters */}
