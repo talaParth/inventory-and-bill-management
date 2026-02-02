@@ -26,6 +26,7 @@ import {
   incrementBillCounter,
   getCompanyProfile,
   validateBillStock,
+  getCreators,
 } from "@/lib/storage";
 import {
   calculateBillTotals,
@@ -63,6 +64,7 @@ import {
 } from "./ui/dialog";
 import { ClientForm } from "./ClientForm";
 import { ProductForm } from "./ProductForm";
+import { BillCreator } from "@/types";
 
 interface BillFormProps {
   bill?: Bill;
@@ -73,6 +75,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [availableCreators, setAvailableCreators] = useState<BillCreator[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientComboOpen, setClientComboOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
@@ -136,14 +139,16 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
 
   useEffect(() => {
     const loadData = async () => {
-      const [clientsData, productsData, companyData] = await Promise.all([
+      const [clientsData, productsData, companyData, creatorsData] = await Promise.all([
         getClients(),
         getProducts(),
         getCompanyProfile(),
+        getCreators(),
       ]);
       setClients(clientsData);
       setProducts(productsData);
       setCompanyProfile(companyData);
+      setAvailableCreators(creatorsData);
       setGstEnabled(companyData?.gstEnabled ?? true);
 
       if (bill && isEdit) {
@@ -548,6 +553,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
         placeOfSupply: formData.placeOfSupply,
         notes: formData.notes,
         createdBy: formData.createdBy || undefined,
+        payments: [],
         createdAt: bill?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         originalItems: isEdit ? originalBillItems : undefined,
@@ -764,9 +770,9 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {(companyProfile?.billCreators || []).map((creator: string) => (
-                    <SelectItem key={creator} value={creator}>
-                      {creator}
+                  {availableCreators.map((creator) => (
+                    <SelectItem key={creator.id} value={creator.name}>
+                      {creator.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
