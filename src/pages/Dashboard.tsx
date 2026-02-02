@@ -164,8 +164,11 @@ export default function Dashboard() {
   }, []); // Only run on mount
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
+    loadData();
+  }, [selectedYear, selectedMonth, dateRange, granularity, gstFilter]);
+
+  const loadData = async () => {
+    setLoading(true);
       try {
         const [allBills, products, clients, allPurchaseBills, deadstock, allReturns, allExpenses] = await Promise.all([
           getBills(),
@@ -837,14 +840,15 @@ export default function Dashboard() {
         topClientsByOrders,
         clientReturnStats,
       });
-      } catch (error) {
-        console.error('Error loading dashboard data:', error);
-        toast.error('Failed to load dashboard data');
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadData();
   }, [selectedYear, selectedMonth, granularity, gstFilter, dateRange]);
 
