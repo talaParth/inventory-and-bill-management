@@ -37,6 +37,8 @@ import {
   SampleBill,
   PaymentMethod,
   PaymentTransaction,
+  PurchaseReturn,
+  PurchaseReturnItem,
 } from "@/types";
 
 // Collection names

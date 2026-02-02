@@ -247,6 +247,8 @@ export interface PurchaseBillItem {
   amount: number;
   gstRate?: number;
   gstAmount?: number;
+  whereToBuy?: string; // Added to support item-level tracking
+  weight?: string; // Added to support item-level tracking
   hasError?: boolean; // Flag for AI extraction errors
   errorMessage?: string; // Error message from AI
 }

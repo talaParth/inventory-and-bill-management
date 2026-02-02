@@ -86,7 +86,7 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess }: Purc
         
         if (product) {
           console.log(`Adjusting stock for return: ${product.name}, qty: -${item.quantity}`);
-          await updateProductStock(product.id, -item.quantity); // Negative to decrease stock
+          await updateProductStock(product.id, item.quantity, "return"); // Quantity and type correctly passed
         } else {
           console.log(`Product not found for return description: ${item.description}`);
         }

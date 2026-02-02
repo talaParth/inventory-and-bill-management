@@ -1372,7 +1372,9 @@ export default function PurchaseBills() {
                           <Input
                             value={editedBill?.vendorName || ""}
                             onChange={(e) =>
-                              updateEditedVendorName(e.target.value)
+                              setEditedBill((prev) =>
+                                prev ? { ...prev, vendorName: e.target.value } : null
+                              )
                             }
                             className="h-12 text-base"
                           />
