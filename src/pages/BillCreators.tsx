@@ -32,8 +32,11 @@ import {
   getBills,
   getSampleBills,
   saveCompanyProfile,
+  getCreators,
+  saveCreator,
+  deleteCreator,
 } from "@/lib/storage";
-import { Bill, SampleBill, CompanyProfile } from "@/types";
+import { Bill, SampleBill, CompanyProfile, BillCreator } from "@/types";
 import {
   User,
   Receipt,
@@ -51,7 +54,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function BillCreators() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [creators, setCreators] = useState<string[]>([]);
+  const [creators, setCreators] = useState<BillCreator[]>([]);
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const [creatorBills, setCreatorBills] = useState<(Bill | SampleBill)[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,19 +67,22 @@ export default function BillCreators() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newCreatorName, setNewCreatorName] = useState("");
-  const [editingCreator, setEditingCreator] = useState<string | null>(null);
+  const [newCreatorPassword, setNewCreatorPassword] = useState("");
+  const [editingCreator, setEditingCreator] = useState<BillCreator | null>(null);
   const [editedCreatorName, setEditedCreatorName] = useState("");
-  const [creatorToDelete, setCreatorToDelete] = useState<string | null>(null);
+  const [editedCreatorPassword, setEditedCreatorPassword] = useState("");
+  const [creatorToDelete, setCreatorToDelete] = useState<BillCreator | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
-      const profile = await getCompanyProfile();
+      const [profile, fetchedCreators] = await Promise.all([
+        getCompanyProfile(),
+        getCreators(),
+      ]);
       if (profile) {
         setCompanyProfile(profile);
-        if (profile.billCreators) {
-          setCreators(profile.billCreators);
-        }
       }
+      setCreators(fetchedCreators);
       setLoading(false);
     };
     loadData();
@@ -84,71 +90,71 @@ export default function BillCreators() {
 
   const handleAddCreator = async () => {
     if (!newCreatorName.trim()) return;
-    if (creators.includes(newCreatorName.trim())) {
+    if (creators.some((c) => c.name === newCreatorName.trim())) {
       toast({ title: "Creator already exists", variant: "destructive" });
       return;
     }
-    const updatedCreators = [...creators, newCreatorName.trim()];
-    if (companyProfile) {
-      await saveCompanyProfile({
-        ...companyProfile,
-        billCreators: updatedCreators,
-      });
-      setCreators(updatedCreators);
-      setNewCreatorName("");
-      setIsAddDialogOpen(false);
-      toast({ title: "Creator added successfully" });
-    }
+    
+    const newCreator: BillCreator = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newCreatorName.trim(),
+      password: newCreatorPassword.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    await saveCreator(newCreator);
+    setCreators([...creators, newCreator]);
+    setNewCreatorName("");
+    setNewCreatorPassword("");
+    setIsAddDialogOpen(false);
+    toast({ title: "Creator added successfully" });
   };
 
   const handleEditCreator = async () => {
     if (!editedCreatorName.trim() || !editingCreator) return;
     if (
-      creators.includes(editedCreatorName.trim()) &&
-      editedCreatorName.trim() !== editingCreator
+      creators.some(
+        (c) =>
+          c.name === editedCreatorName.trim() && c.id !== editingCreator.id,
+      )
     ) {
       toast({ title: "Creator name already exists", variant: "destructive" });
       return;
     }
-    const updatedCreators = creators.map((c) =>
-      c === editingCreator ? editedCreatorName.trim() : c,
-    );
-    if (companyProfile) {
-      await saveCompanyProfile({
-        ...companyProfile,
-        billCreators: updatedCreators,
-      });
-      setCreators(updatedCreators);
-      setEditingCreator(null);
-      setEditedCreatorName("");
-      setIsEditDialogOpen(false);
-      toast({ title: "Creator updated successfully" });
-    }
+
+    const updatedCreator: BillCreator = {
+      ...editingCreator,
+      name: editedCreatorName.trim(),
+      password: editedCreatorPassword.trim(),
+    };
+
+    await saveCreator(updatedCreator);
+    setCreators(creators.map((c) => (c.id === updatedCreator.id ? updatedCreator : c)));
+    setEditingCreator(null);
+    setEditedCreatorName("");
+    setEditedCreatorPassword("");
+    setIsEditDialogOpen(false);
+    toast({ title: "Creator updated successfully" });
   };
 
   const handleDeleteCreator = async () => {
     if (!creatorToDelete) return;
-    const updatedCreators = creators.filter((c) => c !== creatorToDelete);
-    if (companyProfile) {
-      await saveCompanyProfile({
-        ...companyProfile,
-        billCreators: updatedCreators,
-      });
-      setCreators(updatedCreators);
-      setCreatorToDelete(null);
-      setIsDeleteDialogOpen(false);
-      toast({ title: "Creator deleted successfully" });
-    }
+    await deleteCreator(creatorToDelete.id);
+    setCreators(creators.filter((c) => c.id !== creatorToDelete.id));
+    setCreatorToDelete(null);
+    setIsDeleteDialogOpen(false);
+    toast({ title: "Creator deleted successfully" });
   };
 
-  const openEditDialog = (creator: string, e: React.MouseEvent) => {
+  const openEditDialog = (creator: BillCreator, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingCreator(creator);
-    setEditedCreatorName(creator);
+    setEditedCreatorName(creator.name);
+    setEditedCreatorPassword(creator.password || "");
     setIsEditDialogOpen(true);
   };
 
-  const openDeleteDialog = (creator: string, e: React.MouseEvent) => {
+  const openDeleteDialog = (creator: BillCreator, e: React.MouseEvent) => {
     e.stopPropagation();
     setCreatorToDelete(creator);
     setIsDeleteDialogOpen(true);
@@ -177,7 +183,7 @@ export default function BillCreators() {
   }, [selectedCreator]);
 
   const filteredCreators = creators.filter((c) =>
-    c.toLowerCase().includes(searchTerm.toLowerCase()),
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   if (selectedCreator) {
@@ -285,9 +291,9 @@ export default function BillCreators() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {filteredCreators.map((creator) => (
           <Card
-            key={creator}
+            key={creator.id}
             className="hover:border-primary transition-colors cursor-pointer group"
-            onClick={() => setSelectedCreator(creator)}
+            onClick={() => setSelectedCreator(creator.name)}
           >
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
@@ -313,7 +319,7 @@ export default function BillCreators() {
                   </Button>
                 </div>
               </div>
-              <CardTitle>{creator}</CardTitle>
+              <CardTitle>{creator.name}</CardTitle>
               <CardDescription>Click to view bills</CardDescription>
             </CardHeader>
             <CardContent>
@@ -343,15 +349,27 @@ export default function BillCreators() {
           <DialogHeader>
             <DialogTitle>Add New Creator</DialogTitle>
             <DialogDescription>
-              Enter the name of the new bill creator.
+              Enter the name and password of the new bill creator.
             </DialogDescription>
           </DialogHeader>
-          <Input
-            placeholder="Creator name"
-            value={newCreatorName}
-            onChange={(e) => setNewCreatorName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAddCreator()}
-          />
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Input
+                placeholder="Creator name"
+                value={newCreatorName}
+                onChange={(e) => setNewCreatorName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="password"
+                placeholder="Password"
+                value={newCreatorPassword}
+                onChange={(e) => setNewCreatorPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddCreator()}
+              />
+            </div>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancel
@@ -365,14 +383,26 @@ export default function BillCreators() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Creator</DialogTitle>
-            <DialogDescription>Update the creator's name.</DialogDescription>
+            <DialogDescription>Update the creator's details.</DialogDescription>
           </DialogHeader>
-          <Input
-            placeholder="Creator name"
-            value={editedCreatorName}
-            onChange={(e) => setEditedCreatorName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleEditCreator()}
-          />
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Input
+                placeholder="Creator name"
+                value={editedCreatorName}
+                onChange={(e) => setEditedCreatorName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="password"
+                placeholder="New Password (optional)"
+                value={editedCreatorPassword}
+                onChange={(e) => setEditedCreatorPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleEditCreator()}
+              />
+            </div>
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
@@ -393,7 +423,7 @@ export default function BillCreators() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Creator</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{creatorToDelete}"? This action
+              Are you sure you want to delete "{creatorToDelete?.name}"? This action
               cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -60,6 +60,7 @@ const COLLECTIONS = {
   CUSTOMERS: "customers",
   COUNTERS: "counters",
   PURCHASE_RETURNS: "purchaseReturns",
+  CREATORS: "creators",
 };
 
 // Helper function to get user ID (for multi-user support in future)
@@ -86,6 +87,46 @@ const removeUndefined = (obj: any): any => {
     return cleaned;
   }
   return obj;
+};
+
+// Creators
+export const getCreators = async (): Promise<any[]> => {
+  try {
+    const userId = getUserId();
+    const q = query(
+      collection(db, COLLECTIONS.CREATORS),
+      where("userId", "==", userId)
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error getting creators:", error);
+    return [];
+  }
+};
+
+export const saveCreator = async (creator: any): Promise<void> => {
+  try {
+    const userId = getUserId();
+    const docRef = doc(db, COLLECTIONS.CREATORS, creator.id);
+    await setDoc(docRef, removeUndefined({ ...creator, userId }), { merge: true });
+  } catch (error) {
+    console.error("Error saving creator:", error);
+    throw error;
+  }
+};
+
+export const deleteCreator = async (id: string): Promise<void> => {
+  try {
+    const docRef = doc(db, COLLECTIONS.CREATORS, id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error("Error deleting creator:", error);
+    throw error;
+  }
 };
 
 // Company Profile
