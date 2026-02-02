@@ -9,30 +9,120 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getCompanyProfile, getBills, getSampleBills } from "@/lib/storage";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { getCompanyProfile, getBills, getSampleBills, saveCompanyProfile } from "@/lib/storage";
 import { Bill, SampleBill, CompanyProfile } from "@/types";
-import { User, Receipt, ArrowLeft, Search, Calendar } from "lucide-react";
+import { User, Receipt, ArrowLeft, Search, Calendar, Plus, Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/billUtils";
+import { useToast } from "@/hooks/use-toast";
 
 export default function BillCreators() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [creators, setCreators] = useState<string[]>([]);
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const [creatorBills, setCreatorBills] = useState<(Bill | SampleBill)[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
+  
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [newCreatorName, setNewCreatorName] = useState("");
+  const [editingCreator, setEditingCreator] = useState<string | null>(null);
+  const [editedCreatorName, setEditedCreatorName] = useState("");
+  const [creatorToDelete, setCreatorToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       const profile = await getCompanyProfile();
-      if (profile?.billCreators) {
-        setCreators(profile.billCreators);
+      if (profile) {
+        setCompanyProfile(profile);
+        if (profile.billCreators) {
+          setCreators(profile.billCreators);
+        }
       }
       setLoading(false);
     };
     loadData();
   }, []);
+
+  const handleAddCreator = async () => {
+    if (!newCreatorName.trim()) return;
+    if (creators.includes(newCreatorName.trim())) {
+      toast({ title: "Creator already exists", variant: "destructive" });
+      return;
+    }
+    const updatedCreators = [...creators, newCreatorName.trim()];
+    if (companyProfile) {
+      await saveCompanyProfile({ ...companyProfile, billCreators: updatedCreators });
+      setCreators(updatedCreators);
+      setNewCreatorName("");
+      setIsAddDialogOpen(false);
+      toast({ title: "Creator added successfully" });
+    }
+  };
+
+  const handleEditCreator = async () => {
+    if (!editedCreatorName.trim() || !editingCreator) return;
+    if (creators.includes(editedCreatorName.trim()) && editedCreatorName.trim() !== editingCreator) {
+      toast({ title: "Creator name already exists", variant: "destructive" });
+      return;
+    }
+    const updatedCreators = creators.map(c => c === editingCreator ? editedCreatorName.trim() : c);
+    if (companyProfile) {
+      await saveCompanyProfile({ ...companyProfile, billCreators: updatedCreators });
+      setCreators(updatedCreators);
+      setEditingCreator(null);
+      setEditedCreatorName("");
+      setIsEditDialogOpen(false);
+      toast({ title: "Creator updated successfully" });
+    }
+  };
+
+  const handleDeleteCreator = async () => {
+    if (!creatorToDelete) return;
+    const updatedCreators = creators.filter(c => c !== creatorToDelete);
+    if (companyProfile) {
+      await saveCompanyProfile({ ...companyProfile, billCreators: updatedCreators });
+      setCreators(updatedCreators);
+      setCreatorToDelete(null);
+      setIsDeleteDialogOpen(false);
+      toast({ title: "Creator deleted successfully" });
+    }
+  };
+
+  const openEditDialog = (creator: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingCreator(creator);
+    setEditedCreatorName(creator);
+    setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (creator: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCreatorToDelete(creator);
+    setIsDeleteDialogOpen(true);
+  };
 
   useEffect(() => {
     const loadCreatorBills = async () => {
@@ -122,6 +212,10 @@ export default function BillCreators() {
           </h1>
           <p className="text-muted-foreground">Manage and view performance of bill creators</p>
         </div>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Creator
+        </Button>
       </div>
 
       <div className="relative">
@@ -142,8 +236,28 @@ export default function BillCreators() {
             onClick={() => setSelectedCreator(creator)}
           >
             <CardHeader className="pb-2">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
-                <User className="h-6 w-6 text-primary" />
+              <div className="flex justify-between items-start">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
+                  <User className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                    onClick={(e) => openEditDialog(creator, e)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={(e) => openDeleteDialog(creator, e)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <CardTitle>{creator}</CardTitle>
               <CardDescription>Click to view bills</CardDescription>
@@ -158,17 +272,78 @@ export default function BillCreators() {
         ))}
         {filteredCreators.length === 0 && (
           <div className="col-span-full py-20 text-center">
-            <p className="text-muted-foreground">No creators found. Add them in Settings.</p>
+            <p className="text-muted-foreground">No creators found.</p>
             <Button 
-              variant="outline" 
               className="mt-4"
-              onClick={() => navigate('/settings')}
+              onClick={() => setIsAddDialogOpen(true)}
             >
-              Go to Settings
+              <Plus className="h-4 w-4 mr-2" />
+              Add Creator
             </Button>
           </div>
         )}
       </div>
+
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Creator</DialogTitle>
+            <DialogDescription>
+              Enter the name of the new bill creator.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder="Creator name"
+            value={newCreatorName}
+            onChange={(e) => setNewCreatorName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddCreator()}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddCreator}>Add</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Creator</DialogTitle>
+            <DialogDescription>
+              Update the creator's name.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder="Creator name"
+            value={editedCreatorName}
+            onChange={(e) => setEditedCreatorName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleEditCreator()}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditCreator}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Creator</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{creatorToDelete}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteCreator}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
