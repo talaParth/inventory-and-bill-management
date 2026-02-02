@@ -764,7 +764,7 @@ export const savePurchaseReturn = async (
         if (productDoc) {
           const productRef = productDoc.ref;
           const currentStock = productDoc.data().stock || 0;
-          const newStock = Math.max(0, currentStock - item.quantity);
+          const newStock = currentStock - item.quantity;
           batch.update(productRef, { stock: Math.round(newStock * 100) / 100 });
         }
       }

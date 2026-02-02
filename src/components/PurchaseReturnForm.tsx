@@ -117,18 +117,6 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess }: Purc
 
       await savePurchaseReturn(purchaseReturn, true);
       
-      for (const item of items) {
-        const products = await getProducts();
-        const product = products.find(p => p.name.toLowerCase() === item.description.toLowerCase());
-        
-        if (product) {
-          console.log(`Adjusting stock for return: ${product.name}, qty: -${item.quantity}`);
-          await updateProductStock(product.id, item.quantity, "return");
-        } else {
-          console.log(`Product not found for return description: ${item.description}`);
-        }
-      }
-
       toast({ title: "Success", description: "Purchase return recorded and stock adjusted" });
       onSuccess();
       onOpenChange(false);
