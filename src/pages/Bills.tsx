@@ -53,6 +53,14 @@ export default function Bills() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    filterAndSortBills();
+  }, [bills, searchTerm, statusFilter, gstFilter, sortBy]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filteredBills.length, searchTerm, statusFilter, gstFilter, sortBy]);
+
   const loadData = async () => {
     try {
       setLoading(true);
