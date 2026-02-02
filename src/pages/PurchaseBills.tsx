@@ -776,7 +776,11 @@ export default function PurchaseBills() {
   };
 
   const getPaymentStatusBadge = (bill: PurchaseBill) => {
-    if (bill.paymentStatus === "paid") {
+    const isOverdueVal = isOverdue(bill);
+    const status = bill.paymentStatus;
+    const paidAmount = bill.paidAmount || 0;
+
+    if (status === "paid") {
       return (
         <Badge
           variant="default"
@@ -787,7 +791,15 @@ export default function PurchaseBills() {
       );
     }
 
-    if (isOverdue(bill) || bill.paymentStatus === "overdue") {
+    if (paidAmount > 0) {
+      return (
+        <Badge variant="outline" className="text-blue-600 border-blue-400">
+          <Clock className="h-3 w-3 mr-1" /> Partial ({formatCurrency(paidAmount)})
+        </Badge>
+      );
+    }
+
+    if (isOverdueVal || status === "overdue") {
       return (
         <Badge variant="destructive" className="animate-pulse">
           <AlertCircle className="h-3 w-3 mr-1" /> Overdue
@@ -1011,24 +1023,31 @@ export default function PurchaseBills() {
                           </p>
                         )}
                       </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <div
-                          className={`cursor-pointer ${
-                            loadingPayment === bill.id
-                              ? "opacity-50 pointer-events-none"
-                              : ""
-                          }`}
-                          onClick={() => handleTogglePayment(bill)}
-                        >
-                          {loadingPayment === bill.id ? (
-                            <Badge variant="secondary">
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />{" "}
-                              Updating...
-                            </Badge>
-                          ) : (
-                            getPaymentStatusBadge(bill)
-                          )}
-                        </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <div
+                              className={`cursor-pointer ${
+                                loadingPayment === bill.id
+                                  ? "opacity-50 pointer-events-none"
+                                  : ""
+                              }`}
+                              onClick={() => openPaymentDialog(bill)}
+                            >
+                              {loadingPayment === bill.id ? (
+                                <Badge variant="secondary">
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />{" "}
+                                  Updating...
+                                </Badge>
+                              ) : (
+                                <div className="flex flex-col gap-1 items-end">
+                                  {getPaymentStatusBadge(bill)}
+                                  {bill.paymentStatus !== "paid" && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Paid: {formatCurrency(bill.paidAmount || 0)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                         {bill.extractionErrors &&
                           bill.extractionErrors.length > 0 && (
                             <Badge
