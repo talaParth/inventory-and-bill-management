@@ -73,6 +73,8 @@ import {
   X,
   AlertCircle,
   Image,
+  IndianRupee,
+  Calendar,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog";
@@ -1076,11 +1078,35 @@ export default function PurchaseBills() {
                       )}
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-lg font-bold text-foreground">
-                        {formatCurrency(bill.total)}
-                      </p>
+                    <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t pt-3">
+                      <div className="flex flex-col gap-1">
+                        <p className="text-lg font-bold text-foreground">
+                          {formatCurrency(bill.total)}
+                        </p>
+                        {bill.paidAmount > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {Array.from(new Set(bill.payments?.map(p => p.method))).map(method => (
+                              <Badge key={method} variant="outline" className="text-[10px] px-1 h-4">
+                                {method}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openPaymentDialog(bill);
+                          }}
+                          disabled={bill.paymentStatus === "paid"}
+                        >
+                          <IndianRupee className="h-3.5 w-3.5" />
+                          Pay
+                        </Button>
                         {!bill.itemsAddedToInventory && (
                           <Button
                             variant="outline"
@@ -1508,6 +1534,74 @@ export default function PurchaseBills() {
                             </p>
                           </div>
                         </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Payment History */}
+                <Card className="overflow-hidden shadow-sm">
+                  <CardHeader className="bg-muted/40 px-6 py-5">
+                    <CardTitle className="text-2xl lg:text-3xl flex items-center justify-between">
+                      <span>Payment History</span>
+                      <div className="flex items-center gap-4">
+                        <Badge
+                          variant={
+                            (isEditing ? editedBill : selectedBill)?.paymentStatus === "paid"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className="text-lg py-1 px-4"
+                        >
+                          {(isEditing ? editedBill : selectedBill)?.paymentStatus.toUpperCase()}
+                        </Badge>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-8 px-6 pb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8">
+                      <div className="space-y-2 p-4 bg-muted/20 rounded-lg border">
+                        <span className="text-muted-foreground text-sm uppercase tracking-wider font-semibold">Total Amount</span>
+                        <p className="text-3xl font-bold text-foreground">
+                          {formatCurrency((isEditing ? editedBill : selectedBill)?.total || 0)}
+                        </p>
+                      </div>
+                      <div className="space-y-2 p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-100 dark:border-emerald-900">
+                        <span className="text-emerald-700 dark:text-emerald-300 text-sm uppercase tracking-wider font-semibold">Total Paid</span>
+                        <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                          {formatCurrency((isEditing ? editedBill : selectedBill)?.paidAmount || 0)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {((isEditing ? editedBill : selectedBill)?.payments?.length || 0) > 0 ? (
+                      <div className="overflow-x-auto rounded-lg border">
+                        <table className="w-full text-sm lg:text-base">
+                          <thead className="bg-muted/60">
+                            <tr>
+                              <th className="text-left px-6 py-4 font-semibold">Date</th>
+                              <th className="text-left px-6 py-4 font-semibold">Method</th>
+                              <th className="text-right px-6 py-4 font-semibold">Amount</th>
+                              <th className="text-left px-6 py-4 font-semibold">Note</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(isEditing ? editedBill : selectedBill)?.payments?.map((payment, i) => (
+                              <tr key={payment.id || i} className="border-t">
+                                <td className="px-6 py-4">{formatDate(payment.date)}</td>
+                                <td className="px-6 py-4">
+                                  <Badge variant="outline">{payment.method}</Badge>
+                                </td>
+                                <td className="px-6 py-4 text-right font-bold">{formatCurrency(payment.amount)}</td>
+                                <td className="px-6 py-4 text-muted-foreground">{payment.note || "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-10 bg-muted/10 rounded-lg border border-dashed">
+                        <p className="text-muted-foreground">No payments recorded yet.</p>
                       </div>
                     )}
                   </CardContent>
