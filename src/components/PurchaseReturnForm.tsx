@@ -17,7 +17,7 @@ import { Trash2, Plus, Loader2 } from "lucide-react";
 interface PurchaseReturnFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  bill: PurchaseBill;
+  bill: PurchaseBill | null;
   onSuccess: () => void;
 }
 
@@ -28,10 +28,13 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess }: Purc
 
   useEffect(() => {
     if (open && bill) {
-      // Default to returning 0 for all items, user can add what they want
       setItems([]);
     }
   }, [open, bill]);
+
+  if (!bill) {
+    return null;
+  }
 
   const addItem = () => {
     setItems([...items, { description: "", quantity: 1, rate: 0, amount: 0, gstRate: 0, gstAmount: 0 }]);
