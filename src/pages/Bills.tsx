@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -12,7 +14,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getBills, deleteBill, updateBillPayment } from '@/lib/storage';
-import { Bill, PaymentMethod } from '@/types';
+import { getCompanyProfile, saveCompanyProfile } from '@/lib/firebaseService';
+import { Bill, PaymentMethod, CompanyProfile } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/billUtils';
 import { Plus, Search, Eye, Edit, Trash2, Filter, IndianRupee, Loader2, Calendar, User, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,6 +35,8 @@ import {
 
 export default function Bills() {
   const [loading, setLoading] = useState(true);
+  const [company, setCompany] = useState<CompanyProfile | null>(null);
+  const [updatingGst, setUpdatingGst] = useState(false);
   const [bills, setBills] = useState<Bill[]>([]);
   const [filteredBills, setFilteredBills] = useState<Bill[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,28 +50,45 @@ export default function Bills() {
   const pageSize = 10;
 
   useEffect(() => {
-    loadBills();
+    loadData();
   }, []);
 
-  useEffect(() => {
-    filterAndSortBills();
-  }, [bills, searchTerm, statusFilter, gstFilter, sortBy]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [filteredBills.length, searchTerm, statusFilter, gstFilter, sortBy]);
-
-  const loadBills = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const allBills = await getBills();
+      const [allBills, companyProfile] = await Promise.all([
+        getBills(),
+        getCompanyProfile()
+      ]);
       setBills(allBills);
+      setCompany(companyProfile);
     } catch (error) {
-      console.error('Error loading bills:', error);
-      toast.error('Failed to load bills');
+      console.error('Error loading data:', error);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleGst = async (enabled: boolean) => {
+    if (!company) return;
+    try {
+      setUpdatingGst(true);
+      const updatedProfile = { ...company, gstEnabled: enabled };
+      await saveCompanyProfile(updatedProfile);
+      setCompany(updatedProfile);
+      toast.success(`GST Billing ${enabled ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error('Error updating GST setting:', error);
+      toast.error('Failed to update GST setting');
+    } finally {
+      setUpdatingGst(false);
+    }
+  };
+
+  const loadBills = async () => {
+    // Keep for backward compatibility if called elsewhere
+    loadData();
   };
 
   const filterAndSortBills = () => {
@@ -174,12 +196,25 @@ if (loading) {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground break-words">Bills</h1>
           <p className="text-xs sm:text-sm text-muted-foreground break-words">Manage all your invoices</p>
         </div>
-        <Link to="/bills/new" className="w-full sm:w-auto flex-shrink-0">
-          <Button size="default" className="w-full sm:w-auto text-xs sm:text-sm touch-manipulation">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Bill
-          </Button>
-        </Link>
+        <div className="flex flex-row items-center gap-4 w-full sm:w-auto">
+          <div className="flex items-center space-x-2 bg-card border px-3 py-2 rounded-md shadow-sm">
+            <Switch
+              id="gst-toggle"
+              checked={company?.gstEnabled || false}
+              onCheckedChange={toggleGst}
+              disabled={updatingGst || !company}
+            />
+            <Label htmlFor="gst-toggle" className="text-sm font-medium cursor-pointer">
+              GST {company?.gstEnabled ? 'ON' : 'OFF'}
+            </Label>
+          </div>
+          <Link to="/bills/new" className="flex-1 sm:flex-initial">
+            <Button size="default" className="w-full sm:w-auto text-xs sm:text-sm touch-manipulation">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Bill
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
