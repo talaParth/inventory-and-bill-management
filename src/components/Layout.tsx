@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "./ui/button";
 import { Footer } from "./Footer";
-import { checkSessionExpiry, logout } from "@/pages/Auth";
+import { checkSessionExpiry, logout, getCurrentUser } from "@/pages/Auth";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
@@ -21,16 +21,21 @@ import {
   StickyNote,
   FileStack,
   UserCheck,
+  LogOut,
 } from "lucide-react";
 import { getCompanyProfile } from "@/lib/storage";
+
 interface LayoutProps {
   children: React.ReactNode;
 }
+
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [company, setCompany] = useState<any>(null);
+  const user = getCurrentUser();
+
   useEffect(() => {
     const loadCompany = async () => {
       const companyData = await getCompanyProfile();
@@ -38,6 +43,7 @@ export function Layout({ children }: LayoutProps) {
     };
     loadCompany();
   }, []);
+
   // Check session expiry periodically and auto-logout
   useEffect(() => {
     const checkSession = () => {
@@ -53,6 +59,13 @@ export function Layout({ children }: LayoutProps) {
     const interval = setInterval(checkSession, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [navigate]);
+
+  const handleLogout = async () => {
+    await logout();
+    toast.success("Logged out successfully");
+    navigate("/auth");
+  };
+
   // Global scrollbar hiding styles (injected once)
   useEffect(() => {
     const style = document.createElement("style");
@@ -74,7 +87,8 @@ export function Layout({ children }: LayoutProps) {
       }
     };
   }, []);
-  const navItems = [
+
+  const adminNavItems = [
     { path: "/", icon: LayoutDashboard, label: "Home" },
     { path: "/bills", icon: FileText, label: "Bills" },
     { path: "/sample-bill", icon: FileStack, label: "Sample" },
@@ -89,10 +103,23 @@ export function Layout({ children }: LayoutProps) {
     { path: "/bill-creators", icon: UserCheck, label: "Creators" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
+
+  const creatorNavItems = [
+    { path: "/", icon: LayoutDashboard, label: "Home" },
+    { path: "/bills", icon: FileText, label: "Bills" },
+    { path: "/sample-bill", icon: FileStack, label: "Sample" },
+    { path: "/products", icon: Package, label: "Stock" },
+    { path: "/clients", icon: Users, label: "Clients" },
+    { path: "/notes", icon: StickyNote, label: "Notes" },
+  ];
+
+  const navItems = user.role === 'admin' ? adminNavItems : creatorNavItems;
+
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
+
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden w-full md:min-h-screen md:overflow-x-hidden">
       {/* Top Header - Fixed */}
@@ -111,21 +138,35 @@ export function Layout({ children }: LayoutProps) {
             <h1 className="font-semibold text-lg md:text-xl text-foreground truncate leading-tight">
               {company?.name || "BillEasy"}
             </h1>
+            <p className="text-[10px] md:text-xs text-muted-foreground truncate">
+              {user.name} ({user.role})
+            </p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleTheme}
-          aria-label="Toggle theme"
-          className="rounded-lg h-9 w-9 md:h-10 md:w-10 flex-shrink-0 hover:bg-muted"
-        >
-          {theme === "light" ? (
-            <Moon className="h-4 w-4 md:h-5 md:w-5" />
-          ) : (
-            <Sun className="h-4 w-4 md:h-5 md:w-5" />
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            className="rounded-lg h-9 w-9 md:h-10 md:w-10 flex-shrink-0 hover:bg-muted"
+          >
+            {theme === "light" ? (
+              <Moon className="h-4 w-4 md:h-5 md:w-5" />
+            ) : (
+              <Sun className="h-4 w-4 md:h-5 md:w-5" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            aria-label="Logout"
+            className="rounded-lg h-9 w-9 md:h-10 md:w-10 flex-shrink-0 hover:bg-muted text-destructive"
+          >
+            <LogOut className="h-4 w-4 md:h-5 md:w-5" />
+          </Button>
+        </div>
       </header>
       {/* Main Content Area - Fixed height on mobile, scrollable */}
       <main
@@ -151,8 +192,7 @@ export function Layout({ children }: LayoutProps) {
       <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 shadow-2xl safe-area-inset-bottom w-full overflow-hidden">
         {/* Mobile: Horizontal Scrollable Nav */}
         <div className="md:hidden h-16 sm:h-18 w-full overflow-hidden">
-          <div
-            className="h-full flex overflow-x-auto scrollbar-hide py-2 px-2 sm:px-4 gap-1.5 sm:gap-2 snap-x snap-mandatory touch-pan-x"
+          <div className="h-full flex overflow-x-auto scrollbar-hide py-2 px-2 sm:px-4 gap-1.5 sm:gap-2 snap-x snap-mandatory touch-pan-x"
             style={{ overscrollBehaviorX: "contain" }}
           >
             {navItems.map((item) => {
