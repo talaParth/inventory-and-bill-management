@@ -34,6 +34,15 @@ task = "shell.exec"
 args = "npm run dev -- --host 0.0.0.0 --port 5000"
 waitForPort = 5000
 
+[[workflows.workflow]]
+name = "git push"
+mode = "sequential"
+author = 53911480
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "git rebase --abort"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
