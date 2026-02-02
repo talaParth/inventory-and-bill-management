@@ -46,6 +46,8 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/billUtils";
@@ -72,6 +74,8 @@ export default function BillCreators() {
   const [editedCreatorName, setEditedCreatorName] = useState("");
   const [editedCreatorPassword, setEditedCreatorPassword] = useState("");
   const [creatorToDelete, setCreatorToDelete] = useState<BillCreator | null>(null);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -345,7 +349,7 @@ export default function BillCreators() {
       </div>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add New Creator</DialogTitle>
             <DialogDescription>
@@ -354,20 +358,40 @@ export default function BillCreators() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
+              <Label htmlFor="name">Creator Name</Label>
               <Input
+                id="name"
                 placeholder="Creator name"
                 value={newCreatorName}
                 onChange={(e) => setNewCreatorName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Input
-                type="password"
-                placeholder="Password"
-                value={newCreatorPassword}
-                onChange={(e) => setNewCreatorPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAddCreator()}
-              />
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={newCreatorPassword}
+                  onChange={(e) => setNewCreatorPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddCreator()}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -380,27 +404,47 @@ export default function BillCreators() {
       </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Creator</DialogTitle>
             <DialogDescription>Update the creator's details.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
+              <Label htmlFor="edit-name">Creator Name</Label>
               <Input
+                id="edit-name"
                 placeholder="Creator name"
                 value={editedCreatorName}
                 onChange={(e) => setEditedCreatorName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Input
-                type="password"
-                placeholder="New Password (optional)"
-                value={editedCreatorPassword}
-                onChange={(e) => setEditedCreatorPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleEditCreator()}
-              />
+              <Label htmlFor="edit-password">New Password (optional)</Label>
+              <div className="relative">
+                <Input
+                  id="edit-password"
+                  type={showEditPassword ? "text" : "password"}
+                  placeholder="New Password (optional)"
+                  value={editedCreatorPassword}
+                  onChange={(e) => setEditedCreatorPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleEditCreator()}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowEditPassword(!showEditPassword)}
+                >
+                  {showEditPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
           <DialogFooter>
