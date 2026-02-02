@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PurchaseBill, PurchaseReturn, PurchaseReturnItem } from "@/types";
-import { getProducts, savePurchaseReturn, updateProductStock } from "@/lib/storage";
+import { getProducts, savePurchaseReturn, updateProductStock } from "@/lib/firebaseService";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
