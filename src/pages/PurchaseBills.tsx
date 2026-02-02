@@ -1083,11 +1083,17 @@ export default function PurchaseBills() {
                         <p className="text-lg font-bold text-foreground">
                           {formatCurrency(bill.total)}
                         </p>
-                        {bill.paidAmount > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {Array.from(new Set(bill.payments?.map(p => p.method))).map(method => (
-                              <Badge key={method} variant="outline" className="text-[10px] px-1 h-4">
-                                {method}
+                        {bill.paidAmount > 0 && bill.payments && bill.payments.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {Object.entries(
+                              bill.payments.reduce((acc, p) => {
+                                acc[p.method] = (acc[p.method] || 0) + p.amount;
+                                return acc;
+                              }, {} as Record<string, number>)
+                            ).map(([method, amount]) => (
+                              <Badge key={method} variant="outline" className="text-[10px] px-1.5 h-5 flex items-center gap-1 bg-muted/30">
+                                <span className="opacity-70">{method}:</span>
+                                <span className="font-bold">{formatCurrency(amount)}</span>
                               </Badge>
                             ))}
                           </div>
@@ -1559,7 +1565,7 @@ export default function PurchaseBills() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-8 px-6 pb-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                       <div className="space-y-2 p-4 bg-muted/20 rounded-lg border">
                         <span className="text-muted-foreground text-sm uppercase tracking-wider font-semibold">Total Amount</span>
                         <p className="text-3xl font-bold text-foreground">
@@ -1571,6 +1577,24 @@ export default function PurchaseBills() {
                         <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                           {formatCurrency((isEditing ? editedBill : selectedBill)?.paidAmount || 0)}
                         </p>
+                      </div>
+                      <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-100 dark:border-blue-900">
+                        <span className="text-blue-700 dark:text-blue-300 text-sm uppercase tracking-wider font-semibold">Payment Breakdown</span>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {Object.entries(
+                            (isEditing ? editedBill : selectedBill)?.payments?.reduce((acc, p) => {
+                              acc[p.method] = (acc[p.method] || 0) + p.amount;
+                              return acc;
+                            }, {} as Record<string, number>) || {}
+                          ).map(([method, amount]) => (
+                            <Badge key={method} variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 border-none">
+                              {method}: {formatCurrency(amount)}
+                            </Badge>
+                          ))}
+                          {((isEditing ? editedBill : selectedBill)?.payments?.length || 0) === 0 && (
+                            <span className="text-sm text-muted-foreground italic">No payments yet</span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
