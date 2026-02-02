@@ -2,6 +2,7 @@ export interface BillCreator {
   id: string;
   name: string;
   password?: string;
+  permissions?: string[]; // Array of paths or keys they can access
   createdAt: string;
 }
 

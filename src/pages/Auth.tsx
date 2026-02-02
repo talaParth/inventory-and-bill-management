@@ -13,6 +13,7 @@ const AUTH_KEY = 'authenticated';
 const SESSION_EXPIRY_KEY = 'sessionExpiry';
 const USER_ROLE_KEY = 'userRole';
 const USER_NAME_KEY = 'userName';
+const USER_PERMISSIONS_KEY = 'userPermissions';
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const ADMIN_CREDENTIALS = { username: 'admin', password: '123' };
 
@@ -44,7 +45,7 @@ export default function Auth() {
     try {
       // 1. Check Admin Credentials
       if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-        loginUser('admin', 'Admin');
+        loginUser('admin', 'Admin', []);
         return;
       }
 
@@ -55,7 +56,7 @@ export default function Auth() {
       );
 
       if (creator) {
-        loginUser('creator', creator.name);
+        loginUser('creator', creator.name, creator.permissions || []);
         return;
       }
 
@@ -68,12 +69,13 @@ export default function Auth() {
     }
   };
 
-  const loginUser = (role: string, name: string) => {
+  const loginUser = (role: string, name: string, permissions: string[]) => {
     const expiryTime = Date.now() + SESSION_DURATION;
     localStorage.setItem(AUTH_KEY, 'true');
     localStorage.setItem(SESSION_EXPIRY_KEY, expiryTime.toString());
     localStorage.setItem(USER_ROLE_KEY, role);
     localStorage.setItem(USER_NAME_KEY, name);
+    localStorage.setItem(USER_PERMISSIONS_KEY, permissions.join(','));
     toast.success(`Welcome back, ${name}!`);
     navigate('/');
   };
@@ -183,6 +185,7 @@ export const isAuthenticated = async (): Promise<boolean> => {
     localStorage.removeItem(SESSION_EXPIRY_KEY);
     localStorage.removeItem(USER_ROLE_KEY);
     localStorage.removeItem(USER_NAME_KEY);
+    localStorage.removeItem(USER_PERMISSIONS_KEY);
     return false;
   }
   
@@ -196,6 +199,7 @@ export const isAuthenticated = async (): Promise<boolean> => {
     localStorage.removeItem(SESSION_EXPIRY_KEY);
     localStorage.removeItem(USER_ROLE_KEY);
     localStorage.removeItem(USER_NAME_KEY);
+    localStorage.removeItem(USER_PERMISSIONS_KEY);
     return false;
   }
   
@@ -208,6 +212,7 @@ export const logout = async (): Promise<void> => {
   localStorage.removeItem(SESSION_EXPIRY_KEY);
   localStorage.removeItem(USER_ROLE_KEY);
   localStorage.removeItem(USER_NAME_KEY);
+  localStorage.removeItem(USER_PERMISSIONS_KEY);
   // Also clear Firestore preference for consistency
   await setUserPreference(AUTH_KEY, 'false');
 };

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -71,9 +72,11 @@ export default function BillCreators() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newCreatorName, setNewCreatorName] = useState("");
   const [newCreatorPassword, setNewCreatorPassword] = useState("");
+  const [newCreatorPermissions, setNewCreatorPermissions] = useState<string[]>(["/", "/bills", "/sample-bill", "/products", "/clients", "/notes"]);
   const [editingCreator, setEditingCreator] = useState<BillCreator | null>(null);
   const [editedCreatorName, setEditedCreatorName] = useState("");
   const [editedCreatorPassword, setEditedCreatorPassword] = useState("");
+  const [editedCreatorPermissions, setEditedCreatorPermissions] = useState<string[]>([]);
   const [creatorToDelete, setCreatorToDelete] = useState<BillCreator | null>(null);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
@@ -104,6 +107,7 @@ export default function BillCreators() {
       id: Math.random().toString(36).substr(2, 9),
       name: newCreatorName.trim(),
       password: newCreatorPassword.trim(),
+      permissions: newCreatorPermissions,
       createdAt: new Date().toISOString(),
     };
 
@@ -111,6 +115,7 @@ export default function BillCreators() {
     setCreators([...creators, newCreator]);
     setNewCreatorName("");
     setNewCreatorPassword("");
+    setNewCreatorPermissions(["/", "/bills", "/sample-bill", "/products", "/clients", "/notes"]);
     setIsAddDialogOpen(false);
     toast({ title: "Creator added successfully" });
   };
@@ -131,6 +136,7 @@ export default function BillCreators() {
       ...editingCreator,
       name: editedCreatorName.trim(),
       password: editedCreatorPassword.trim(),
+      permissions: editedCreatorPermissions,
     };
 
     await saveCreator(updatedCreator);
@@ -156,8 +162,35 @@ export default function BillCreators() {
     setEditingCreator(creator);
     setEditedCreatorName(creator.name);
     setEditedCreatorPassword(creator.password || "");
+    setEditedCreatorPermissions(creator.permissions || ["/", "/bills", "/sample-bill", "/products", "/clients", "/notes"]);
     setIsEditDialogOpen(true);
   };
+
+  const togglePermission = (path: string, mode: 'add' | 'edit') => {
+    if (mode === 'add') {
+      setNewCreatorPermissions(prev => 
+        prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path]
+      );
+    } else {
+      setEditedCreatorPermissions(prev => 
+        prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path]
+      );
+    }
+  };
+
+  const PERMISSION_OPTIONS = [
+    { path: "/", label: "Dashboard" },
+    { path: "/bills", label: "Bills" },
+    { path: "/sample-bill", label: "Sample Bills" },
+    { path: "/purchases", label: "Purchases (Buy)" },
+    { path: "/returns", label: "Returns" },
+    { path: "/passbook", label: "Passbook" },
+    { path: "/expenses", label: "Expenses" },
+    { path: "/products", label: "Stock" },
+    { path: "/clients", label: "Clients" },
+    { path: "/files", label: "Files" },
+    { path: "/notes", label: "Notes" },
+  ];
 
   const openDeleteDialog = (creator: BillCreator, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -394,6 +427,26 @@ export default function BillCreators() {
                 </Button>
               </div>
             </div>
+            <div className="space-y-3">
+              <Label>Permissions</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {PERMISSION_OPTIONS.map((opt) => (
+                  <div key={opt.path} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`new-perm-${opt.path}`} 
+                      checked={newCreatorPermissions.includes(opt.path)}
+                      onValueChange={() => togglePermission(opt.path, 'add')}
+                    />
+                    <label 
+                      htmlFor={`new-perm-${opt.path}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {opt.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -445,6 +498,26 @@ export default function BillCreators() {
                     <Eye className="h-4 w-4 text-muted-foreground" />
                   )}
                 </Button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <Label>Permissions</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {PERMISSION_OPTIONS.map((opt) => (
+                  <div key={opt.path} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`edit-perm-${opt.path}`} 
+                      checked={editedCreatorPermissions.includes(opt.path)}
+                      onValueChange={() => togglePermission(opt.path, 'edit')}
+                    />
+                    <label 
+                      htmlFor={`edit-perm-${opt.path}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {opt.label}
+                    </label>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

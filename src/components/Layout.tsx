@@ -35,6 +35,7 @@ export function Layout({ children }: LayoutProps) {
   const { theme, toggleTheme } = useTheme();
   const [company, setCompany] = useState<any>(null);
   const user = getCurrentUser();
+  const permissions = user.role === 'admin' ? [] : (localStorage.getItem('userPermissions')?.split(',') || []);
 
   useEffect(() => {
     const loadCompany = async () => {
@@ -88,7 +89,7 @@ export function Layout({ children }: LayoutProps) {
     };
   }, []);
 
-  const adminNavItems = [
+  const allNavItems = [
     { path: "/", icon: LayoutDashboard, label: "Home" },
     { path: "/bills", icon: FileText, label: "Bills" },
     { path: "/sample-bill", icon: FileStack, label: "Sample" },
@@ -104,16 +105,9 @@ export function Layout({ children }: LayoutProps) {
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
 
-  const creatorNavItems = [
-    { path: "/", icon: LayoutDashboard, label: "Home" },
-    { path: "/bills", icon: FileText, label: "Bills" },
-    { path: "/sample-bill", icon: FileStack, label: "Sample" },
-    { path: "/products", icon: Package, label: "Stock" },
-    { path: "/clients", icon: Users, label: "Clients" },
-    { path: "/notes", icon: StickyNote, label: "Notes" },
-  ];
-
-  const navItems = user.role === 'admin' ? adminNavItems : creatorNavItems;
+  const navItems = user.role === 'admin' 
+    ? allNavItems 
+    : allNavItems.filter(item => permissions.includes(item.path));
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
