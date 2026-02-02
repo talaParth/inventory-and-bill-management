@@ -57,7 +57,7 @@ const COLLECTIONS = {
   SAMPLE_BILLS: "sampleBills",
   CUSTOMERS: "customers",
   COUNTERS: "counters",
-
+  PURCHASE_RETURNS: "purchaseReturns",
 };
 
 // Helper function to get user ID (for multi-user support in future)
@@ -712,7 +712,71 @@ export const updatePurchaseBillPayment = async (
   }
 };
 
-// Item with selling price for inventory
+// Purchase Returns
+export const savePurchaseReturn = async (
+  returnOrder: PurchaseReturn,
+  adjustStock: boolean = true
+): Promise<void> => {
+  try {
+    const userId = getUserId();
+    const batch = writeBatch(db);
+
+    // 1. Save the return record
+    const returnRef = doc(db, COLLECTIONS.PURCHASE_RETURNS, returnOrder.id);
+    batch.set(returnRef, removeUndefined({ ...returnOrder, userId }));
+
+    // 2. Update the Purchase Bill
+    const billRef = doc(db, COLLECTIONS.PURCHASE_BILLS, returnOrder.purchaseBillId);
+    const billSnap = await getDoc(billRef);
+
+    if (billSnap.exists()) {
+      const bill = billSnap.data() as PurchaseBill;
+      const currentReturns = bill.returns || [];
+      const updatedReturns = [...currentReturns, returnOrder];
+      
+      // Calculate new totals
+      const newTotal = bill.total - returnOrder.totalReturnValue;
+      const newPaymentStatus = bill.paidAmount >= newTotal ? "paid" : bill.paymentStatus;
+
+      batch.update(billRef, {
+        returns: removeUndefined(updatedReturns),
+        total: newTotal,
+        paymentStatus: newPaymentStatus,
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    // 3. Adjust Stock if requested
+    if (adjustStock) {
+      const products = await getProducts();
+      for (const item of returnOrder.items) {
+        const product = products.find(p => p.name.toLowerCase() === item.description.toLowerCase());
+        if (product) {
+          const productRef = doc(db, COLLECTIONS.PRODUCTS, product.id);
+          const newStock = Math.max(0, product.stock - item.quantity);
+          batch.update(productRef, { stock: newStock });
+
+          // Record inventory transaction
+          const transRef = doc(collection(db, COLLECTIONS.INVENTORY));
+          batch.set(transRef, removeUndefined({
+            id: transRef.id,
+            productId: product.id,
+            billId: returnOrder.purchaseBillId,
+            type: "return",
+            quantity: item.quantity,
+            date: returnOrder.returnDate,
+            userId
+          }));
+        }
+      }
+    }
+
+    await batch.commit();
+  } catch (error) {
+    console.error("Error saving purchase return:", error);
+    throw error;
+  }
+};
 
 export const addPurchaseItemsToInventory = async (
   bill: PurchaseBill,

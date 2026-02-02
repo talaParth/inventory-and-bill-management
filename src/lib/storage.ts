@@ -24,6 +24,7 @@ export {
   savePurchaseBill,
   deletePurchaseBill,
   updatePurchaseBillPayment,
+  savePurchaseReturn,
   addPurchaseItemsToInventory,
   isPurchaseBillDuplicate,
   isPurchaseBillInventoryAdded,

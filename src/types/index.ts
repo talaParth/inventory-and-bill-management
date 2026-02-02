@@ -258,6 +258,27 @@ export interface AIExtractionError {
   suggestion?: string;
 }
 
+export interface PurchaseReturnItem {
+  description: string;
+  quantity: number;
+  rate: number;
+  amount: number;
+  gstRate?: number;
+  gstAmount?: number;
+}
+
+export interface PurchaseReturn {
+  id: string;
+  purchaseBillId: string;
+  vendorName: string;
+  billNumber?: string;
+  items: PurchaseReturnItem[];
+  totalReturnValue: number;
+  returnDate: string;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface PurchaseBill {
   id: string;
   billImage: string; // Base64 or URL of uploaded bill image
@@ -269,6 +290,7 @@ export interface PurchaseBill {
   dueDate?: string; // Payment due date
   paymentTerms?: number; // Payment terms in days
   items: PurchaseBillItem[];
+  returns?: PurchaseReturn[]; // Track returns
   subtotal: number;
   totalTax: number;
   total: number;
