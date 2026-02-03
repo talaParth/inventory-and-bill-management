@@ -38,7 +38,7 @@ import {
   saveCreator,
   deleteCreator,
 } from "@/lib/storage";
-import { Bill, SampleBill, CompanyProfile, BillCreator } from "@/types";
+import { Bill, SampleBill, CompanyProfile, BillCreator, PaymentMethod } from "@/types";
 import {
   User,
   Receipt,
@@ -263,17 +263,13 @@ export default function BillCreators() {
     const paymentMethods = filteredAndSortedBills.reduce((acc, bill) => {
       const b = bill as any;
       if (b.paymentStatus === 'paid') {
-        const method = b.paymentMethod || 'Other';
+        const method = b.paymentMethod || b.paymentType || 'Other';
         acc[method] = (acc[method] || 0) + bill.total;
       }
       return acc;
     }, {} as Record<string, number>);
 
-    // Ensure common payment methods are shown even if 0, or just show whatever is present
-    // Based on the user's request, they want to see the tiles of different payment methods available.
-    // Common ones usually include Cash, UPI, Card, Bank Transfer etc.
-    // But since I don't have a central list of 'available' methods, I will show all that have been used.
-    // If there's a specific list in billUtils, I'll check it.
+    const ALL_PAYMENT_METHODS: PaymentMethod[] = ["Cash", "UPI", "Bank Transfer", "Cheque", "Other"];
 
     return (
       <div className="space-y-6">
@@ -293,59 +289,45 @@ export default function BillCreators() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="p-3">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Total Billed</p>
-              <h3 className="text-lg font-bold text-primary truncate">{formatCurrency(totalAmount)}</h3>
-              <p className="text-[10px] text-muted-foreground">{filteredAndSortedBills.length} bills</p>
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-tight">Total Billed</p>
+              <h3 className="text-2xl font-bold text-primary">{formatCurrency(totalAmount)}</h3>
+              <p className="text-xs text-muted-foreground mt-1">{filteredAndSortedBills.length} bills</p>
             </CardContent>
           </Card>
           <Card className="bg-green-500/5 border-green-500/20">
-            <CardContent className="p-3">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Collected</p>
-              <h3 className="text-lg font-bold text-green-600 truncate">{formatCurrency(totalPaid)}</h3>
-              <p className="text-[10px] text-muted-foreground">Paid amount</p>
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-tight">Collected</p>
+              <h3 className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</h3>
+              <p className="text-xs text-muted-foreground mt-1">Total payments received</p>
             </CardContent>
           </Card>
           <Card className="bg-orange-500/5 border-orange-500/20">
-            <CardContent className="p-3">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Pending</p>
-              <h3 className="text-lg font-bold text-orange-600 truncate">{formatCurrency(totalPending)}</h3>
-              <p className="text-[10px] text-muted-foreground">Outstanding</p>
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-tight">Pending</p>
+              <h3 className="text-2xl font-bold text-orange-600">{formatCurrency(totalPending)}</h3>
+              <p className="text-xs text-muted-foreground mt-1">Outstanding balance</p>
             </CardContent>
           </Card>
-          {/* Payment Methods Breakdown */}
-          <div className="col-span-1 sm:col-span-1 grid grid-cols-1 gap-2">
-            {Object.entries(paymentMethods).length > 0 ? (
-              Object.entries(paymentMethods).slice(0, 2).map(([method, amount]) => (
-                <div key={method} className="flex justify-between items-center bg-muted/30 rounded-md px-2 py-1">
-                  <span className="text-[10px] font-medium text-muted-foreground truncate mr-2">{method}</span>
-                  <span className="text-xs font-bold">{formatCurrency(amount)}</span>
-                </div>
-              ))
-            ) : (
-              <div className="flex items-center justify-center h-full text-[10px] text-muted-foreground italic">No payments</div>
-            )}
-            {Object.entries(paymentMethods).length > 2 && (
-               <div className="text-[9px] text-center text-muted-foreground">+ {Object.entries(paymentMethods).length - 2} more methods</div>
-            )}
+        </div>
+
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Collected by Payment Method</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {ALL_PAYMENT_METHODS.map((method) => (
+              <Card key={method} className="bg-muted/30 border-border/50">
+                <CardContent className="p-3">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight truncate">{method}</p>
+                  <h3 className="text-sm font-bold mt-1">{formatCurrency(paymentMethods[method] || 0)}</h3>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
 
-        {/* Full Payment Breakdown (Moved to a tighter row or hidden if empty) */}
-        {Object.entries(paymentMethods).length > 2 && (
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(paymentMethods).map(([method, amount]) => (
-              <div key={method} className="bg-muted/30 border border-border/50 rounded-full px-3 py-1 flex items-center gap-2">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase">{method}</span>
-                <span className="text-xs font-bold">{formatCurrency(amount)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t">
           <div className="flex gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
