@@ -256,11 +256,17 @@ export default function BillCreators() {
 
   if (selectedCreator) {
     const totalAmount = filteredAndSortedBills.reduce((sum, bill) => sum + bill.total, 0);
+    const totalPaid = filteredAndSortedBills.reduce((sum, bill) => 
+      sum + (bill.paymentStatus === 'paid' ? bill.total : 0), 0);
+    const totalPending = totalAmount - totalPaid;
+
     const paymentMethods = filteredAndSortedBills.reduce((acc, bill) => {
       // Cast to any to access paymentStatus or other properties safely if they exist
       const b = bill as any;
-      const method = b.paymentMethod || (b.paymentStatus === 'paid' ? 'Paid' : 'Unpaid');
-      acc[method] = (acc[method] || 0) + bill.total;
+      if (b.paymentStatus === 'paid') {
+        const method = b.paymentMethod || 'Paid';
+        acc[method] = (acc[method] || 0) + bill.total;
+      }
       return acc;
     }, {} as Record<string, number>);
 
@@ -290,12 +296,26 @@ export default function BillCreators() {
               <p className="text-xs text-muted-foreground mt-1">{filteredAndSortedBills.length} bills total</p>
             </CardContent>
           </Card>
+          <Card className="bg-green-500/5 border-green-500/20">
+            <CardContent className="p-4">
+              <p className="text-sm font-medium text-muted-foreground">Total Collected</p>
+              <h3 className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</h3>
+              <p className="text-xs text-muted-foreground mt-1">Paid amount from all bills</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-orange-500/5 border-orange-500/20">
+            <CardContent className="p-4">
+              <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
+              <h3 className="text-2xl font-bold text-orange-600">{formatCurrency(totalPending)}</h3>
+              <p className="text-xs text-muted-foreground mt-1">Outstanding payments</p>
+            </CardContent>
+          </Card>
           {Object.entries(paymentMethods).map(([method, amount]) => (
             <Card key={method}>
               <CardContent className="p-4">
-                <p className="text-sm font-medium text-muted-foreground">{method} Payments</p>
+                <p className="text-sm font-medium text-muted-foreground">{method} Received</p>
                 <h3 className="text-2xl font-bold">{formatCurrency(amount)}</h3>
-                <p className="text-xs text-muted-foreground mt-1">Received via {method}</p>
+                <p className="text-xs text-muted-foreground mt-1">Via {method}</p>
               </CardContent>
             </Card>
           ))}
