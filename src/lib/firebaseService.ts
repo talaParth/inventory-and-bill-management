@@ -439,13 +439,21 @@ export const saveBill = async (bill: Bill): Promise<void> => {
       // or just ensure the total paidAmount is correctly reflected.
       // The user wants to update the entry in the passbook, not add another.
       // Since Passbook derives from payments array, we should maintain it.
-      if (bill.payments && bill.payments.length > 0 && bill.total !== existingBill.total) {
-        // If the bill was fully paid and now total changed, we might need to adjust
+      if (bill.total !== existingBill.total) {
+        // Handle fully paid bills: Adjust the payment to match the new total
         if (existingBill.paymentStatus === 'paid' && bill.paidAmount === existingBill.total) {
           bill.paidAmount = bill.total;
           bill.paymentStatus = 'paid';
-          if (bill.payments.length === 1) {
-            bill.payments[0].amount = bill.total;
+          
+          if (bill.payments && bill.payments.length > 0) {
+             // If there's only one payment, adjust it directly
+             if (bill.payments.length === 1) {
+               bill.payments[0].amount = bill.total;
+             } else {
+               // If multiple payments, adjust the last one by the difference
+               const diff = bill.total - existingBill.total;
+               bill.payments[bill.payments.length - 1].amount += diff;
+             }
           }
         }
       }
