@@ -435,7 +435,7 @@ export default function BillCreators() {
                     <Checkbox 
                       id={`new-perm-${opt.path}`} 
                       checked={newCreatorPermissions.includes(opt.path)}
-                      onValueChange={() => togglePermission(opt.path, 'add')}
+                      onCheckedChange={() => togglePermission(opt.path, 'add')}
                     />
                     <label 
                       htmlFor={`new-perm-${opt.path}`}
@@ -508,7 +508,7 @@ export default function BillCreators() {
                     <Checkbox 
                       id={`edit-perm-${opt.path}`} 
                       checked={editedCreatorPermissions.includes(opt.path)}
-                      onValueChange={() => togglePermission(opt.path, 'edit')}
+                      onCheckedChange={() => togglePermission(opt.path, 'edit')}
                     />
                     <label 
                       htmlFor={`edit-perm-${opt.path}`}
