@@ -16,6 +16,7 @@ import {
   CommandSeparator,
 } from "./ui/command";
 import { Bill, BillItem, Client, Product } from "@/types";
+import { getCurrentUser } from "@/pages/Auth";
 import {
   getClients,
   getProducts,
