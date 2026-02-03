@@ -214,9 +214,8 @@ export default function Dashboard() {
       setBillsInRange(filteredBillsInRange);
       const purchaseBillsInRange = allPurchaseBills.filter(pb => filterByYearMonth(pb.createdAt || pb.billDate || pb.id));
 
-      // Total sales revenue (PAID bills only, including GST - this is actual money received)
-      const paidBills = filteredBillsInRange.filter(b => b.paymentStatus === 'paid');
-      const totalRevenue = roundToTwoDecimals(paidBills.reduce((sum, bill) => sum + bill.total, 0));
+      // Total sales revenue (Actual money received including partial payments)
+      const totalRevenue = roundToTwoDecimals(filteredBillsInRange.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0));
 
       // Pending receivable amount (including GST - this is actual money still owed)
       const pendingAmount = roundToTwoDecimals(filteredBillsInRange
@@ -433,28 +432,38 @@ export default function Dashboard() {
 
       const buckets: Record<string, { label: string; sales: number; purchases: number; profit: number }> = {};
 
-      // Sales & profit (paid bills only, using subtotal for profit calculation)
+      // Sales & profit (using subtotal for profit calculation)
       // Using historically accurate cost calculation - average cost at time of sale
       let totalCOGS = 0; // Track total COGS for markup calculation
-      paidBills.forEach(bill => {
+      filteredBillsInRange.forEach(bill => {
         const { key, label } = getBucketKeyLabel(bill.date);
         if (!buckets[key]) buckets[key] = { label, sales: 0, purchases: 0, profit: 0 };
+        
+        // Use ratio of paidAmount to total to determine how much revenue and profit to recognize
+        const totalAmount = bill.total || 1; // Avoid division by zero
+        const paymentRatio = (bill.paidAmount || 0) / totalAmount;
+        
         // Use discounted subtotal for profit calculation (discount reduces actual revenue)
         const discountAmount = bill.discount || 0;
-        const sales = roundToTwoDecimals(bill.subtotal - discountAmount); // Actual revenue after discount
+        const totalRevenueAfterDiscount = roundToTwoDecimals(bill.subtotal - discountAmount);
+        
+        // Recognized sales is based on what's actually paid
+        const sales = roundToTwoDecimals(totalRevenueAfterDiscount * paymentRatio);
+        
         let billCogs = 0;
         bill.items.forEach(item => {
           const product = productById[item.productId];
-          // Use HISTORICAL average cost at the time of sale for accurate COGS
-          // This ensures profit calculations reflect the actual cost basis when the sale occurred
           const costPrice = product 
             ? getHistoricalAverageCost(product.id, bill.date)
             : 0;
           billCogs += roundToTwoDecimals(item.quantity * costPrice);
         });
-        totalCOGS += roundToTwoDecimals(billCogs); // Accumulate total COGS
-        buckets[key].sales += roundToTwoDecimals(sales);
-        buckets[key].profit += roundToTwoDecimals(sales - billCogs);
+        
+        const recognizedCogs = roundToTwoDecimals(billCogs * paymentRatio);
+        totalCOGS += recognizedCogs;
+        
+        buckets[key].sales += sales;
+        buckets[key].profit += roundToTwoDecimals(sales - recognizedCogs);
       });
 
       // Purchases (all purchase bills total)

@@ -280,14 +280,20 @@ export default function BillCreators() {
   if (selectedCreator) {
     const totalAmount = filteredAndSortedBills.reduce((sum, bill) => sum + bill.total, 0);
     const totalPaid = filteredAndSortedBills.reduce((sum, bill) => 
-      sum + (bill.paymentStatus === 'paid' ? bill.total : 0), 0);
+      sum + (bill.paidAmount || 0), 0);
     const totalPending = totalAmount - totalPaid;
 
     const paymentMethods = filteredAndSortedBills.reduce((acc, bill) => {
       const b = bill as any;
-      if (b.paymentStatus === 'paid') {
+      if (b.payments && Array.isArray(b.payments)) {
+        b.payments.forEach((p: any) => {
+          const method = p.method || 'Other';
+          acc[method] = (acc[method] || 0) + p.amount;
+        });
+      } else if (b.paidAmount > 0) {
+        // Fallback for bills without payments array but with paidAmount
         const method = b.paymentMethod || b.paymentType || 'Other';
-        acc[method] = (acc[method] || 0) + bill.total;
+        acc[method] = (acc[method] || 0) + b.paidAmount;
       }
       return acc;
     }, {} as Record<string, number>);
