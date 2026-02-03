@@ -199,6 +199,14 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
               bill.internationalDetails.countryOfFinalDestination || "",
           });
         }
+      } else {
+        // Set default creator for new bill
+        const user = getCurrentUser();
+        if (user.role === "admin") {
+          setFormData((prev) => ({ ...prev, createdBy: "Admin" }));
+        } else if (user.name) {
+          setFormData((prev) => ({ ...prev, createdBy: user.name }));
+        }
       }
     };
     loadData();
