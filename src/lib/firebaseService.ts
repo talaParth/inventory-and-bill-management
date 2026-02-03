@@ -829,13 +829,16 @@ export const savePurchaseReturn = async (
     if (adjustStock) {
       for (const item of returnOrder.items) {
         // Find product by description and update stock
+        // First, let's try to find by ID if we can extend the type, 
+        // but for now let's fix the name matching logic to be more robust 
+        // and add an inventory transaction
         const productsQuery = query(
           collection(db, COLLECTIONS.PRODUCTS),
           where("userId", "==", userId)
         );
         const productsSnap = await getDocs(productsQuery);
         const productDoc = productsSnap.docs.find(d => 
-          (d.data().name as string).toLowerCase() === item.description.toLowerCase()
+          (d.data().name as string).toLowerCase().trim() === item.description.toLowerCase().trim()
         );
         
         if (productDoc) {
@@ -843,6 +846,21 @@ export const savePurchaseReturn = async (
           const currentStock = productDoc.data().stock || 0;
           const newStock = currentStock - item.quantity;
           batch.update(productRef, { stock: Math.round(newStock * 100) / 100 });
+
+          // Record inventory transaction for the return
+          const transactionRef = doc(collection(db, COLLECTIONS.INVENTORY));
+          const transaction = {
+            id: transactionRef.id,
+            productId: productDoc.id,
+            purchaseReturnId: returnOrder.id,
+            type: "purchase_return",
+            quantity: item.quantity,
+            date: returnOrder.returnDate || new Date().toISOString(),
+            userId,
+          };
+          batch.set(transactionRef, removeUndefined(transaction));
+        } else {
+          console.warn(`Product not found for return item: ${item.description}`);
         }
       }
     }
