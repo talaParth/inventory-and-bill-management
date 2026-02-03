@@ -255,24 +255,53 @@ export default function BillCreators() {
     });
 
   if (selectedCreator) {
+    const totalAmount = filteredAndSortedBills.reduce((sum, bill) => sum + bill.total, 0);
+    const paymentMethods = filteredAndSortedBills.reduce((acc, bill) => {
+      // Cast to any to access paymentStatus or other properties safely if they exist
+      const b = bill as any;
+      const method = b.paymentMethod || (b.paymentStatus === 'paid' ? 'Paid' : 'Unpaid');
+      acc[method] = (acc[method] || 0) + bill.total;
+      return acc;
+    }, {} as Record<string, number>);
+
     return (
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSelectedCreator(null)}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold">Bills by {selectedCreator}</h1>
-              <p className="text-muted-foreground">
-                Total bills: {creatorBills.length}
-              </p>
-            </div>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSelectedCreator(null)}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Bills by {selectedCreator}</h1>
+            <p className="text-muted-foreground">
+              Performance overview and bill history
+            </p>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-4">
+              <p className="text-sm font-medium text-muted-foreground">Total Billed</p>
+              <h3 className="text-2xl font-bold text-primary">{formatCurrency(totalAmount)}</h3>
+              <p className="text-xs text-muted-foreground mt-1">{filteredAndSortedBills.length} bills total</p>
+            </CardContent>
+          </Card>
+          {Object.entries(paymentMethods).map(([method, amount]) => (
+            <Card key={method}>
+              <CardContent className="p-4">
+                <p className="text-sm font-medium text-muted-foreground">{method} Payments</p>
+                <h3 className="text-2xl font-bold">{formatCurrency(amount)}</h3>
+                <p className="text-xs text-muted-foreground mt-1">Received via {method}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
