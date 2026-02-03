@@ -19,6 +19,7 @@ import { Bill, PaymentMethod, CompanyProfile } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/billUtils';
 import { Plus, Search, Eye, Edit, Trash2, Filter, IndianRupee, Loader2, Calendar, User, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { PaymentDialog } from '@/components/PaymentDialog';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
