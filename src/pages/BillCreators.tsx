@@ -261,14 +261,19 @@ export default function BillCreators() {
     const totalPending = totalAmount - totalPaid;
 
     const paymentMethods = filteredAndSortedBills.reduce((acc, bill) => {
-      // Cast to any to access paymentStatus or other properties safely if they exist
       const b = bill as any;
       if (b.paymentStatus === 'paid') {
-        const method = b.paymentMethod || 'Paid';
+        const method = b.paymentMethod || 'Other';
         acc[method] = (acc[method] || 0) + bill.total;
       }
       return acc;
     }, {} as Record<string, number>);
+
+    // Ensure common payment methods are shown even if 0, or just show whatever is present
+    // Based on the user's request, they want to see the tiles of different payment methods available.
+    // Common ones usually include Cash, UPI, Card, Bank Transfer etc.
+    // But since I don't have a central list of 'available' methods, I will show all that have been used.
+    // If there's a specific list in billUtils, I'll check it.
 
     return (
       <div className="space-y-6">
@@ -310,15 +315,21 @@ export default function BillCreators() {
               <p className="text-xs text-muted-foreground mt-1">Outstanding payments</p>
             </CardContent>
           </Card>
-          {Object.entries(paymentMethods).map(([method, amount]) => (
-            <Card key={method}>
-              <CardContent className="p-4">
-                <p className="text-sm font-medium text-muted-foreground">{method} Received</p>
-                <h3 className="text-2xl font-bold">{formatCurrency(amount)}</h3>
-                <p className="text-xs text-muted-foreground mt-1">Via {method}</p>
-              </CardContent>
-            </Card>
-          ))}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {Object.entries(paymentMethods).length > 0 ? (
+            Object.entries(paymentMethods).map(([method, amount]) => (
+              <Card key={method} className="bg-muted/30">
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{method}</p>
+                  <p className="text-lg font-bold mt-1">{formatCurrency(amount)}</p>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-full text-sm text-muted-foreground italic">No collected payments yet.</div>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
