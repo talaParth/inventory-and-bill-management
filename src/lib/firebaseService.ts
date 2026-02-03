@@ -441,7 +441,7 @@ export const saveBill = async (bill: Bill): Promise<void> => {
       // Since Passbook derives from payments array, we should maintain it.
       if (bill.total !== existingBill.total) {
         // Handle fully paid bills: Adjust the payment to match the new total
-        if (existingBill.paymentStatus === 'paid' && bill.paidAmount === existingBill.total) {
+        if (existingBill.paymentStatus === 'paid' && (bill.paidAmount === existingBill.total || bill.paidAmount === bill.total)) {
           bill.paidAmount = bill.total;
           bill.paymentStatus = 'paid';
           
@@ -449,13 +449,25 @@ export const saveBill = async (bill: Bill): Promise<void> => {
              // If there's only one payment, adjust it directly
              if (bill.payments.length === 1) {
                bill.payments[0].amount = bill.total;
+               bill.payments[0].date = new Date().toISOString(); // Update date to reflect change
              } else {
                // If multiple payments, adjust the last one by the difference
                const diff = bill.total - existingBill.total;
                bill.payments[bill.payments.length - 1].amount += diff;
+               bill.payments[bill.payments.length - 1].date = new Date().toISOString();
              }
           }
         }
+      }
+    } else if (!isUpdate && bill.paidAmount > 0) {
+      // For new bills with initial payment, ensure it's in the payments array
+      if (!bill.payments || bill.payments.length === 0) {
+        bill.payments = [{
+          id: Math.random().toString(36).substr(2, 9),
+          amount: bill.paidAmount,
+          method: (bill.modeOfPayment as any) || 'Cash',
+          date: bill.date || new Date().toISOString(),
+        }];
       }
     }
 

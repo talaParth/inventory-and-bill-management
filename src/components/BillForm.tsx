@@ -553,7 +553,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
         placeOfSupply: formData.placeOfSupply,
         notes: formData.notes,
         createdBy: formData.createdBy || undefined,
-        payments: [],
+        payments: bill?.payments || [],
         createdAt: bill?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         originalItems: isEdit ? originalBillItems : undefined,
