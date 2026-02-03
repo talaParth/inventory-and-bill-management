@@ -50,10 +50,17 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  ArrowUpDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/billUtils";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function BillCreators() {
   const navigate = useNavigate();
@@ -63,6 +70,9 @@ export default function BillCreators() {
   const [creatorBills, setCreatorBills] = useState<(Bill | SampleBill)[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [billSearchTerm, setBillSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"date" | "amount" | "client">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(
     null,
   );
@@ -224,34 +234,85 @@ export default function BillCreators() {
     c.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const filteredAndSortedBills = creatorBills
+    .filter((bill) => {
+      const searchLower = billSearchTerm.toLowerCase();
+      return (
+        bill.billNumber.toLowerCase().includes(searchLower) ||
+        bill.client.name.toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === "date") {
+        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+      } else if (sortBy === "amount") {
+        comparison = a.total - b.total;
+      } else if (sortBy === "client") {
+        comparison = a.client.name.localeCompare(b.client.name);
+      }
+      return sortOrder === "desc" ? -comparison : comparison;
+    });
+
   if (selectedCreator) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setSelectedCreator(null)}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Bills by {selectedCreator}</h1>
-            <p className="text-muted-foreground">
-              Total bills: {creatorBills.length}
-            </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedCreator(null)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">Bills by {selectedCreator}</h1>
+              <p className="text-muted-foreground">
+                Total bills: {creatorBills.length}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search bills..."
+                className="pl-10"
+                value={billSearchTerm}
+                onChange={(e) => setBillSearchTerm(e.target.value)}
+              />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <ArrowUpDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { setSortBy("date"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+                  Sort by Date {sortBy === "date" && (sortOrder === "desc" ? "↓" : "↑")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSortBy("amount"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+                  Sort by Amount {sortBy === "amount" && (sortOrder === "desc" ? "↓" : "↑")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSortBy("client"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+                  Sort by Client {sortBy === "client" && (sortOrder === "desc" ? "↓" : "↑")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          {creatorBills.length === 0 ? (
+          {filteredAndSortedBills.length === 0 ? (
             <Card>
               <CardContent className="py-10 text-center text-muted-foreground">
-                No bills found for this creator.
+                {billSearchTerm ? "No bills match your search." : "No bills found for this creator."}
               </CardContent>
             </Card>
           ) : (
-            creatorBills.map((bill) => (
+            filteredAndSortedBills.map((bill) => (
               <Card
                 key={bill.id}
                 className="hover:shadow-md transition-shadow cursor-pointer"
