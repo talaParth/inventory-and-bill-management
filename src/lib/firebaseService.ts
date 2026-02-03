@@ -60,6 +60,7 @@ const COLLECTIONS = {
   CUSTOMERS: "customers",
   COUNTERS: "counters",
   PURCHASE_RETURNS: "purchaseReturns",
+  CREATORS: "creators",
 };
 
 // Helper function to get user ID (for multi-user support in future)
@@ -86,6 +87,46 @@ const removeUndefined = (obj: any): any => {
     return cleaned;
   }
   return obj;
+};
+
+// Creators
+export const getCreators = async (): Promise<any[]> => {
+  try {
+    const userId = getUserId();
+    const q = query(
+      collection(db, COLLECTIONS.CREATORS),
+      where("userId", "==", userId)
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error getting creators:", error);
+    return [];
+  }
+};
+
+export const saveCreator = async (creator: any): Promise<void> => {
+  try {
+    const userId = getUserId();
+    const docRef = doc(db, COLLECTIONS.CREATORS, creator.id);
+    await setDoc(docRef, removeUndefined({ ...creator, userId }), { merge: true });
+  } catch (error) {
+    console.error("Error saving creator:", error);
+    throw error;
+  }
+};
+
+export const deleteCreator = async (id: string): Promise<void> => {
+  try {
+    const docRef = doc(db, COLLECTIONS.CREATORS, id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error("Error deleting creator:", error);
+    throw error;
+  }
 };
 
 // Company Profile
@@ -392,6 +433,42 @@ export const saveBill = async (bill: Bill): Promise<void> => {
       oldTransactionsSnap.forEach((doc) => {
         batch.delete(doc.ref);
       });
+
+      // Update payment transactions if amount changed
+      // Instead of adding new entries, we'll keep the existing ones if possible
+      // or just ensure the total paidAmount is correctly reflected.
+      // The user wants to update the entry in the passbook, not add another.
+      // Since Passbook derives from payments array, we should maintain it.
+      if (bill.total !== existingBill.total) {
+        // Handle fully paid bills: Adjust the payment to match the new total
+        if (existingBill.paymentStatus === 'paid' && (bill.paidAmount === existingBill.total || bill.paidAmount === bill.total)) {
+          bill.paidAmount = bill.total;
+          bill.paymentStatus = 'paid';
+          
+          if (bill.payments && bill.payments.length > 0) {
+             // If there's only one payment, adjust it directly
+             if (bill.payments.length === 1) {
+               bill.payments[0].amount = bill.total;
+               bill.payments[0].date = new Date().toISOString(); // Update date to reflect change
+             } else {
+               // If multiple payments, adjust the last one by the difference
+               const diff = bill.total - existingBill.total;
+               bill.payments[bill.payments.length - 1].amount += diff;
+               bill.payments[bill.payments.length - 1].date = new Date().toISOString();
+             }
+          }
+        }
+      }
+    } else if (!isUpdate && bill.paidAmount > 0) {
+      // For new bills with initial payment, ensure it's in the payments array
+      if (!bill.payments || bill.payments.length === 0) {
+        bill.payments = [{
+          id: Math.random().toString(36).substr(2, 9),
+          amount: bill.paidAmount,
+          method: (bill.modeOfPayment as any) || 'Cash',
+          date: bill.date || new Date().toISOString(),
+        }];
+      }
     }
 
     // Create new inventory transaction records

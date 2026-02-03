@@ -9,6 +9,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -32,8 +34,11 @@ import {
   getBills,
   getSampleBills,
   saveCompanyProfile,
+  getCreators,
+  saveCreator,
+  deleteCreator,
 } from "@/lib/storage";
-import { Bill, SampleBill, CompanyProfile } from "@/types";
+import { Bill, SampleBill, CompanyProfile, BillCreator, PaymentMethod } from "@/types";
 import {
   User,
   Receipt,
@@ -43,19 +48,31 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Eye,
+  EyeOff,
+  ArrowUpDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/billUtils";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function BillCreators() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [creators, setCreators] = useState<string[]>([]);
+  const [creators, setCreators] = useState<BillCreator[]>([]);
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const [creatorBills, setCreatorBills] = useState<(Bill | SampleBill)[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [billSearchTerm, setBillSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"date" | "amount" | "client">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(
     null,
   );
@@ -64,19 +81,26 @@ export default function BillCreators() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newCreatorName, setNewCreatorName] = useState("");
-  const [editingCreator, setEditingCreator] = useState<string | null>(null);
+  const [newCreatorPassword, setNewCreatorPassword] = useState("");
+  const [newCreatorPermissions, setNewCreatorPermissions] = useState<string[]>(["/", "/bills", "/sample-bill", "/products", "/clients", "/notes"]);
+  const [editingCreator, setEditingCreator] = useState<BillCreator | null>(null);
   const [editedCreatorName, setEditedCreatorName] = useState("");
-  const [creatorToDelete, setCreatorToDelete] = useState<string | null>(null);
+  const [editedCreatorPassword, setEditedCreatorPassword] = useState("");
+  const [editedCreatorPermissions, setEditedCreatorPermissions] = useState<string[]>([]);
+  const [creatorToDelete, setCreatorToDelete] = useState<BillCreator | null>(null);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
-      const profile = await getCompanyProfile();
+      const [profile, fetchedCreators] = await Promise.all([
+        getCompanyProfile(),
+        getCreators(),
+      ]);
       if (profile) {
         setCompanyProfile(profile);
-        if (profile.billCreators) {
-          setCreators(profile.billCreators);
-        }
       }
+      setCreators(fetchedCreators);
       setLoading(false);
     };
     loadData();
@@ -84,71 +108,101 @@ export default function BillCreators() {
 
   const handleAddCreator = async () => {
     if (!newCreatorName.trim()) return;
-    if (creators.includes(newCreatorName.trim())) {
+    if (creators.some((c) => c.name === newCreatorName.trim())) {
       toast({ title: "Creator already exists", variant: "destructive" });
       return;
     }
-    const updatedCreators = [...creators, newCreatorName.trim()];
-    if (companyProfile) {
-      await saveCompanyProfile({
-        ...companyProfile,
-        billCreators: updatedCreators,
-      });
-      setCreators(updatedCreators);
-      setNewCreatorName("");
-      setIsAddDialogOpen(false);
-      toast({ title: "Creator added successfully" });
-    }
+    
+    const newCreator: BillCreator = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newCreatorName.trim(),
+      password: newCreatorPassword.trim(),
+      permissions: newCreatorPermissions,
+      createdAt: new Date().toISOString(),
+    };
+
+    await saveCreator(newCreator);
+    setCreators([...creators, newCreator]);
+    setNewCreatorName("");
+    setNewCreatorPassword("");
+    setNewCreatorPermissions(["/", "/bills", "/sample-bill", "/products", "/clients", "/notes"]);
+    setIsAddDialogOpen(false);
+    toast({ title: "Creator added successfully" });
   };
 
   const handleEditCreator = async () => {
     if (!editedCreatorName.trim() || !editingCreator) return;
     if (
-      creators.includes(editedCreatorName.trim()) &&
-      editedCreatorName.trim() !== editingCreator
+      creators.some(
+        (c) =>
+          c.name === editedCreatorName.trim() && c.id !== editingCreator.id,
+      )
     ) {
       toast({ title: "Creator name already exists", variant: "destructive" });
       return;
     }
-    const updatedCreators = creators.map((c) =>
-      c === editingCreator ? editedCreatorName.trim() : c,
-    );
-    if (companyProfile) {
-      await saveCompanyProfile({
-        ...companyProfile,
-        billCreators: updatedCreators,
-      });
-      setCreators(updatedCreators);
-      setEditingCreator(null);
-      setEditedCreatorName("");
-      setIsEditDialogOpen(false);
-      toast({ title: "Creator updated successfully" });
-    }
+
+    const updatedCreator: BillCreator = {
+      ...editingCreator,
+      name: editedCreatorName.trim(),
+      password: editedCreatorPassword.trim(),
+      permissions: editedCreatorPermissions,
+    };
+
+    await saveCreator(updatedCreator);
+    setCreators(creators.map((c) => (c.id === updatedCreator.id ? updatedCreator : c)));
+    setEditingCreator(null);
+    setEditedCreatorName("");
+    setEditedCreatorPassword("");
+    setIsEditDialogOpen(false);
+    toast({ title: "Creator updated successfully" });
   };
 
   const handleDeleteCreator = async () => {
     if (!creatorToDelete) return;
-    const updatedCreators = creators.filter((c) => c !== creatorToDelete);
-    if (companyProfile) {
-      await saveCompanyProfile({
-        ...companyProfile,
-        billCreators: updatedCreators,
-      });
-      setCreators(updatedCreators);
-      setCreatorToDelete(null);
-      setIsDeleteDialogOpen(false);
-      toast({ title: "Creator deleted successfully" });
-    }
+    await deleteCreator(creatorToDelete.id);
+    setCreators(creators.filter((c) => c.id !== creatorToDelete.id));
+    setCreatorToDelete(null);
+    setIsDeleteDialogOpen(false);
+    toast({ title: "Creator deleted successfully" });
   };
 
-  const openEditDialog = (creator: string, e: React.MouseEvent) => {
+  const openEditDialog = (creator: BillCreator, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingCreator(creator);
-    setEditedCreatorName(creator);
+    setEditedCreatorName(creator.name);
+    setEditedCreatorPassword(creator.password || "");
+    setEditedCreatorPermissions(creator.permissions || ["/", "/bills", "/sample-bill", "/products", "/clients", "/notes"]);
     setIsEditDialogOpen(true);
   };
 
-  const openDeleteDialog = (creator: string, e: React.MouseEvent) => {
+  const togglePermission = (path: string, mode: 'add' | 'edit') => {
+    if (mode === 'add') {
+      setNewCreatorPermissions(prev => 
+        prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path]
+      );
+    } else {
+      setEditedCreatorPermissions(prev => 
+        prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path]
+      );
+    }
+  };
+
+  const PERMISSION_OPTIONS = [
+    { path: "/", label: "Dashboard" },
+    { path: "/bills", label: "Bills" },
+    { path: "/sample-bill", label: "Sample Bills" },
+    { path: "/purchases", label: "Purchases (Buy)" },
+    { path: "/returns", label: "Returns" },
+    { path: "/passbook", label: "Passbook" },
+    { path: "/expenses", label: "Expenses" },
+    { path: "/products", label: "Stock" },
+    { path: "/clients", label: "Clients" },
+    { path: "/files", label: "Files" },
+    { path: "/notes", label: "Notes" },
+  ];
+
+  const openDeleteDialog = (creator: BillCreator, e: React.MouseEvent) => {
     e.stopPropagation();
     setCreatorToDelete(creator);
     setIsDeleteDialogOpen(true);
@@ -177,10 +231,46 @@ export default function BillCreators() {
   }, [selectedCreator]);
 
   const filteredCreators = creators.filter((c) =>
-    c.toLowerCase().includes(searchTerm.toLowerCase()),
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const filteredAndSortedBills = creatorBills
+    .filter((bill) => {
+      const searchLower = billSearchTerm.toLowerCase();
+      return (
+        bill.billNumber.toLowerCase().includes(searchLower) ||
+        bill.client.name.toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === "date") {
+        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+      } else if (sortBy === "amount") {
+        comparison = a.total - b.total;
+      } else if (sortBy === "client") {
+        comparison = a.client.name.localeCompare(b.client.name);
+      }
+      return sortOrder === "desc" ? -comparison : comparison;
+    });
+
   if (selectedCreator) {
+    const totalAmount = filteredAndSortedBills.reduce((sum, bill) => sum + bill.total, 0);
+    const totalPaid = filteredAndSortedBills.reduce((sum, bill) => 
+      sum + (bill.paymentStatus === 'paid' ? bill.total : 0), 0);
+    const totalPending = totalAmount - totalPaid;
+
+    const paymentMethods = filteredAndSortedBills.reduce((acc, bill) => {
+      const b = bill as any;
+      if (b.paymentStatus === 'paid') {
+        const method = b.paymentMethod || b.paymentType || 'Other';
+        acc[method] = (acc[method] || 0) + bill.total;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    const ALL_PAYMENT_METHODS: PaymentMethod[] = ["Cash", "UPI", "Bank Transfer", "Cheque", "Other"];
+
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -194,20 +284,90 @@ export default function BillCreators() {
           <div>
             <h1 className="text-2xl font-bold">Bills by {selectedCreator}</h1>
             <p className="text-muted-foreground">
-              Total bills: {creatorBills.length}
+              Performance overview and bill history
             </p>
           </div>
         </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-tight">Total Billed</p>
+              <h3 className="text-2xl font-bold text-primary">{formatCurrency(totalAmount)}</h3>
+              <p className="text-xs text-muted-foreground mt-1">{filteredAndSortedBills.length} bills</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-green-500/5 border-green-500/20">
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-tight">Collected</p>
+              <h3 className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</h3>
+              <p className="text-xs text-muted-foreground mt-1">Total payments received</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-orange-500/5 border-orange-500/20">
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-tight">Pending</p>
+              <h3 className="text-2xl font-bold text-orange-600">{formatCurrency(totalPending)}</h3>
+              <p className="text-xs text-muted-foreground mt-1">Outstanding balance</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Collected by Payment Method</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {ALL_PAYMENT_METHODS.map((method) => (
+              <Card key={method} className="bg-muted/30 border-border/50">
+                <CardContent className="p-3">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight truncate">{method}</p>
+                  <h3 className="text-sm font-bold mt-1">{formatCurrency(paymentMethods[method] || 0)}</h3>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search bills..."
+                className="pl-10"
+                value={billSearchTerm}
+                onChange={(e) => setBillSearchTerm(e.target.value)}
+              />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <ArrowUpDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { setSortBy("date"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+                  Sort by Date {sortBy === "date" && (sortOrder === "desc" ? "↓" : "↑")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSortBy("amount"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+                  Sort by Amount {sortBy === "amount" && (sortOrder === "desc" ? "↓" : "↑")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSortBy("client"); setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}>
+                  Sort by Client {sortBy === "client" && (sortOrder === "desc" ? "↓" : "↑")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-4">
-          {creatorBills.length === 0 ? (
+          {filteredAndSortedBills.length === 0 ? (
             <Card>
               <CardContent className="py-10 text-center text-muted-foreground">
-                No bills found for this creator.
+                {billSearchTerm ? "No bills match your search." : "No bills found for this creator."}
               </CardContent>
             </Card>
           ) : (
-            creatorBills.map((bill) => (
+            filteredAndSortedBills.map((bill) => (
               <Card
                 key={bill.id}
                 className="hover:shadow-md transition-shadow cursor-pointer"
@@ -285,9 +445,9 @@ export default function BillCreators() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {filteredCreators.map((creator) => (
           <Card
-            key={creator}
+            key={creator.id}
             className="hover:border-primary transition-colors cursor-pointer group"
-            onClick={() => setSelectedCreator(creator)}
+            onClick={() => setSelectedCreator(creator.name)}
           >
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
@@ -313,7 +473,7 @@ export default function BillCreators() {
                   </Button>
                 </div>
               </div>
-              <CardTitle>{creator}</CardTitle>
+              <CardTitle>{creator.name}</CardTitle>
               <CardDescription>Click to view bills</CardDescription>
             </CardHeader>
             <CardContent>
@@ -339,19 +499,71 @@ export default function BillCreators() {
       </div>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add New Creator</DialogTitle>
             <DialogDescription>
-              Enter the name of the new bill creator.
+              Enter the name and password of the new bill creator.
             </DialogDescription>
           </DialogHeader>
-          <Input
-            placeholder="Creator name"
-            value={newCreatorName}
-            onChange={(e) => setNewCreatorName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAddCreator()}
-          />
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Creator Name</Label>
+              <Input
+                id="name"
+                placeholder="Creator name"
+                value={newCreatorName}
+                onChange={(e) => setNewCreatorName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={newCreatorPassword}
+                  onChange={(e) => setNewCreatorPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddCreator()}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <Label>Permissions</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {PERMISSION_OPTIONS.map((opt) => (
+                  <div key={opt.path} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`new-perm-${opt.path}`} 
+                      checked={newCreatorPermissions.includes(opt.path)}
+                      onCheckedChange={() => togglePermission(opt.path, 'add')}
+                    />
+                    <label 
+                      htmlFor={`new-perm-${opt.path}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {opt.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancel
@@ -362,17 +574,69 @@ export default function BillCreators() {
       </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Creator</DialogTitle>
-            <DialogDescription>Update the creator's name.</DialogDescription>
+            <DialogDescription>Update the creator's details.</DialogDescription>
           </DialogHeader>
-          <Input
-            placeholder="Creator name"
-            value={editedCreatorName}
-            onChange={(e) => setEditedCreatorName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleEditCreator()}
-          />
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Creator Name</Label>
+              <Input
+                id="edit-name"
+                placeholder="Creator name"
+                value={editedCreatorName}
+                onChange={(e) => setEditedCreatorName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">New Password (optional)</Label>
+              <div className="relative">
+                <Input
+                  id="edit-password"
+                  type={showEditPassword ? "text" : "password"}
+                  placeholder="New Password (optional)"
+                  value={editedCreatorPassword}
+                  onChange={(e) => setEditedCreatorPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleEditCreator()}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowEditPassword(!showEditPassword)}
+                >
+                  {showEditPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <Label>Permissions</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {PERMISSION_OPTIONS.map((opt) => (
+                  <div key={opt.path} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`edit-perm-${opt.path}`} 
+                      checked={editedCreatorPermissions.includes(opt.path)}
+                      onCheckedChange={() => togglePermission(opt.path, 'edit')}
+                    />
+                    <label 
+                      htmlFor={`edit-perm-${opt.path}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {opt.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
@@ -393,7 +657,7 @@ export default function BillCreators() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Creator</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{creatorToDelete}"? This action
+              Are you sure you want to delete "{creatorToDelete?.name}"? This action
               cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

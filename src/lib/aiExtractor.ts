@@ -1,4 +1,4 @@
-import { PurchaseBillItem, AIExtractionError } from '@/types';
+import { PurchaseBillItem, AIExtractionError } from "@/types";
 
 interface ExtractedBillData {
   vendorName: string;
@@ -19,7 +19,8 @@ interface ExtractedBillData {
 // Validate GSTIN format
 const isValidGstin = (gstin: string): boolean => {
   if (!gstin) return true;
-  const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+  const gstinRegex =
+    /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
   return gstinRegex.test(gstin.toUpperCase());
 };
 
@@ -35,7 +36,9 @@ const isValidAmount = (amount: number): boolean => {
   return !isNaN(amount) && amount >= 0;
 };
 
-export const extractBillFromImage = async (imageBase64: string): Promise<ExtractedBillData> => {
+export const extractBillFromImage = async (
+  imageBase64: string,
+): Promise<ExtractedBillData> => {
   const prompt = `Analyze this bill/invoice image carefully and extract the following information in JSON format:
 
 CRITICAL - GSTIN/UIN EXTRACTION:
@@ -121,40 +124,44 @@ IMPORTANT VALIDATION:
 Return ONLY the JSON object, no other text.`;
 
   try {
-    const response = await fetch('https://text.pollinations.ai/openai', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openai',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: prompt,
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: imageBase64,
+    const response = await fetch(
+      "https://gen.pollinations.ai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer sk_IuvTH1QJXu0iZG5FNyfmF7eHwscf9oHj`,
+        },
+        body: JSON.stringify({
+          model: "openai",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: prompt,
                 },
-              },
-            ],
-          },
-        ],
-        max_tokens: 3000,
-      }),
-    });
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: imageBase64,
+                  },
+                },
+              ],
+            },
+          ],
+          max_tokens: 3000,
+        }),
+      },
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to process image');
+      throw new Error("Failed to process image");
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
+    const content = data.choices?.[0]?.message?.content || "";
 
     // Try to parse JSON from the response
     let jsonStr = content;
@@ -173,101 +180,110 @@ Return ONLY the JSON object, no other text.`;
       const errors: AIExtractionError[] = parsed.errors || [];
 
       // Validate and flag items with issues
-      const items: PurchaseBillItem[] = (parsed.items || []).map((item: any, index: number) => {
-        const quantity = Number(item.quantity) || 0;
-        const rate = Number(item.rate) || 0;
-        const amount = Number(item.amount) || 0;
-        const gstRate = Number(item.gstRate) || 0;
-        const gstAmount = Number(item.gstAmount) || 0;
+      const items: PurchaseBillItem[] = (parsed.items || []).map(
+        (item: any, index: number) => {
+          const quantity = Number(item.quantity) || 0;
+          const rate = Number(item.rate) || 0;
+          const amount = Number(item.amount) || 0;
+          const gstRate = Number(item.gstRate) || 0;
+          const gstAmount = Number(item.gstAmount) || 0;
 
-        // Calculate expected values
-        const expectedAmount = quantity * rate;
-        const expectedGstAmount = (amount * gstRate) / 100;
+          // Calculate expected values
+          const expectedAmount = quantity * rate;
+          const expectedGstAmount = (amount * gstRate) / 100;
 
-        let hasError = false;
-        let errorMessage = '';
+          let hasError = false;
+          let errorMessage = "";
 
-        // Check for calculation errors
-        if (Math.abs(expectedAmount - amount) > 1) {
-          hasError = true;
-          errorMessage = `Amount mismatch: ${quantity} × ₹${rate} = ₹${expectedAmount.toFixed(2)}, but bill shows ₹${amount.toFixed(2)}`;
-          errors.push({
-            field: `items[${index}].amount`,
-            message: errorMessage,
-            severity: 'warning',
-            suggestion: `Expected amount: ₹${expectedAmount.toFixed(2)}`
-          });
-        }
+          // Check for calculation errors
+          if (Math.abs(expectedAmount - amount) > 1) {
+            hasError = true;
+            errorMessage = `Amount mismatch: ${quantity} × ₹${rate} = ₹${expectedAmount.toFixed(2)}, but bill shows ₹${amount.toFixed(2)}`;
+            errors.push({
+              field: `items[${index}].amount`,
+              message: errorMessage,
+              severity: "warning",
+              suggestion: `Expected amount: ₹${expectedAmount.toFixed(2)}`,
+            });
+          }
 
-        if (gstRate > 0 && Math.abs(expectedGstAmount - gstAmount) > 1) {
-          hasError = true;
-          const gstError = `GST mismatch: ${gstRate}% of ₹${amount} = ₹${expectedGstAmount.toFixed(2)}, but bill shows ₹${gstAmount.toFixed(2)}`;
-          errorMessage = errorMessage ? `${errorMessage}; ${gstError}` : gstError;
-          errors.push({
-            field: `items[${index}].gstAmount`,
-            message: gstError,
-            severity: 'warning',
-            suggestion: `Expected GST: ₹${expectedGstAmount.toFixed(2)}`
-          });
-        }
+          if (gstRate > 0 && Math.abs(expectedGstAmount - gstAmount) > 1) {
+            hasError = true;
+            const gstError = `GST mismatch: ${gstRate}% of ₹${amount} = ₹${expectedGstAmount.toFixed(2)}, but bill shows ₹${gstAmount.toFixed(2)}`;
+            errorMessage = errorMessage
+              ? `${errorMessage}; ${gstError}`
+              : gstError;
+            errors.push({
+              field: `items[${index}].gstAmount`,
+              message: gstError,
+              severity: "warning",
+              suggestion: `Expected GST: ₹${expectedGstAmount.toFixed(2)}`,
+            });
+          }
 
-        return {
-          description: item.description || 'Unknown Item',
-          hsnCode: item.hsnCode || '',
-          quantity,
-          unit: item.unit || 'pcs',
-          rate,
-          amount: amount || expectedAmount,
-          gstRate,
-          gstAmount: gstAmount || expectedGstAmount,
-          hasError,
-          errorMessage: hasError ? errorMessage : undefined,
-        };
-      });
+          return {
+            description: item.description || "Unknown Item",
+            hsnCode: item.hsnCode || "",
+            quantity,
+            unit: item.unit || "pcs",
+            rate,
+            amount: amount || expectedAmount,
+            gstRate,
+            gstAmount: gstAmount || expectedGstAmount,
+            hasError,
+            errorMessage: hasError ? errorMessage : undefined,
+          };
+        },
+      );
 
       // Calculate totals if not provided
-      const subtotal = Number(parsed.subtotal) || items.reduce((sum, item) => sum + item.amount, 0);
-      const totalTax = Number(parsed.totalTax) || items.reduce((sum, item) => sum + (item.gstAmount || 0), 0);
+      const subtotal =
+        Number(parsed.subtotal) ||
+        items.reduce((sum, item) => sum + item.amount, 0);
+      const totalTax =
+        Number(parsed.totalTax) ||
+        items.reduce((sum, item) => sum + (item.gstAmount || 0), 0);
       const total = Number(parsed.total) || subtotal + totalTax;
 
       // Validate totals
       const expectedTotal = subtotal + totalTax;
       if (Math.abs(expectedTotal - total) > 1) {
         errors.push({
-          field: 'total',
+          field: "total",
           message: `Total mismatch: Subtotal (₹${subtotal.toFixed(2)}) + Tax (₹${totalTax.toFixed(2)}) = ₹${expectedTotal.toFixed(2)}, but bill shows ₹${total.toFixed(2)}`,
-          severity: 'warning',
-          suggestion: `Expected total: ₹${expectedTotal.toFixed(2)}`
+          severity: "warning",
+          suggestion: `Expected total: ₹${expectedTotal.toFixed(2)}`,
         });
       }
 
       // Validate GSTIN
       if (parsed.vendorGstin && !isValidGstin(parsed.vendorGstin)) {
         errors.push({
-          field: 'vendorGstin',
-          message: 'Invalid GSTIN format',
-          severity: 'warning',
-          suggestion: 'GSTIN should be 15 characters alphanumeric (e.g., 22AAAAA0000A1Z5)'
+          field: "vendorGstin",
+          message: "Invalid GSTIN format",
+          severity: "warning",
+          suggestion:
+            "GSTIN should be 15 characters alphanumeric (e.g., 22AAAAA0000A1Z5)",
         });
       }
 
       // Validate date
       if (parsed.billDate && !isValidDate(parsed.billDate)) {
         errors.push({
-          field: 'billDate',
-          message: 'Invalid date format',
-          severity: 'warning',
-          suggestion: 'Date should be in YYYY-MM-DD format'
+          field: "billDate",
+          message: "Invalid date format",
+          severity: "warning",
+          suggestion: "Date should be in YYYY-MM-DD format",
         });
       }
 
       return {
-        vendorName: parsed.vendorName || 'Unknown Vendor',
-        vendorAddress: parsed.vendorAddress || '',
-        vendorGstin: parsed.vendorGstin || '',
-        billNumber: parsed.billNumber || '',
-        billDate: parsed.billDate || new Date().toISOString().split('T')[0],
-        dueDate: parsed.dueDate || '',
+        vendorName: parsed.vendorName || "Unknown Vendor",
+        vendorAddress: parsed.vendorAddress || "",
+        vendorGstin: parsed.vendorGstin || "",
+        billNumber: parsed.billNumber || "",
+        billDate: parsed.billDate || new Date().toISOString().split("T")[0],
+        dueDate: parsed.dueDate || "",
         paymentTerms: Number(parsed.paymentTerms) || 0,
         items,
         subtotal,
@@ -277,25 +293,29 @@ Return ONLY the JSON object, no other text.`;
         errors,
       };
     } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
+      console.error("Failed to parse AI response:", parseError);
       // Return default structure with raw text
       return {
-        vendorName: 'Unknown Vendor',
+        vendorName: "Unknown Vendor",
         items: [],
         subtotal: 0,
         totalTax: 0,
         total: 0,
         rawText: content,
-        errors: [{
-          field: 'parsing',
-          message: 'Failed to parse bill data. Please review and enter details manually.',
-          severity: 'error',
-          suggestion: 'Try uploading a clearer image or enter details manually'
-        }],
+        errors: [
+          {
+            field: "parsing",
+            message:
+              "Failed to parse bill data. Please review and enter details manually.",
+            severity: "error",
+            suggestion:
+              "Try uploading a clearer image or enter details manually",
+          },
+        ],
       };
     }
   } catch (error) {
-    console.error('AI extraction error:', error);
-    throw new Error('Failed to extract bill information. Please try again.');
+    console.error("AI extraction error:", error);
+    throw new Error("Failed to extract bill information. Please try again.");
   }
 };
