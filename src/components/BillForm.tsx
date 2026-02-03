@@ -784,8 +784,9 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                 onValueChange={(value) =>
                   setFormData({ ...formData, createdBy: value })
                 }
+                disabled
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-muted cursor-not-allowed">
                   <SelectValue placeholder="Select person" />
                 </SelectTrigger>
                 <SelectContent>
