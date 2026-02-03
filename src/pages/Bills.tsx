@@ -376,8 +376,8 @@ if (loading) {
                           <span className="hidden sm:inline">View</span>
                         </Button>
                       </Link>
-                      <Link to={`/bills/${bill.id}/edit`} className="flex-1 sm:flex-none">
-                        <Button variant="outline" size="sm" className="h-8 sm:h-9 gap-1.5 sm:gap-2 w-full sm:w-auto text-xs sm:text-sm touch-manipulation">
+                      <Link to={`/bills/${bill.id}/edit`} className={cn("flex-1 sm:flex-none", bill.paymentStatus === 'paid' && "pointer-events-none opacity-50")}>
+                        <Button variant="outline" size="sm" className="h-8 sm:h-9 gap-1.5 sm:gap-2 w-full sm:w-auto text-xs sm:text-sm touch-manipulation" disabled={bill.paymentStatus === 'paid'}>
                           <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           <span className="hidden sm:inline">Edit</span>
                         </Button>

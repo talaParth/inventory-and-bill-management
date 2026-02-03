@@ -73,6 +73,13 @@ interface BillFormProps {
 
 export function BillForm({ bill, isEdit = false }: BillFormProps) {
   const navigate = useNavigate();
+  useEffect(() => {
+    if (bill && isEdit && bill.paymentStatus === "paid") {
+      toast.error("Fully paid bills cannot be edited");
+      navigate(`/bills/${bill.id}`);
+    }
+  }, [bill, isEdit, navigate]);
+
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [availableCreators, setAvailableCreators] = useState<BillCreator[]>([]);
