@@ -93,14 +93,37 @@ export default function BillCreators() {
 
   useEffect(() => {
     const loadData = async () => {
-      const [profile, fetchedCreators] = await Promise.all([
+      const [profile, fetchedCreators, regularBills, sampleBills] = await Promise.all([
         getCompanyProfile(),
         getCreators(),
+        getBills(),
+        getSampleBills(),
       ]);
+      
       if (profile) {
         setCompanyProfile(profile);
       }
-      setCreators(fetchedCreators);
+
+      // Calculate admin bills count
+      const allBills = [...regularBills, ...sampleBills];
+      const adminBillsCount = allBills.filter(b => b.createdBy === "Admin").length;
+
+      // Filter out 'Admin' from database if it exists (we add it manually for UI)
+      const otherCreators = fetchedCreators.filter(c => c.name !== "Admin");
+      
+      // Always include Admin at the top
+      const displayCreators: any[] = [
+        {
+          id: "admin-static",
+          name: "Admin",
+          isStatic: true,
+          billCount: adminBillsCount,
+          createdAt: new Date(0).toISOString(),
+        },
+        ...otherCreators
+      ];
+
+      setCreators(displayCreators);
       setLoading(false);
     };
     loadData();
