@@ -293,44 +293,57 @@ export default function BillCreators() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3">
           <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="p-4">
-              <p className="text-sm font-medium text-muted-foreground">Total Billed</p>
-              <h3 className="text-2xl font-bold text-primary">{formatCurrency(totalAmount)}</h3>
-              <p className="text-xs text-muted-foreground mt-1">{filteredAndSortedBills.length} bills total</p>
+            <CardContent className="p-3">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Total Billed</p>
+              <h3 className="text-lg font-bold text-primary truncate">{formatCurrency(totalAmount)}</h3>
+              <p className="text-[10px] text-muted-foreground">{filteredAndSortedBills.length} bills</p>
             </CardContent>
           </Card>
           <Card className="bg-green-500/5 border-green-500/20">
-            <CardContent className="p-4">
-              <p className="text-sm font-medium text-muted-foreground">Total Collected</p>
-              <h3 className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</h3>
-              <p className="text-xs text-muted-foreground mt-1">Paid amount from all bills</p>
+            <CardContent className="p-3">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Collected</p>
+              <h3 className="text-lg font-bold text-green-600 truncate">{formatCurrency(totalPaid)}</h3>
+              <p className="text-[10px] text-muted-foreground">Paid amount</p>
             </CardContent>
           </Card>
           <Card className="bg-orange-500/5 border-orange-500/20">
-            <CardContent className="p-4">
-              <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
-              <h3 className="text-2xl font-bold text-orange-600">{formatCurrency(totalPending)}</h3>
-              <p className="text-xs text-muted-foreground mt-1">Outstanding payments</p>
+            <CardContent className="p-3">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Pending</p>
+              <h3 className="text-lg font-bold text-orange-600 truncate">{formatCurrency(totalPending)}</h3>
+              <p className="text-[10px] text-muted-foreground">Outstanding</p>
             </CardContent>
           </Card>
+          {/* Payment Methods Breakdown */}
+          <div className="col-span-1 sm:col-span-1 grid grid-cols-1 gap-2">
+            {Object.entries(paymentMethods).length > 0 ? (
+              Object.entries(paymentMethods).slice(0, 2).map(([method, amount]) => (
+                <div key={method} className="flex justify-between items-center bg-muted/30 rounded-md px-2 py-1">
+                  <span className="text-[10px] font-medium text-muted-foreground truncate mr-2">{method}</span>
+                  <span className="text-xs font-bold">{formatCurrency(amount)}</span>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center justify-center h-full text-[10px] text-muted-foreground italic">No payments</div>
+            )}
+            {Object.entries(paymentMethods).length > 2 && (
+               <div className="text-[9px] text-center text-muted-foreground">+ {Object.entries(paymentMethods).length - 2} more methods</div>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {Object.entries(paymentMethods).length > 0 ? (
-            Object.entries(paymentMethods).map(([method, amount]) => (
-              <Card key={method} className="bg-muted/30">
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{method}</p>
-                  <p className="text-lg font-bold mt-1">{formatCurrency(amount)}</p>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-full text-sm text-muted-foreground italic">No collected payments yet.</div>
-          )}
-        </div>
+        {/* Full Payment Breakdown (Moved to a tighter row or hidden if empty) */}
+        {Object.entries(paymentMethods).length > 2 && (
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(paymentMethods).map(([method, amount]) => (
+              <div key={method} className="bg-muted/30 border border-border/50 rounded-full px-3 py-1 flex items-center gap-2">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase">{method}</span>
+                <span className="text-xs font-bold">{formatCurrency(amount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex gap-2 w-full sm:w-auto">
