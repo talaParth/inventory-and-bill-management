@@ -486,8 +486,9 @@ export default function Dashboard() {
 
       // Calculate subtotals (excluding GST) for payment breakdown
       // Account for discount in subtotals (discount reduces actual revenue)
-      const paidSubtotal = paidBills.reduce((sum, bill) => sum + (bill.subtotal - (bill.discount || 0)), 0);
-      const pendingSubtotal = filteredBillsInRange
+      const paidBills = filteredBillsInRange.filter(b => b.paymentStatus === 'paid');
+      const paidSubtotalValue = paidBills.reduce((sum, bill) => sum + (bill.subtotal - (bill.discount || 0)), 0);
+      const pendingSubtotalValue = filteredBillsInRange
         .filter(b => b.paymentStatus === 'pending')
         .reduce((sum, b) => {
           const discountAmount = b.discount || 0;
@@ -495,7 +496,7 @@ export default function Dashboard() {
           const paidSubtotalAmount = b.total > 0 ? (b.paidAmount * (discountedSubtotal / b.total)) : 0;
           return sum + (discountedSubtotal - paidSubtotalAmount);
         }, 0);
-      const overdueSubtotal = filteredBillsInRange
+      const overdueSubtotalValue = filteredBillsInRange
         .filter(b => b.paymentStatus === 'overdue')
         .reduce((sum, b) => {
           const discountAmount = b.discount || 0;
@@ -560,9 +561,9 @@ export default function Dashboard() {
         deadstockLoss,
         totalReturns: allReturns.length,
         inventoryValue,
-        paidSubtotal,
-        pendingSubtotal,
-        overdueSubtotal,
+        paidSubtotal: paidSubtotalValue,
+        pendingSubtotal: pendingSubtotalValue,
+        overdueSubtotal: overdueSubtotalValue,
         totalExpenses,
         gstCollected,
         gstPaid,
