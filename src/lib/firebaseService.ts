@@ -829,9 +829,6 @@ export const savePurchaseReturn = async (
     if (adjustStock) {
       for (const item of returnOrder.items) {
         // Find product by description and update stock
-        // First, let's try to find by ID if we can extend the type, 
-        // but for now let's fix the name matching logic to be more robust 
-        // and add an inventory transaction
         const productsQuery = query(
           collection(db, COLLECTIONS.PRODUCTS),
           where("userId", "==", userId)
@@ -844,6 +841,7 @@ export const savePurchaseReturn = async (
         if (productDoc) {
           const productRef = productDoc.ref;
           const currentStock = productDoc.data().stock || 0;
+          // For PURCHASE return, we are returning items TO the vendor, so stock should DECREASE
           const newStock = currentStock - item.quantity;
           batch.update(productRef, { stock: Math.round(newStock * 100) / 100 });
 
@@ -854,7 +852,7 @@ export const savePurchaseReturn = async (
             productId: productDoc.id,
             purchaseReturnId: returnOrder.id,
             type: "purchase_return",
-            quantity: item.quantity,
+            quantity: -item.quantity, // Negative because we are removing from stock
             date: returnOrder.returnDate || new Date().toISOString(),
             userId,
           };
@@ -1397,7 +1395,7 @@ export const processBillReturn = async (
         productId: item.productId,
         billId: billReturn.id,
         type: "return",
-        quantity: item.quantity,
+        quantity: -item.quantity, // Negative because it's a return of a sale (adding back to stock but reducing sale quantity)
         date: new Date().toISOString(),
         userId,
       };
