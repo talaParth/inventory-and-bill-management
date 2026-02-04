@@ -170,8 +170,8 @@ export default function Products() {
 
         // Current Average Price (Avg Buy) = Assets / Current Stock
         // This matches: averagePurchasePrice = totalAssets / product.stock
-        currentPrices[product.id] =
-          product.stock > 0 ? assets / product.stock : overallAvgPurchasePrice;
+        currentPrices[product.id] = product.purchasePrice || 0;
+        stockValues[product.id] = product.stock * (product.purchasePrice || 0);
       } else {
         // No purchase history, use product's purchase price
         prices[product.id] = product.purchasePrice || 0;

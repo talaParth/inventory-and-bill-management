@@ -855,8 +855,13 @@ export const savePurchaseReturn = async (
           let newPurchasePrice = currentPurchasePrice;
           if (newStock > 0) {
             const currentTotalValue = currentStock * currentPurchasePrice;
-            const returnedValue = item.quantity * item.purchasePrice;
-            newPurchasePrice = Math.round(((currentTotalValue - returnedValue) / newStock) * 100) / 100;
+            // The item in returnOrder.items might not have purchasePrice, 
+            // but we can try to use it if available or fallback to currentAvg
+            const itemPrice = (item as any).purchasePrice || currentPurchasePrice;
+            const returnedValue = item.quantity * itemPrice;
+            // Ensure total value doesn't go negative due to rounding or slight discrepancies
+            const remainingValue = Math.max(0, currentTotalValue - returnedValue);
+            newPurchasePrice = Math.round((remainingValue / newStock) * 100) / 100;
           }
           
           batch.update(productRef, { 
