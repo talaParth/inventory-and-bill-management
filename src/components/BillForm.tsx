@@ -65,6 +65,7 @@ import {
 } from "./ui/dialog";
 import { ClientForm } from "./ClientForm";
 import { ProductForm } from "./ProductForm";
+import { Switch } from "./ui/switch";
 import { BillCreator } from "@/types";
 
 interface BillFormProps {
@@ -630,6 +631,19 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Bill Type Selection */}
+            <div className="flex items-center justify-between md:col-span-2 p-4 border rounded-lg bg-muted/30">
+              <div className="space-y-0.5">
+                <Label className="text-base">GST Billing</Label>
+                <p className="text-sm text-muted-foreground">
+                  {gstEnabled ? "GST is enabled for this bill" : "GST is disabled for this bill"}
+                </p>
+              </div>
+              <Switch
+                checked={gstEnabled}
+                onCheckedChange={setGstEnabled}
+              />
+            </div>
+
             <div className="space-y-2 md:col-span-2">
               <Label>Bill Type *</Label>
               <Select
