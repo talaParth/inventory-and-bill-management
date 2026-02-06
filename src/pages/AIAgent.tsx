@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, User, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { 
   getBills, 
   getProducts, 
@@ -113,13 +115,24 @@ export default function AIAgent() {
 
         const initialMessage: Message = {
           role: "user",
-          content: `Analyze my business based on this COMPREHENSIVE system data: ${JSON.stringify(systemData)}. 
-          Provide a detailed analysis including:
-          1. REVENUE ANALYSIS: Total sales vs total purchases vs total expenses.
-          2. INVENTORY HEALTH: Stock levels, high-value deadstock, and fastest moving items.
-          3. CUSTOMER INSIGHTS: Top performing clients.
-          4. GROWTH STRATEGY: 3 actionable recommendations to improve profitability.
-          5. RISK ASSESSMENT: Pending payments and return trends.`,
+          content: `You are a professional Business Growth Consultant for "Starlink" GST Software. 
+          Analyze the following business data and provide a clear, supportive, and professional analysis for the owner.
+          
+          Guidelines:
+          - Use Indian Rupees (₹) for all currency.
+          - Use simple, friendly language.
+          - Format with Markdown (headings, bold text, lists).
+          - Be constructive and offer real advice.
+          
+          Report Structure:
+          1. **Business Snapshot**: Overview of current performance.
+          2. **Financial Health**: Sales, Purchases, and Expenses breakdown.
+          3. **Inventory & Stock**: Stock levels, deadstock, and moving items.
+          4. **Customer Insights**: Top performing clients.
+          5. **Growth Strategy**: 3 actionable steps to improve profitability.
+          6. **Risk Report**: Pending payments and potential issues.
+
+          Business Data: ${JSON.stringify(systemData)}`,
         };
         
         const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
@@ -270,7 +283,13 @@ export default function AIAgent() {
                           : "bg-muted/40 border border-border/50"
                       }`}
                     >
-                      <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                      <div className={`prose prose-sm dark:prose-invert max-w-none ${
+                        message.role === "user" ? "prose-invert text-primary-foreground" : "text-foreground"
+                      }`}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   </div>
                 </div>
