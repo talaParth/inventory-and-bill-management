@@ -1984,10 +1984,10 @@ export default function PurchaseBills() {
                           )}
                         </span>
                       </div>
-                      <div className="border-t-4 border-primary pt-6">
-                        <div className="flex justify-between text-2xl lg:text-4xl">
-                          <span className="font-bold">Total Amount</span>
-                          <span className="font-bold text-primary">
+                      <div className="border-t-4 border-primary pt-6 space-y-4">
+                        <div className="flex justify-between text-xl lg:text-3xl text-muted-foreground">
+                          <span>Original Bill Amount</span>
+                          <span className="font-semibold line-through decoration-red-500/50">
                             {formatCurrency(
                               isEditing
                                 ? (editedBill?.items.reduce(
@@ -2000,6 +2000,28 @@ export default function PurchaseBills() {
                                       0
                                     ) || 0)
                                 : selectedBill?.total || 0
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-2xl lg:text-4xl">
+                          <span className="font-bold">Current Total</span>
+                          <span className="font-bold text-primary">
+                            {formatCurrency(
+                              (isEditing
+                                ? (editedBill?.items.reduce(
+                                    (sum, item) => sum + item.amount,
+                                    0
+                                  ) || 0) +
+                                    (editedBill?.items.reduce(
+                                      (sum, item) =>
+                                        sum + (item.gstAmount || 0),
+                                      0
+                                    ) || 0)
+                                : selectedBill?.total || 0) -
+                                (selectedBill?.returns?.reduce(
+                                  (sum, r) => sum + r.totalReturnValue,
+                                  0
+                                ) || 0)
                             )}
                           </span>
                         </div>
@@ -2247,8 +2269,14 @@ export default function PurchaseBills() {
                     <p className="font-bold">#{selectedBillForHistory.billNumber || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold">Total Amount</p>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Original Amount</p>
                     <p className="font-bold text-lg">{formatCurrency(selectedBillForHistory.total)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Current Total (after returns)</p>
+                    <p className="font-bold text-lg text-blue-600">
+                      {formatCurrency(selectedBillForHistory.total - (selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0))}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase font-semibold">Paid Amount</p>
