@@ -49,7 +49,19 @@ import {
   Calculator,
   PlusCircle,
   Search,
+  Download,
+  FileSpreadsheet,
+  FileText as FilePdf,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   Select,
   SelectContent,
@@ -170,8 +182,8 @@ export default function Products() {
 
         // Current Average Price (Avg Buy) = Assets / Current Stock
         // This matches: averagePurchasePrice = totalAssets / product.stock
-        currentPrices[product.id] =
-          product.stock > 0 ? assets / product.stock : overallAvgPurchasePrice;
+        currentPrices[product.id] = product.purchasePrice || 0;
+        stockValues[product.id] = product.stock * (product.purchasePrice || 0);
       } else {
         // No purchase history, use product's purchase price
         prices[product.id] = product.purchasePrice || 0;
@@ -547,6 +559,50 @@ export default function Products() {
   };
 
   const stats = calculateStatistics();
+
+  const handleDownloadExcel = () => {
+    const data = products.map((p) => ({
+      Name: p.name,
+      "HSN Code": p.hsnCode,
+      "GST Rate (%)": p.gstRate,
+      Unit: p.unit,
+      "Purchase Price": currentAveragePrices[p.id] || p.purchasePrice || 0,
+      "Selling Price": p.sellingPrice || p.price || 0,
+      Stock: p.stock,
+      "Stock Value": stockValues[p.id] || 0,
+      "Where to Buy": p.whereToBuy || "",
+      Weight: p.weight || "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+    XLSX.writeFile(wb, "Inventory.xlsx");
+    toast.success("Excel downloaded successfully");
+  };
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    const tableColumn = ["Name", "HSN", "Stock", "Purchase", "Selling", "Value"];
+    const tableRows = products.map((p) => [
+      p.name,
+      p.hsnCode,
+      p.stock,
+      formatCurrency(currentAveragePrices[p.id] || p.purchasePrice || 0),
+      formatCurrency(p.sellingPrice || p.price || 0),
+      formatCurrency(stockValues[p.id] || 0),
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
+    });
+    doc.text("Inventory Report", 14, 15);
+    doc.save("Inventory.pdf");
+    toast.success("PDF downloaded successfully");
+  };
+
   const unitOptions: string[] = Array.from(
     new Set(
       (companyProfile?.unitOptions && companyProfile.unitOptions.length > 0
@@ -579,6 +635,24 @@ export default function Products() {
           </p>
         </div>
         <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="lg">
+                <Download className="h-5 w-5 mr-2" />
+                Download
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleDownloadExcel}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadPDF}>
+                <FilePdf className="h-4 w-4 mr-2" />
+                PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Dialog
             open={isOpen}
             onOpenChange={(open) => {

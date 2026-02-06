@@ -25,6 +25,15 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import * as XLSX from "xlsx";
+import jsPDF from "jsPDF";
+import autoTable from "jspdf-autotable";
+import {
   FileText,
   Package,
   Users,
@@ -234,9 +243,8 @@ export default function Dashboard() {
       setBillsInRange(filteredBillsInRange);
       const purchaseBillsInRange = allPurchaseBills.filter(pb => filterByYearMonth(pb.createdAt || pb.billDate || pb.id));
 
-      // Total sales revenue (PAID bills only, including GST - this is actual money received)
-      const paidBills = filteredBillsInRange.filter(b => b.paymentStatus === 'paid');
-      const totalRevenue = roundToTwoDecimals(paidBills.reduce((sum, bill) => sum + bill.total, 0));
+      // Total sales revenue (Actual money received including partial payments)
+      const totalRevenue = roundToTwoDecimals(filteredBillsInRange.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0));
 
       // Pending receivable amount (including GST - this is actual money still owed)
       const pendingAmount = roundToTwoDecimals(filteredBillsInRange
@@ -453,28 +461,38 @@ export default function Dashboard() {
 
       const buckets: Record<string, { label: string; sales: number; purchases: number; profit: number }> = {};
 
-      // Sales & profit (paid bills only, using subtotal for profit calculation)
+      // Sales & profit (using subtotal for profit calculation)
       // Using historically accurate cost calculation - average cost at time of sale
       let totalCOGS = 0; // Track total COGS for markup calculation
-      paidBills.forEach(bill => {
+      filteredBillsInRange.forEach(bill => {
         const { key, label } = getBucketKeyLabel(bill.date);
         if (!buckets[key]) buckets[key] = { label, sales: 0, purchases: 0, profit: 0 };
+        
+        // Use ratio of paidAmount to total to determine how much revenue and profit to recognize
+        const totalAmount = bill.total || 1; // Avoid division by zero
+        const paymentRatio = (bill.paidAmount || 0) / totalAmount;
+        
         // Use discounted subtotal for profit calculation (discount reduces actual revenue)
         const discountAmount = bill.discount || 0;
-        const sales = roundToTwoDecimals(bill.subtotal - discountAmount); // Actual revenue after discount
+        const totalRevenueAfterDiscount = roundToTwoDecimals(bill.subtotal - discountAmount);
+        
+        // Recognized sales is based on what's actually paid
+        const sales = roundToTwoDecimals(totalRevenueAfterDiscount * paymentRatio);
+        
         let billCogs = 0;
         bill.items.forEach(item => {
           const product = productById[item.productId];
-          // Use HISTORICAL average cost at the time of sale for accurate COGS
-          // This ensures profit calculations reflect the actual cost basis when the sale occurred
           const costPrice = product 
             ? getHistoricalAverageCost(product.id, bill.date)
             : 0;
           billCogs += roundToTwoDecimals(item.quantity * costPrice);
         });
-        totalCOGS += roundToTwoDecimals(billCogs); // Accumulate total COGS
-        buckets[key].sales += roundToTwoDecimals(sales);
-        buckets[key].profit += roundToTwoDecimals(sales - billCogs);
+        
+        const recognizedCogs = roundToTwoDecimals(billCogs * paymentRatio);
+        totalCOGS += recognizedCogs;
+        
+        buckets[key].sales += sales;
+        buckets[key].profit += roundToTwoDecimals(sales - recognizedCogs);
       });
 
       // Purchases (all purchase bills total)
@@ -497,8 +515,9 @@ export default function Dashboard() {
 
       // Calculate subtotals (excluding GST) for payment breakdown
       // Account for discount in subtotals (discount reduces actual revenue)
-      const paidSubtotal = paidBills.reduce((sum, bill) => sum + (bill.subtotal - (bill.discount || 0)), 0);
-      const pendingSubtotal = filteredBillsInRange
+      const paidBills = filteredBillsInRange.filter(b => b.paymentStatus === 'paid');
+      const paidSubtotalValue = paidBills.reduce((sum, bill) => sum + (bill.subtotal - (bill.discount || 0)), 0);
+      const pendingSubtotalValue = filteredBillsInRange
         .filter(b => b.paymentStatus === 'pending')
         .reduce((sum, b) => {
           const discountAmount = b.discount || 0;
@@ -506,7 +525,7 @@ export default function Dashboard() {
           const paidSubtotalAmount = b.total > 0 ? (b.paidAmount * (discountedSubtotal / b.total)) : 0;
           return sum + (discountedSubtotal - paidSubtotalAmount);
         }, 0);
-      const overdueSubtotal = filteredBillsInRange
+      const overdueSubtotalValue = filteredBillsInRange
         .filter(b => b.paymentStatus === 'overdue')
         .reduce((sum, b) => {
           const discountAmount = b.discount || 0;
@@ -571,9 +590,9 @@ export default function Dashboard() {
         deadstockLoss,
         totalReturns: allReturns.length,
         inventoryValue,
-        paidSubtotal,
-        pendingSubtotal,
-        overdueSubtotal,
+        paidSubtotal: paidSubtotalValue,
+        pendingSubtotal: pendingSubtotalValue,
+        overdueSubtotal: overdueSubtotalValue,
         totalExpenses,
         gstCollected,
         gstPaid,
@@ -2459,11 +2478,11 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between p-3 bg-background rounded-lg border border-border">
                   <div>
                     <p className="text-sm text-muted-foreground">Payable (to vendors)</p>
-                    <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                    <p className="text-lg font-bold text-rose-600 dark:text-rose-400">
                       {formatCurrency(stats.pendingPurchases)}
                     </p>
                   </div>
-                  <ArrowDownRight className="h-8 w-8 text-orange-500/30" />
+                  <ArrowDownRight className="h-8 w-8 text-rose-500/30" />
                 </div>
               )}
             </div>

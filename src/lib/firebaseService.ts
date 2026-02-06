@@ -60,6 +60,7 @@ const COLLECTIONS = {
   CUSTOMERS: "customers",
   COUNTERS: "counters",
   PURCHASE_RETURNS: "purchaseReturns",
+  CREATORS: "creators",
 };
 
 // Helper function to get user ID (for multi-user support in future)
@@ -86,6 +87,46 @@ const removeUndefined = (obj: any): any => {
     return cleaned;
   }
   return obj;
+};
+
+// Creators
+export const getCreators = async (): Promise<any[]> => {
+  try {
+    const userId = getUserId();
+    const q = query(
+      collection(db, COLLECTIONS.CREATORS),
+      where("userId", "==", userId)
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error getting creators:", error);
+    return [];
+  }
+};
+
+export const saveCreator = async (creator: any): Promise<void> => {
+  try {
+    const userId = getUserId();
+    const docRef = doc(db, COLLECTIONS.CREATORS, creator.id);
+    await setDoc(docRef, removeUndefined({ ...creator, userId }), { merge: true });
+  } catch (error) {
+    console.error("Error saving creator:", error);
+    throw error;
+  }
+};
+
+export const deleteCreator = async (id: string): Promise<void> => {
+  try {
+    const docRef = doc(db, COLLECTIONS.CREATORS, id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error("Error deleting creator:", error);
+    throw error;
+  }
 };
 
 // Company Profile
@@ -392,6 +433,42 @@ export const saveBill = async (bill: Bill): Promise<void> => {
       oldTransactionsSnap.forEach((doc) => {
         batch.delete(doc.ref);
       });
+
+      // Update payment transactions if amount changed
+      // Instead of adding new entries, we'll keep the existing ones if possible
+      // or just ensure the total paidAmount is correctly reflected.
+      // The user wants to update the entry in the passbook, not add another.
+      // Since Passbook derives from payments array, we should maintain it.
+      if (bill.total !== existingBill.total) {
+        // Handle fully paid bills: Adjust the payment to match the new total
+        if (existingBill.paymentStatus === 'paid' && (bill.paidAmount === existingBill.total || bill.paidAmount === bill.total)) {
+          bill.paidAmount = bill.total;
+          bill.paymentStatus = 'paid';
+          
+          if (bill.payments && bill.payments.length > 0) {
+             // If there's only one payment, adjust it directly
+             if (bill.payments.length === 1) {
+               bill.payments[0].amount = bill.total;
+               bill.payments[0].date = new Date().toISOString(); // Update date to reflect change
+             } else {
+               // If multiple payments, adjust the last one by the difference
+               const diff = bill.total - existingBill.total;
+               bill.payments[bill.payments.length - 1].amount += diff;
+               bill.payments[bill.payments.length - 1].date = new Date().toISOString();
+             }
+          }
+        }
+      }
+    } else if (!isUpdate && bill.paidAmount > 0) {
+      // For new bills with initial payment, ensure it's in the payments array
+      if (!bill.payments || bill.payments.length === 0) {
+        bill.payments = [{
+          id: Math.random().toString(36).substr(2, 9),
+          amount: bill.paidAmount,
+          method: (bill.modeOfPayment as any) || 'Cash',
+          date: bill.date || new Date().toISOString(),
+        }];
+      }
     }
 
     // Create new inventory transaction records
@@ -752,20 +829,62 @@ export const savePurchaseReturn = async (
     if (adjustStock) {
       for (const item of returnOrder.items) {
         // Find product by description and update stock
+        // First, let's try to find by ID if we can extend the type, 
+        // but for now let's fix the name matching logic to be more robust 
+        // and add an inventory transaction
         const productsQuery = query(
           collection(db, COLLECTIONS.PRODUCTS),
           where("userId", "==", userId)
         );
         const productsSnap = await getDocs(productsQuery);
         const productDoc = productsSnap.docs.find(d => 
-          (d.data().name as string).toLowerCase() === item.description.toLowerCase()
+          (d.data().name as string).toLowerCase().trim() === item.description.toLowerCase().trim()
         );
         
         if (productDoc) {
           const productRef = productDoc.ref;
           const currentStock = productDoc.data().stock || 0;
-          const newStock = Math.max(0, currentStock - item.quantity);
-          batch.update(productRef, { stock: Math.round(newStock * 100) / 100 });
+          const currentPurchasePrice = productDoc.data().purchasePrice || 0;
+          
+          // Calculate new stock
+          const newStock = Math.round((currentStock - item.quantity) * 100) / 100;
+          
+          // Calculate new average purchase price
+          // Formula: ((Total Stock * Avg Price) - (Returned Quantity * Return Price)) / New Stock
+          // However, if newStock <= 0, we keep the price as is or reset it
+          let newPurchasePrice = currentPurchasePrice;
+          if (newStock > 0) {
+            const currentTotalValue = currentStock * currentPurchasePrice;
+            // The item in returnOrder.items might not have purchasePrice, 
+            // but we can try to use it if available or fallback to currentAvg
+            const itemPrice = (item as any).purchasePrice || currentPurchasePrice;
+            const returnedValue = item.quantity * itemPrice;
+            // Ensure total value doesn't go negative due to rounding or slight discrepancies
+            const remainingValue = Math.max(0, currentTotalValue - returnedValue);
+            newPurchasePrice = Math.round((remainingValue / newStock) * 100) / 100;
+          }
+          
+          batch.update(productRef, { 
+            stock: newStock,
+            purchasePrice: newPurchasePrice,
+            sellingPrice: productDoc.data().sellingPrice || newPurchasePrice,
+            price: productDoc.data().price || newPurchasePrice
+          });
+
+          // Record inventory transaction for the return
+          const transactionRef = doc(collection(db, COLLECTIONS.INVENTORY));
+          const transaction = {
+            id: transactionRef.id,
+            productId: productDoc.id,
+            purchaseReturnId: returnOrder.id,
+            type: "purchase_return",
+            quantity: item.quantity,
+            date: returnOrder.returnDate || new Date().toISOString(),
+            userId,
+          };
+          batch.set(transactionRef, removeUndefined(transaction));
+        } else {
+          console.warn(`Product not found for return item: ${item.description}`);
         }
       }
     }
@@ -903,10 +1022,24 @@ const updateExistingProduct = async (
   userId: string
 ) => {
   const productRef = doc(db, COLLECTIONS.PRODUCTS, existingProduct.id);
-  const newStock = existingProduct.stock + item.quantity;
+  const currentStock = existingProduct.stock || 0;
+  const currentPurchasePrice = existingProduct.purchasePrice || 0;
+  
+  // Calculate new stock
+  const newStock = Math.round((currentStock + item.quantity) * 100) / 100;
+  
+  // Calculate new weighted average purchase price
+  // Formula: ((Existing Stock * Old Avg Price) + (New Quantity * New Purchase Price)) / New Total Stock
+  let newPurchasePrice = item.purchasePrice;
+  if (newStock > 0) {
+    const existingValue = currentStock * currentPurchasePrice;
+    const newValue = item.quantity * item.purchasePrice;
+    newPurchasePrice = Math.round(((existingValue + newValue) / newStock) * 100) / 100;
+  }
+
   const updates: any = {
     stock: newStock,
-    purchasePrice: item.purchasePrice,
+    purchasePrice: newPurchasePrice,
   };
 
   if (item.sellingPrice > 0) {
@@ -941,11 +1074,24 @@ const updateExistingProductWithNameChange = async (
   userId: string
 ) => {
   const productRef = doc(db, COLLECTIONS.PRODUCTS, existingProduct.id);
-  const newStock = existingProduct.stock + item.quantity;
+  const currentStock = existingProduct.stock || 0;
+  const currentPurchasePrice = existingProduct.purchasePrice || 0;
+  
+  // Calculate new stock
+  const newStock = Math.round((currentStock + item.quantity) * 100) / 100;
+  
+  // Calculate new weighted average purchase price
+  let newPurchasePrice = item.purchasePrice;
+  if (newStock > 0) {
+    const existingValue = currentStock * currentPurchasePrice;
+    const newValue = item.quantity * item.purchasePrice;
+    newPurchasePrice = Math.round(((existingValue + newValue) / newStock) * 100) / 100;
+  }
+
   const updates: any = {
     name: chosenName, // Update name
     stock: newStock,
-    purchasePrice: item.purchasePrice,
+    purchasePrice: newPurchasePrice,
     gstRate: item.gstRate || existingProduct.gstRate,
     unit: item.unit || existingProduct.unit,
   };

@@ -16,6 +16,7 @@ import {
   CommandSeparator,
 } from "./ui/command";
 import { Bill, BillItem, Client, Product } from "@/types";
+import { getCurrentUser } from "@/pages/Auth";
 import {
   getClients,
   getProducts,
@@ -26,6 +27,7 @@ import {
   incrementBillCounter,
   getCompanyProfile,
   validateBillStock,
+  getCreators,
 } from "@/lib/storage";
 import {
   calculateBillTotals,
@@ -63,6 +65,7 @@ import {
 } from "./ui/dialog";
 import { ClientForm } from "./ClientForm";
 import { ProductForm } from "./ProductForm";
+import { BillCreator } from "@/types";
 
 interface BillFormProps {
   bill?: Bill;
@@ -71,8 +74,16 @@ interface BillFormProps {
 
 export function BillForm({ bill, isEdit = false }: BillFormProps) {
   const navigate = useNavigate();
+  useEffect(() => {
+    if (bill && isEdit && bill.paymentStatus === "paid") {
+      toast.error("Fully paid bills cannot be edited");
+      navigate(`/bills/${bill.id}`);
+    }
+  }, [bill, isEdit, navigate]);
+
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [availableCreators, setAvailableCreators] = useState<BillCreator[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientComboOpen, setClientComboOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
@@ -136,14 +147,16 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
 
   useEffect(() => {
     const loadData = async () => {
-      const [clientsData, productsData, companyData] = await Promise.all([
+      const [clientsData, productsData, companyData, creatorsData] = await Promise.all([
         getClients(),
         getProducts(),
         getCompanyProfile(),
+        getCreators(),
       ]);
       setClients(clientsData);
       setProducts(productsData);
       setCompanyProfile(companyData);
+      setAvailableCreators(creatorsData);
       setGstEnabled(companyData?.gstEnabled ?? true);
 
       if (bill && isEdit) {
@@ -186,10 +199,221 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
               bill.internationalDetails.countryOfFinalDestination || "",
           });
         }
+      } else {
+        // Set default creator for new bill
+        const user = getCurrentUser();
+        if (user.role === "admin") {
+          setFormData((prev) => ({ ...prev, createdBy: "Admin" }));
+        } else if (user.name) {
+          setFormData((prev) => ({ ...prev, createdBy: user.name }));
+        }
       }
     };
     loadData();
   }, [bill, isEdit]);
+
+  const handleSubmit = async () => {
+    if (!selectedClient) {
+      toast.error("Please select a client");
+      return;
+    }
+
+    if (billItems.length === 0) {
+      toast.error("Please add at least one item");
+      return;
+    }
+
+    const invalidItems = billItems.filter(
+      (item) => !item.productId || !item.productName,
+    );
+    if (invalidItems.length > 0) {
+      toast.error("Please select a product for all items");
+      return;
+    }
+
+    const zeroQuantityItems = billItems.filter((item) => item.quantity <= 0);
+    if (zeroQuantityItems.length > 0) {
+      toast.error("All items must have quantity greater than 0");
+      return;
+    }
+
+    const zeroRateItems = billItems.filter((item) => item.ratePerUnit <= 0);
+    if (zeroRateItems.length > 0) {
+      toast.error("All items must have a valid rate");
+      return;
+    }
+
+    if (isEdit) {
+      const invalidQuantities = billItems.filter((item) => {
+        const originalQty = getOriginalQuantity(item.productId);
+        return originalQty > 0 && item.quantity < originalQty;
+      });
+
+      if (invalidQuantities.length > 0) {
+        const errorMessages = invalidQuantities.map((item) => {
+          const originalQty = getOriginalQuantity(item.productId);
+          return `${item.productName}: Cannot reduce quantity below ${originalQty}`;
+        });
+
+        toast.error(
+          <div>
+            <p className="font-semibold mb-1">Cannot decrease quantities:</p>
+            <ul className="text-sm list-disc pl-4">
+              {errorMessages.map((msg, i) => (
+                <li key={i}>{msg}</li>
+              ))}
+            </ul>
+          </div>,
+          { duration: 5000 },
+        );
+        return;
+      }
+    }
+
+    if (!companyProfile) {
+      toast.error("Please setup company profile first");
+      navigate("/settings");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let stockValidationItems;
+
+      if (isEdit) {
+        stockValidationItems = billItems
+          .map((item) => {
+            const originalQty = getOriginalQuantity(item.productId);
+            const additionalQty = item.quantity - originalQty;
+
+            return {
+              productId: item.productId,
+              quantity: additionalQty > 0 ? additionalQty : 0,
+            };
+          })
+          .filter((item) => item.quantity > 0);
+      } else {
+        stockValidationItems = billItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        }));
+      }
+
+      if (stockValidationItems.length > 0) {
+        const stockValidation = await validateBillStock(stockValidationItems);
+
+        if (!stockValidation.valid) {
+          toast.error(
+            <div>
+              <p className="font-semibold mb-1">Insufficient Stock:</p>
+              <ul className="text-sm list-disc pl-4">
+                {stockValidation.errors.map((error, i) => (
+                  <li key={i}>{error}</li>
+                ))}
+              </ul>
+            </div>,
+            { duration: 5000 },
+          );
+          return;
+        }
+      }
+
+      const otherChargesNum = parseFloat(formData.otherCharges || "0") || 0;
+      const discountValue = formData.discount?.trim() || "";
+      const discountNum =
+        discountValue === "" ? 0 : parseFloat(discountValue) || 0;
+      const totals = calculateBillTotals(
+        billItems,
+        companyProfile,
+        otherChargesNum,
+        discountNum,
+        formData.discountType,
+      );
+      const dueDate = calculateDueDate(formData.date, formData.paymentTerms);
+      const paidAmountNum = parseFloat(formData.paidAmount || "0") || 0;
+      const paymentStatus = getPaymentStatus(
+        dueDate,
+        paidAmountNum,
+        totals.total,
+      );
+
+      let billCounter = 0;
+      if (!isEdit) {
+        billCounter = await incrementBillCounter();
+      } else {
+        billCounter = await getBillCounter();
+      }
+
+      // Automatically set creator from logged in user
+      const user = getCurrentUser();
+      const creator = user.role === "admin" ? "Admin" : (user.name || "Unknown");
+
+      const newBill: Bill = {
+        id: bill?.id || crypto.randomUUID(),
+        billNumber:
+          bill?.billNumber ||
+          generateBillNumber(
+            billCounter,
+            companyProfile.name.substring(0, 6).toUpperCase(),
+          ),
+        date: formData.date,
+        clientId: selectedClient.id,
+        client: selectedClient,
+        items: billItems,
+        subtotal: totals.subtotal,
+        totalTax: totals.totalTax,
+        discount: discountNum > 0 ? totals.discount : 0,
+        discountType: discountNum > 0 ? formData.discountType : "amount",
+        otherCharges: otherChargesNum,
+        roundOff: totals.roundOff,
+        total: totals.total,
+        paymentTerms: formData.paymentTerms,
+        dueDate,
+        paymentStatus,
+        paidAmount: paidAmountNum,
+        gstType: gstType,
+        billType: billType,
+        deliveryNote: formData.deliveryNote,
+        modeOfPayment: formData.modeOfPayment,
+        placeOfSupply: formData.placeOfSupply,
+        notes: formData.notes,
+        createdBy: isEdit ? bill?.createdBy : creator,
+        payments: bill?.payments || [],
+        createdAt: bill?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        originalItems: isEdit ? originalBillItems : undefined,
+        internationalDetails:
+          billType === "international"
+            ? {
+                preCarriageBy: internationalData.preCarriageBy,
+                vesselsFlightNo: internationalData.vesselsFlightNo,
+                portOfDischarge: internationalData.portOfDischarge,
+                placeOfReceiptByPreCarriage:
+                  internationalData.placeOfReceiptByPreCarriage,
+                portOfLoading: internationalData.portOfLoading,
+                finalDestination: internationalData.finalDestination,
+                grossWeight:
+                  parseFloat(internationalData.grossWeight) || undefined,
+                netWeight: parseFloat(internationalData.netWeight) || undefined,
+                countryOfOrigin: internationalData.countryOfOrigin,
+                countryOfFinalDestination:
+                  internationalData.countryOfFinalDestination,
+              }
+            : undefined,
+      };
+
+      await saveBill(newBill);
+      toast.success(
+        isEdit ? "Bill updated successfully" : "Bill created successfully",
+      );
+      navigate(`/bills/${newBill.id}`);
+    } catch (error) {
+      console.error("Error saving bill:", error);
+      toast.error("Failed to save bill");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const isIGST = gstType === "igst";
 
@@ -386,204 +610,6 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
     return product.stock + originalQty;
   };
 
-  const handleSubmit = async () => {
-    if (!selectedClient) {
-      toast.error("Please select a client");
-      return;
-    }
-
-    if (billItems.length === 0) {
-      toast.error("Please add at least one item");
-      return;
-    }
-
-    const invalidItems = billItems.filter(
-      (item) => !item.productId || !item.productName,
-    );
-    if (invalidItems.length > 0) {
-      toast.error("Please select a product for all items");
-      return;
-    }
-
-    const zeroQuantityItems = billItems.filter((item) => item.quantity <= 0);
-    if (zeroQuantityItems.length > 0) {
-      toast.error("All items must have quantity greater than 0");
-      return;
-    }
-
-    const zeroRateItems = billItems.filter((item) => item.ratePerUnit <= 0);
-    if (zeroRateItems.length > 0) {
-      toast.error("All items must have a valid rate");
-      return;
-    }
-
-    if (isEdit) {
-      const invalidQuantities = billItems.filter((item) => {
-        const originalQty = getOriginalQuantity(item.productId);
-        return originalQty > 0 && item.quantity < originalQty;
-      });
-
-      if (invalidQuantities.length > 0) {
-        const errorMessages = invalidQuantities.map((item) => {
-          const originalQty = getOriginalQuantity(item.productId);
-          return `${item.productName}: Cannot reduce quantity below ${originalQty}`;
-        });
-
-        toast.error(
-          <div>
-            <p className="font-semibold mb-1">Cannot decrease quantities:</p>
-            <ul className="text-sm list-disc pl-4">
-              {errorMessages.map((msg, i) => (
-                <li key={i}>{msg}</li>
-              ))}
-            </ul>
-          </div>,
-          { duration: 5000 },
-        );
-        return;
-      }
-    }
-
-    if (!companyProfile) {
-      toast.error("Please setup company profile first");
-      navigate("/settings");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      let stockValidationItems;
-
-      if (isEdit) {
-        stockValidationItems = billItems
-          .map((item) => {
-            const originalQty = getOriginalQuantity(item.productId);
-            const additionalQty = item.quantity - originalQty;
-
-            return {
-              productId: item.productId,
-              quantity: additionalQty > 0 ? additionalQty : 0,
-            };
-          })
-          .filter((item) => item.quantity > 0);
-      } else {
-        stockValidationItems = billItems.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        }));
-      }
-
-      if (stockValidationItems.length > 0) {
-        const stockValidation = await validateBillStock(stockValidationItems);
-
-        if (!stockValidation.valid) {
-          toast.error(
-            <div>
-              <p className="font-semibold mb-1">Insufficient Stock:</p>
-              <ul className="text-sm list-disc pl-4">
-                {stockValidation.errors.map((error, i) => (
-                  <li key={i}>{error}</li>
-                ))}
-              </ul>
-            </div>,
-            { duration: 5000 },
-          );
-          return;
-        }
-      }
-
-      const otherChargesNum = parseFloat(formData.otherCharges || "0") || 0;
-      const discountValue = formData.discount?.trim() || "";
-      const discountNum =
-        discountValue === "" ? 0 : parseFloat(discountValue) || 0;
-      const totals = calculateBillTotals(
-        billItems,
-        companyProfile,
-        otherChargesNum,
-        discountNum,
-        formData.discountType,
-      );
-      const dueDate = calculateDueDate(formData.date, formData.paymentTerms);
-      const paidAmountNum = parseFloat(formData.paidAmount || "0") || 0;
-      const paymentStatus = getPaymentStatus(
-        dueDate,
-        paidAmountNum,
-        totals.total,
-      );
-
-      let billCounter = 0;
-      if (!isEdit) {
-        billCounter = await incrementBillCounter();
-      } else {
-        billCounter = await getBillCounter();
-      }
-
-      const newBill: Bill = {
-        id: bill?.id || crypto.randomUUID(),
-        billNumber:
-          bill?.billNumber ||
-          generateBillNumber(
-            billCounter,
-            companyProfile.name.substring(0, 6).toUpperCase(),
-          ),
-        date: formData.date,
-        clientId: selectedClient.id,
-        client: selectedClient,
-        items: billItems,
-        subtotal: totals.subtotal,
-        totalTax: totals.totalTax,
-        discount: discountNum > 0 ? totals.discount : 0,
-        discountType: discountNum > 0 ? formData.discountType : "amount",
-        otherCharges: otherChargesNum,
-        roundOff: totals.roundOff,
-        total: totals.total,
-        paymentTerms: formData.paymentTerms,
-        dueDate,
-        paymentStatus,
-        paidAmount: paidAmountNum,
-        gstType: gstType,
-        billType: billType,
-        deliveryNote: formData.deliveryNote,
-        modeOfPayment: formData.modeOfPayment,
-        placeOfSupply: formData.placeOfSupply,
-        notes: formData.notes,
-        createdBy: formData.createdBy || undefined,
-        createdAt: bill?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        originalItems: isEdit ? originalBillItems : undefined,
-        internationalDetails:
-          billType === "international"
-            ? {
-                preCarriageBy: internationalData.preCarriageBy,
-                vesselsFlightNo: internationalData.vesselsFlightNo,
-                portOfDischarge: internationalData.portOfDischarge,
-                placeOfReceiptByPreCarriage:
-                  internationalData.placeOfReceiptByPreCarriage,
-                portOfLoading: internationalData.portOfLoading,
-                finalDestination: internationalData.finalDestination,
-                grossWeight:
-                  parseFloat(internationalData.grossWeight) || undefined,
-                netWeight: parseFloat(internationalData.netWeight) || undefined,
-                countryOfOrigin: internationalData.countryOfOrigin,
-                countryOfFinalDestination:
-                  internationalData.countryOfFinalDestination,
-              }
-            : undefined,
-      };
-
-      await saveBill(newBill);
-      toast.success(
-        isEdit ? "Bill updated successfully" : "Bill created successfully",
-      );
-      navigate(`/bills/${newBill.id}`);
-    } catch (error) {
-      console.error("Error saving bill:", error);
-      toast.error("Failed to save bill");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const otherChargesNum = parseFloat(formData.otherCharges || "0") || 0;
   const discountValue = formData.discount?.trim() || "";
   const discountNum = discountValue === "" ? 0 : parseFloat(discountValue) || 0;
@@ -758,15 +784,16 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
                 onValueChange={(value) =>
                   setFormData({ ...formData, createdBy: value })
                 }
+                disabled
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-muted cursor-not-allowed">
                   <SelectValue placeholder="Select person" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {(companyProfile?.billCreators || []).map((creator: string) => (
-                    <SelectItem key={creator} value={creator}>
-                      {creator}
+                  {availableCreators.map((creator) => (
+                    <SelectItem key={creator.id} value={creator.name}>
+                      {creator.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

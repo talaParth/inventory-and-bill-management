@@ -1,3 +1,11 @@
+export interface BillCreator {
+  id: string;
+  name: string;
+  password?: string;
+  permissions?: string[]; // Array of paths or keys they can access
+  createdAt: string;
+}
+
 export interface CompanyProfile {
   id: string;
   name: string;
@@ -26,7 +34,7 @@ export interface CompanyProfile {
     fixedCommissionAmount?: number; // Fixed commission amount (if type is fixed)
   };
   expenseCategories?: string[]; // Custom expense categories
-  billCreators?: string[]; // Names of people who can create bills
+  billCreators?: string[]; // Names of people who can create bills (legacy)
 }
 
 export interface Client {
