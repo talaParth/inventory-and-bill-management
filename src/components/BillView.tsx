@@ -135,7 +135,9 @@ const styles = StyleSheet.create({
 const exportStyles = StyleSheet.create({
   tableRow: {
     flexDirection: "row",
-    borderBottom: "0.5pt solid #ccc",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#ccc",
+    borderBottomStyle: "solid",
     paddingVertical: 4,
   },
   page: {
@@ -158,7 +160,9 @@ const exportStyles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: "row",
-    borderBottom: "0.5pt solid black",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "black",
+    borderBottomStyle: "solid",
     paddingVertical: 3,
   },
   labelCell: {
@@ -180,7 +184,9 @@ const exportStyles = StyleSheet.create({
   tableHeader: {
     flexDirection: "row",
     backgroundColor: "#e8e8e8",
-    borderBottom: "1pt solid black",
+    borderBottomWidth: 1,
+    borderBottomColor: "black",
+    borderBottomStyle: "solid",
     paddingVertical: 4,
     fontWeight: "bold",
   },
@@ -196,7 +202,9 @@ const exportStyles = StyleSheet.create({
   colAmount: { width: "12%", textAlign: "right" },
   totalLine: {
     flexDirection: "row",
-    borderTop: "1pt solid black",
+    borderTopWidth: 1,
+    borderTopColor: "black",
+    borderTopStyle: "solid",
     paddingTop: 4,
     marginTop: 4,
     fontWeight: "bold",
@@ -209,7 +217,9 @@ const exportStyles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 30,
-    borderTop: "1pt solid black",
+    borderTopWidth: 1,
+    borderTopColor: "black",
+    borderTopStyle: "solid",
     paddingTop: 12,
   },
   row: {
@@ -542,7 +552,9 @@ export const BillPDF = ({
 
           <View
             style={{
-              border: "1pt solid black", // outer border
+              borderWidth: 1,
+              borderStyle: "solid",
+              borderColor: "black", // outer border
               marginBottom: 12,
             }}
           >
@@ -551,7 +563,9 @@ export const BillPDF = ({
               style={{
                 flexDirection: "row",
                 backgroundColor: "#f5f5f5",
-                borderBottom: "1pt solid black",
+                borderBottomWidth: 1,
+                borderBottomColor: "black",
+                borderBottomStyle: "solid",
                 fontWeight: "bold",
               }}
             >
@@ -560,7 +574,9 @@ export const BillPDF = ({
                   width: "18%",
                   textAlign: "center",
                   padding: 5,
-                  borderRight: "0.5pt solid black",
+                  borderRightWidth: 0.5,
+                  borderRightColor: "black",
+                  borderRightStyle: "solid",
                 }}
               >
                 Sl
@@ -569,7 +585,9 @@ export const BillPDF = ({
                 style={{
                   width: "34%",
                   padding: 5,
-                  borderRight: "0.5pt solid black",
+                  borderRightWidth: 0.5,
+                  borderRightColor: "black",
+                  borderRightStyle: "solid",
                 }}
               >
                 Description of Goods
@@ -580,7 +598,9 @@ export const BillPDF = ({
                     width: "12%",
                     textAlign: "center",
                     padding: 5,
-                    borderRight: "0.5pt solid black",
+                    borderRightWidth: 0.5,
+                    borderRightColor: "black",
+                    borderRightStyle: "solid",
                   }}
                 >
                   HSN/SAC
@@ -591,7 +611,9 @@ export const BillPDF = ({
                   width: "10%",
                   textAlign: "center",
                   padding: 5,
-                  borderRight: "0.5pt solid black",
+                  borderRightWidth: 0.5,
+                  borderRightColor: "black",
+                  borderRightStyle: "solid",
                 }}
               >
                 Qty
@@ -601,7 +623,9 @@ export const BillPDF = ({
                   width: "8%",
                   textAlign: "center",
                   padding: 5,
-                  borderRight: "0.5pt solid black",
+                  borderRightWidth: 0.5,
+                  borderRightColor: "black",
+                  borderRightStyle: "solid",
                 }}
               >
                 Unit
@@ -611,7 +635,9 @@ export const BillPDF = ({
                   width: "10%",
                   textAlign: "right",
                   padding: 5,
-                  borderRight: "0.5pt solid black",
+                  borderRightWidth: 0.5,
+                  borderRightColor: "black",
+                  borderRightStyle: "solid",
                 }}
               >
                 Rate
@@ -633,7 +659,9 @@ export const BillPDF = ({
                 key={index}
                 style={{
                   flexDirection: "row",
-                  borderBottom: "0.5pt solid #ddd",
+                  borderBottomWidth: 0.5,
+                  borderBottomColor: "#ddd",
+                  borderBottomStyle: "solid",
                 }}
               >
                 <Text
@@ -641,7 +669,9 @@ export const BillPDF = ({
                     width: "18%",
                     textAlign: "center",
                     padding: 5,
-                    borderRight: "0.5pt solid #ddd",
+                    borderRightWidth: 0.5,
+                    borderRightColor: "#ddd",
+                    borderRightStyle: "solid",
                   }}
                 >
                   {index + 1}
@@ -650,7 +680,9 @@ export const BillPDF = ({
                   style={{
                     width: "34%",
                     padding: 5,
-                    borderRight: "0.5pt solid #ddd",
+                    borderRightWidth: 0.5,
+                    borderRightColor: "#ddd",
+                    borderRightStyle: "solid",
                   }}
                 >
                   <Text>{item.productName}</Text>
@@ -667,7 +699,9 @@ export const BillPDF = ({
                       width: "12%",
                       textAlign: "center",
                       padding: 5,
-                      borderRight: "0.5pt solid #ddd",
+                      borderRightWidth: 0.5,
+                      borderRightColor: "#ddd",
+                      borderRightStyle: "solid",
                     }}
                   >
                     {item.hsnCode || "-"}
@@ -678,7 +712,9 @@ export const BillPDF = ({
                     width: "10%",
                     textAlign: "center",
                     padding: 5,
-                    borderRight: "0.5pt solid #ddd",
+                    borderRightWidth: 0.5,
+                    borderRightColor: "#ddd",
+                    borderRightStyle: "solid",
                   }}
                 >
                   {item.quantity}
@@ -688,7 +724,9 @@ export const BillPDF = ({
                     width: "8%",
                     textAlign: "center",
                     padding: 5,
-                    borderRight: "0.5pt solid #ddd",
+                    borderRightWidth: 0.5,
+                    borderRightColor: "#ddd",
+                    borderRightStyle: "solid",
                   }}
                 >
                   {item.unit || "PCS"}
@@ -698,7 +736,9 @@ export const BillPDF = ({
                     width: "10%",
                     textAlign: "right",
                     padding: 5,
-                    borderRight: "0.5pt solid #ddd",
+                    borderRightWidth: 0.5,
+                    borderRightColor: "#ddd",
+                    borderRightStyle: "solid",
                   }}
                 >
                   {formatCurrency(item.ratePerUnit)}
@@ -719,7 +759,9 @@ export const BillPDF = ({
             <View
               style={{
                 flexDirection: "row",
-                borderTop: "1pt solid black",
+                borderTopWidth: 1,
+                borderTopColor: "black",
+                borderTopStyle: "solid",
                 backgroundColor: "#f9f9f9",
                 paddingVertical: 6,
               }}
