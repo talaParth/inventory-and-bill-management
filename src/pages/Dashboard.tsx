@@ -64,8 +64,14 @@ import {
   Area,
 } from 'recharts';
 
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { PLReportPDF } from '@/components/PLReportPDF';
+import * as XLSX from 'xlsx';
+import { Download, FileSpreadsheet, FileIcon } from 'lucide-react';
+
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
+  const [companyProfile, setCompanyProfile] = useState<any>(null);
   const [bills, setBills] = useState<Bill[]>([]);
   const [purchaseBills, setPurchaseBills] = useState<PurchaseBill[]>([]);
   const [billsInRange, setBillsInRange] = useState<Bill[]>([]);
@@ -170,7 +176,7 @@ export default function Dashboard() {
   const loadData = async () => {
     setLoading(true);
       try {
-        const [allBills, products, clients, allPurchaseBills, deadstock, allReturns, allExpenses] = await Promise.all([
+        const [allBills, products, clients, allPurchaseBills, deadstock, allReturns, allExpenses, company] = await Promise.all([
           getBills(),
           getProducts(),
           getClients(),
@@ -178,7 +184,9 @@ export default function Dashboard() {
           getDeadstock(),
           getBillReturns(),
           getExpenses(),
+          getCompanyProfile(),
         ]);
+        setCompanyProfile(company);
 
       // Build available years for filters
       const yearSet = new Set<number>();
@@ -866,6 +874,37 @@ export default function Dashboard() {
     );
   };
 
+  const exportToExcel = () => {
+    const data = [
+      ['Business P&L Report'],
+      ['Period', `${dateRange.start || 'All Time'} to ${dateRange.end || 'Present'}`],
+      [''],
+      ['Income'],
+      ['Total Sales Revenue (Paid)', stats.totalRevenue],
+      ['GST Collected', stats.gstCollected],
+      [''],
+      ['Expenses & COGS'],
+      ['Total Cost of Goods Sold (COGS)', stats.totalCOGS],
+      ['Operational Expenses', stats.totalExpenses],
+      ['Deadstock Loss', stats.deadstockLoss],
+      ['GST Paid on Purchases', stats.gstPaid],
+      [''],
+      ['Profitability'],
+      ['Gross Profit', stats.grossProfit],
+      ['Net Profit', stats.profit],
+      ['Profit Margin (%)', stats.totalRevenue > 0 ? ((stats.profit / stats.totalRevenue) * 100).toFixed(2) : 0],
+      [''],
+      ['GST Summary'],
+      ['Net GST Payable', stats.netGst],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "P&L Report");
+    XLSX.writeFile(wb, `PL_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Excel report generated successfully');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -886,12 +925,42 @@ export default function Dashboard() {
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground break-words">Dashboard</h1>
             <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1 break-words">Comprehensive business analytics and insights</p>
           </div>
-          <Link to="/bills/new" className="w-full sm:w-auto flex-shrink-0">
-            <Button size="lg" className="w-full sm:w-auto shadow-lg text-xs sm:text-sm md:text-base">
-              <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-              Create Bill
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 sm:flex-none items-center gap-2 h-9 sm:h-10"
+              onClick={exportToExcel}
+              data-testid="button-export-excel"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel
             </Button>
-          </Link>
+            <PDFDownloadLink
+              document={<PLReportPDF stats={stats} company={companyProfile} dateRange={dateRange} />}
+              fileName={`PL_Report_${new Date().toISOString().split('T')[0]}.pdf`}
+              className="flex-1 sm:flex-none"
+            >
+              {({ loading }) => (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full items-center gap-2 h-9 sm:h-10"
+                  disabled={loading}
+                  data-testid="button-export-pdf"
+                >
+                  <FileIcon className="h-4 w-4" />
+                  {loading ? '...' : 'PDF'}
+                </Button>
+              )}
+            </PDFDownloadLink>
+            <Link to="/bills/new" className="flex-1 sm:flex-none">
+              <Button size="lg" className="w-full shadow-lg text-xs sm:text-sm md:text-base h-9 sm:h-10">
+                <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                Create Bill
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Professional Filters Section - Collapsible */}

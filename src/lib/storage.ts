@@ -46,6 +46,7 @@ export {
   getExpenses,
   saveExpense,
   deleteExpense,
+  getCompanyProfile,
   uploadFile,
   getFiles,
   deleteFile,
