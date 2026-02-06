@@ -60,8 +60,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import {
   Select,
   SelectContent,
@@ -78,6 +76,8 @@ import {
   roundToTwoDecimals,
 } from "@/lib/billUtils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { InventoryPDF } from "@/components/InventoryPDF";
+import { PDFDownloadLink } from "@react-pdf/renderer";
 
 export default function Products() {
   const [loading, setLoading] = useState(true);
@@ -581,28 +581,6 @@ export default function Products() {
     toast.success("Excel downloaded successfully");
   };
 
-  const handleDownloadPDF = () => {
-    const doc = new jsPDF();
-    const tableColumn = ["Name", "HSN", "Stock", "Purchase", "Selling", "Value"];
-    const tableRows = products.map((p) => [
-      p.name,
-      p.hsnCode,
-      p.stock,
-      formatCurrency(currentAveragePrices[p.id] || p.purchasePrice || 0),
-      formatCurrency(p.sellingPrice || p.price || 0),
-      formatCurrency(stockValues[p.id] || 0),
-    ]);
-
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 20,
-    });
-    doc.text("Inventory Report", 14, 15);
-    doc.save("Inventory.pdf");
-    toast.success("PDF downloaded successfully");
-  };
-
   const unitOptions: string[] = Array.from(
     new Set(
       (companyProfile?.unitOptions && companyProfile.unitOptions.length > 0
@@ -647,9 +625,26 @@ export default function Products() {
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Excel
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDownloadPDF}>
-                <FilePdf className="h-4 w-4 mr-2" />
-                PDF
+              <DropdownMenuItem asChild>
+                <PDFDownloadLink
+                  document={
+                    <InventoryPDF
+                      products={products}
+                      companyProfile={companyProfile}
+                      currentAveragePrices={currentAveragePrices}
+                      stockValues={stockValues}
+                    />
+                  }
+                  fileName={`Inventory_Report_${new Date().toISOString().split('T')[0]}.pdf`}
+                  className="w-full"
+                >
+                  {({ loading }: { loading: boolean }) => (
+                    <div className="flex items-center px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm w-full">
+                      <FilePdf className="h-4 w-4 mr-2" />
+                      {loading ? "Preparing PDF..." : "PDF"}
+                    </div>
+                  )}
+                </PDFDownloadLink>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
