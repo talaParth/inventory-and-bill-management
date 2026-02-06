@@ -212,7 +212,7 @@ export const PLReportPDF = ({ stats, company, dateRange }: PLReportProps) => (
       </View>
 
       <Text style={styles.footer}>
-        This is a computer-generated document. Generated on: {new Date().toLocaleString()} | {company?.name || 'Shree Rudra Jewels'}
+        This is a computer-generated document. Generated on: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')} | {company?.name || 'Shree Rudra Jewels'}
       </Text>
     </Page>
   </Document>

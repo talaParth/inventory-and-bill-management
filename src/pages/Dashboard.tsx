@@ -31,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import * as XLSX from "xlsx";
-import jsPDF from "jsPDF";
+import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
   FileText,
@@ -904,36 +904,31 @@ export default function Dashboard() {
     );
   };
 
-  const exportToExcel = () => {
-    const data = [
-      ['Business P&L Report'],
-      ['Period', `${dateRange.start || 'All Time'} to ${dateRange.end || 'Present'}`],
-      [''],
-      ['Income'],
-      ['Total Sales Revenue (Paid)', stats.totalRevenue],
-      ['GST Collected', stats.gstCollected],
-      [''],
-      ['Expenses & COGS'],
-      ['Total Cost of Goods Sold (COGS)', stats.totalCOGS],
-      ['Operational Expenses', stats.totalExpenses],
-      ['Deadstock Loss', stats.deadstockLoss],
-      ['GST Paid on Purchases', stats.gstPaid],
-      [''],
-      ['Profitability'],
-      ['Gross Profit', stats.grossProfit],
-      ['Net Profit', stats.profit],
-      ['Profit Margin (%)', stats.totalRevenue > 0 ? ((stats.profit / stats.totalRevenue) * 100).toFixed(2) : 0],
-      [''],
-      ['GST Summary'],
-      ['Net GST Payable', stats.netGst],
-    ];
+    const exportToExcel = () => {
+      const data = [
+        ['Shree Rudra Jewels - Financial Summary'],
+        ['Generated on', format(new Date(), 'dd-MM-yyyy')],
+        ['Period', `${dateRange.start || 'All Time'} to ${dateRange.end || 'Present'}`],
+        [''],
+        ['Metric', 'Value'],
+        ['Total Revenue', stats.totalRevenue],
+        ['Total Purchases', stats.totalPurchases],
+        ['Gross Profit', stats.grossProfit],
+        ['Net Profit', stats.profit],
+        ['Pending Receivables', stats.pendingAmount],
+        ['Inventory Value', stats.inventoryValue],
+        ['Total Expenses', stats.totalExpenses],
+        ['GST Collected', stats.gstCollected],
+        ['GST Paid', stats.gstPaid],
+        ['Net GST', stats.netGst],
+      ];
 
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "P&L Report");
-    XLSX.writeFile(wb, `PL_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast.success('Excel report generated successfully');
-  };
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Financial Report");
+      XLSX.writeFile(wb, `Dashboard_Stats_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
+      toast.success('Excel report generated successfully');
+    };
 
   if (loading) {
     return (
@@ -968,7 +963,7 @@ export default function Dashboard() {
             </Button>
             <PDFDownloadLink
               document={<PLReportPDF stats={stats} company={companyProfile} dateRange={dateRange} />}
-              fileName={`PL_Report_${new Date().toISOString().split('T')[0]}.pdf`}
+              fileName={`Dashboard_Stats_${format(new Date(), 'dd-MM-yyyy')}.pdf`}
               className="flex-1 sm:flex-none"
             >
               {({ loading }) => (

@@ -74,10 +74,14 @@ const styles = StyleSheet.create({
     marginBottom: mmToPt(3),
   },
   border: {
-    border: "1pt solid black",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "black",
   },
   header: {
-    border: "2pt solid black",
+    borderWidth: 2,
+    borderStyle: "solid",
+    borderColor: "black",
     marginBottom: mmToPt(3),
   },
   headerContent: {
@@ -109,7 +113,9 @@ const styles = StyleSheet.create({
   },
   tableCell: {
     padding: 4,
-    border: "1pt solid black",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "black",
     fontSize: 9,
   },
   textRight: {
