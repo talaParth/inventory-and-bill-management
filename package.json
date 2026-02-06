@@ -46,6 +46,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
+    "drizzle-zod": "^0.8.3",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^12.7.0",
     "html2canvas": "^1.4.1",
@@ -54,6 +55,9 @@
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "openai": "^6.18.0",
+    "p-limit": "^7.3.0",
+    "p-retry": "^7.1.1",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
@@ -69,7 +73,8 @@
     "vaul": "^0.9.9",
     "vite-plugin-pwa": "^1.2.0",
     "xlsx": "^0.18.5",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "zod-validation-error": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
