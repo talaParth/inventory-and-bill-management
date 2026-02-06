@@ -77,6 +77,7 @@ import {
   Image,
   IndianRupee,
   Calendar,
+  BookOpen,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog";
@@ -102,6 +103,56 @@ export default function PurchaseBills() {
   const [selectedBill, setSelectedBill] = useState<PurchaseBill | null>(null);
   const [viewImageBill, setViewImageBill] = useState<PurchaseBill | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedBillForHistory, setSelectedBillForHistory] = useState<PurchaseBill | null>(null);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+
+  const openHistoryDialog = (bill: PurchaseBill) => {
+    setSelectedBillForHistory(bill);
+    setHistoryDialogOpen(true);
+  };
+
+  const getPurchaseHistory = (bill: PurchaseBill) => {
+    const history: any[] = [];
+    
+    // Add the original purchase
+    history.push({
+      id: `purchase-${bill.id}`,
+      date: bill.billDate || bill.createdAt,
+      type: 'purchase',
+      description: `Purchase - Bill #${bill.billNumber || 'N/A'}`,
+      amount: -bill.total,
+    });
+
+    // Add payments
+    if (bill.payments && bill.payments.length > 0) {
+      bill.payments.forEach(payment => {
+        history.push({
+          id: `payment-${payment.id}`,
+          date: payment.date,
+          type: 'payment',
+          description: `Payment Made (${payment.method})${payment.note ? ` - ${payment.note}` : ''}`,
+          amount: payment.amount,
+        });
+      });
+    }
+
+    // Add returns
+    if (bill.returns && bill.returns.length > 0) {
+      bill.returns.forEach(ret => {
+        history.push({
+          id: `return-${ret.id}`,
+          date: ret.returnDate,
+          type: 'return',
+          description: `Purchase Return${ret.notes ? ` - ${ret.notes}` : ''}`,
+          amount: ret.totalReturnValue,
+        });
+      });
+    }
+
+    // Sort by date descending
+    return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [selectedBillForReturn, setSelectedBillForReturn] = useState<PurchaseBill | null>(null);
   const [editedBill, setEditedBill] = useState<PurchaseBill | null>(null);
@@ -1144,6 +1195,14 @@ export default function PurchaseBills() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openHistoryDialog(bill)}
+                          title="Transaction History"
+                        >
+                          <Clock className="h-4 w-4 text-blue-600" />
+                        </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="outline" size="sm">
@@ -1925,10 +1984,10 @@ export default function PurchaseBills() {
                           )}
                         </span>
                       </div>
-                      <div className="border-t-4 border-primary pt-6">
-                        <div className="flex justify-between text-2xl lg:text-4xl">
-                          <span className="font-bold">Total Amount</span>
-                          <span className="font-bold text-primary">
+                      <div className="border-t-4 border-primary pt-6 space-y-4">
+                        <div className="flex justify-between text-xl lg:text-3xl text-muted-foreground">
+                          <span>Original Bill Amount</span>
+                          <span className="font-semibold line-through decoration-red-500/50">
                             {formatCurrency(
                               isEditing
                                 ? (editedBill?.items.reduce(
@@ -1941,6 +2000,28 @@ export default function PurchaseBills() {
                                       0
                                     ) || 0)
                                 : selectedBill?.total || 0
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-2xl lg:text-4xl">
+                          <span className="font-bold">Current Total</span>
+                          <span className="font-bold text-primary">
+                            {formatCurrency(
+                              (isEditing
+                                ? (editedBill?.items.reduce(
+                                    (sum, item) => sum + item.amount,
+                                    0
+                                  ) || 0) +
+                                    (editedBill?.items.reduce(
+                                      (sum, item) =>
+                                        sum + (item.gstAmount || 0),
+                                      0
+                                    ) || 0)
+                                : selectedBill?.total || 0) -
+                                (selectedBill?.returns?.reduce(
+                                  (sum, r) => sum + r.totalReturnValue,
+                                  0
+                                ) || 0)
                             )}
                           </span>
                         </div>
@@ -2162,6 +2243,91 @@ export default function PurchaseBills() {
         bill={selectedBillForReturn!}
         onSuccess={loadBills}
       />
+      {/* Transaction History Dialog */}
+      <Dialog
+        open={historyDialogOpen}
+        onOpenChange={(open) => !open && setHistoryDialogOpen(false)}
+      >
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 py-4 border-b">
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              Transaction History
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto p-6">
+            {selectedBillForHistory && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Vendor</p>
+                    <p className="font-bold">{selectedBillForHistory.vendorName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Bill No</p>
+                    <p className="font-bold">#{selectedBillForHistory.billNumber || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Original Amount</p>
+                    <p className="font-bold text-lg">{formatCurrency(selectedBillForHistory.total)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Current Total (after returns)</p>
+                    <p className="font-bold text-lg text-blue-600">
+                      {formatCurrency(selectedBillForHistory.total - (selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Paid Amount</p>
+                    <p className="font-bold text-lg text-emerald-600">{formatCurrency(selectedBillForHistory.paidAmount)}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-sm uppercase text-muted-foreground flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Timeline
+                  </h4>
+                  
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-semibold">Date</th>
+                          <th className="text-left p-3 font-semibold">Type</th>
+                          <th className="text-left p-3 font-semibold">Description</th>
+                          <th className="text-right p-3 font-semibold">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {getPurchaseHistory(selectedBillForHistory).map((entry: any) => (
+                          <tr key={entry.id}>
+                            <td className="p-3">{formatDate(entry.date)}</td>
+                            <td className="p-3">
+                              <Badge variant="outline" className={
+                                entry.type === 'purchase' ? 'bg-red-50 text-red-700 border-red-200' :
+                                entry.type === 'payment' ? 'bg-green-50 text-green-700 border-green-200' :
+                                'bg-blue-50 text-blue-700 border-blue-200'
+                              }>
+                                {entry.type.toUpperCase()}
+                              </Badge>
+                            </td>
+                            <td className="p-3">{entry.description}</td>
+                            <td className={`p-3 text-right font-bold ${entry.amount < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                              {formatCurrency(entry.amount)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
