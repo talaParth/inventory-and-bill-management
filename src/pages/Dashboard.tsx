@@ -1216,18 +1216,27 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20 w-full">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-6">
-            <CardTitle className="text-[10px] sm:text-xs md:text-sm font-medium text-orange-600 dark:text-orange-400 truncate pr-2">Total Purchases</CardTitle>
-            <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-orange-500 flex-shrink-0" />
-          </CardHeader>
-          <CardContent className="px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 dark:text-orange-400 break-words ">{formatCurrency(stats.totalPurchases)}</div>
-            <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5 sm:mt-2">
-              <ArrowDownRight className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500 flex-shrink-0" />
-              <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground">{stats.totalPurchaseBills} bills</span>
-            </div>
-          </CardContent>
+        <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20 w-full hover:shadow-md transition-shadow cursor-pointer">
+          <Link to="/purchase-bills">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-6">
+              <CardTitle className="text-[10px] sm:text-xs md:text-sm font-medium text-orange-600 dark:text-orange-400 truncate pr-2">Total Purchases</CardTitle>
+              <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-orange-500 flex-shrink-0" />
+            </CardHeader>
+            <CardContent className="px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 dark:text-orange-400 break-words ">{formatCurrency(stats.totalPurchases)}</div>
+              <div className="flex items-center justify-between mt-1.5 sm:mt-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <ArrowDownRight className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500 flex-shrink-0" />
+                  <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground">{stats.totalPurchaseBills} bills</span>
+                </div>
+                {stats.pendingPurchases > 0 && (
+                  <Badge variant="outline" className="text-[10px] h-4 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800">
+                    {formatCurrency(stats.pendingPurchases)} Due
+                  </Badge>
+                )}
+              </div>
+            </CardContent>
+          </Link>
         </Card>
 
         <Card className={`bg-gradient-to-br w-full ${stats.profit >= 0 ? 'from-blue-500/10 to-blue-600/5 border-blue-500/20' : 'from-red-500/10 to-red-600/5 border-red-500/20'}`}>
@@ -2388,11 +2397,11 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between p-3 bg-background rounded-lg border border-border">
                   <div>
                     <p className="text-sm text-muted-foreground">Payable (to vendors)</p>
-                    <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                    <p className="text-lg font-bold text-rose-600 dark:text-rose-400">
                       {formatCurrency(stats.pendingPurchases)}
                     </p>
                   </div>
-                  <ArrowDownRight className="h-8 w-8 text-orange-500/30" />
+                  <ArrowDownRight className="h-8 w-8 text-rose-500/30" />
                 </div>
               )}
             </div>
