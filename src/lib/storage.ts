@@ -1,3 +1,6 @@
+// Re-export business data collector
+export { getBusinessDataForAI } from "./businessDataCollector";
+
 // Re-export Firebase service functions
 // All functions are now async and use Firebase Firestore instead of localStorage
 export {
