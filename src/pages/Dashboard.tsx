@@ -87,7 +87,6 @@ import {
 
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { PLReportPDF } from '@/components/PLReportPDF';
-import * as XLSX from 'xlsx';
 import { Download, FileSpreadsheet, FileIcon } from 'lucide-react';
 
 export default function Dashboard() {

@@ -1,74 +1,113 @@
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
-import { formatCurrency, formatDate } from '../lib/billUtils';
 
-// Register fonts if needed
-// Font.register({ family: 'Helvetica', src: 'Helvetica' });
+// Register a font that supports the Rupee symbol (₹)
+// Using a standard font and a unicode fallback if necessary, but most PDF readers handle ₹ in Helvetica if encoded correctly.
+// However, @react-pdf/renderer sometimes has issues with UTF-8 characters in default fonts.
+// We'll use a safer approach for the currency symbol.
 
 const styles = StyleSheet.create({
   page: {
-    padding: 30,
+    padding: 40,
     fontSize: 10,
     fontFamily: 'Helvetica',
+    backgroundColor: '#ffffff',
   },
   header: {
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingBottom: 10,
+    marginBottom: 30,
+    borderBottom: '2pt solid #111827',
+    paddingBottom: 15,
   },
-  title: {
-    fontSize: 18,
+  companyName: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#111827',
+    textTransform: 'uppercase',
   },
-  subtitle: {
-    fontSize: 12,
-    color: '#4b5563',
-    marginTop: 4,
+  reportTitle: {
+    fontSize: 14,
+    marginTop: 5,
+    color: '#374151',
+    fontWeight: 'medium',
+  },
+  period: {
+    fontSize: 10,
+    marginTop: 5,
+    color: '#6b7280',
   },
   section: {
-    marginBottom: 15,
+    marginTop: 20,
+    marginBottom: 10,
   },
-  sectionTitle: {
+  sectionHeader: {
     fontSize: 12,
     fontWeight: 'bold',
     backgroundColor: '#f3f4f6',
-    padding: 5,
-    marginBottom: 5,
-    textTransform: 'uppercase',
+    padding: 8,
+    borderLeft: '4pt solid #111827',
+    color: '#111827',
+    marginBottom: 10,
   },
-  row: {
+  table: {
+    width: 'auto',
+    borderStyle: 'solid',
+    borderWidth: 0,
+    borderBottomWidth: 0,
+  },
+  tableRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 3,
+    borderBottomColor: '#e5e7eb',
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    paddingVertical: 8,
+    paddingHorizontal: 5,
   },
-  label: {
+  tableCellLabel: {
+    flex: 2,
+    textAlign: 'left',
     color: '#4b5563',
   },
-  value: {
+  tableCellValue: {
+    flex: 1,
+    textAlign: 'right',
     fontWeight: 'bold',
     color: '#111827',
   },
+  summarySection: {
+    marginTop: 30,
+    padding: 15,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 4,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#374151',
+  },
+  summaryValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   profit: {
     color: '#059669',
-    fontWeight: 'bold',
   },
   loss: {
     color: '#dc2626',
-    fontWeight: 'bold',
   },
   footer: {
     position: 'absolute',
     bottom: 30,
-    left: 30,
-    right: 30,
+    left: 40,
+    right: 40,
     textAlign: 'center',
     color: '#9ca3af',
     fontSize: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTop: '1pt solid #e5e7eb',
     paddingTop: 10,
   },
 });
@@ -79,80 +118,101 @@ interface PLReportProps {
   dateRange: { start: string; end: string };
 }
 
+const formatCurrencyPDF = (amount: number) => {
+  const formatted = new Intl.NumberFormat('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Math.abs(amount));
+  return `${amount < 0 ? '-' : ''}Rs. ${formatted}`;
+};
+
+const formatDatePDF = (date: string) => {
+  if (!date) return 'N/A';
+  return new Date(date).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+};
+
 export const PLReportPDF = ({ stats, company, dateRange }: PLReportProps) => (
   <Document>
     <Page size="A4" style={styles.page}>
       <View style={styles.header}>
-        <Text style={styles.title}>{company?.name || 'Business'} - P&L Report</Text>
-        <Text style={styles.subtitle}>
-          Period: {dateRange.start ? formatDate(dateRange.start) : 'All Time'} to {dateRange.end ? formatDate(dateRange.end) : 'Present'}
+        <Text style={styles.companyName}>{company?.name || 'SHREE RUDRA JEWELS'}</Text>
+        <Text style={styles.reportTitle}>Profit & Loss Statement (Financial Report)</Text>
+        <Text style={styles.period}>
+          Reporting Period: {dateRange.start ? formatDatePDF(dateRange.start) : 'All Time'} - {dateRange.end ? formatDatePDF(dateRange.end) : 'Present'}
         </Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Income</Text>
-        <View style={styles.row}>
-          <Text style={styles.label}>Total Sales Revenue (Paid)</Text>
-          <Text style={styles.value}>{formatCurrency(stats.totalRevenue)}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>GST Collected</Text>
-          <Text style={styles.value}>{formatCurrency(stats.gstCollected)}</Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Expenses & COGS</Text>
-        <View style={styles.row}>
-          <Text style={styles.label}>Total Cost of Goods Sold (COGS)</Text>
-          <Text style={styles.value}>{formatCurrency(stats.totalCOGS)}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Operational Expenses</Text>
-          <Text style={styles.value}>{formatCurrency(stats.totalExpenses)}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Deadstock Loss</Text>
-          <Text style={styles.value}>{formatCurrency(stats.deadstockLoss)}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>GST Paid on Purchases</Text>
-          <Text style={styles.value}>{formatCurrency(stats.gstPaid)}</Text>
+        <Text style={styles.sectionHeader}>1. OPERATING REVENUE</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Gross Sales Revenue (Received)</Text>
+            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.totalRevenue)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>GST Collected (Output Tax)</Text>
+            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.gstCollected)}</Text>
+          </View>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Profitability Analysis</Text>
-        <View style={styles.row}>
-          <Text style={styles.label}>Gross Profit</Text>
-          <Text style={[styles.value, stats.grossProfit >= 0 ? styles.profit : styles.loss]}>
-            {formatCurrency(stats.grossProfit)}
+        <Text style={styles.sectionHeader}>2. DIRECT COSTS & EXPENSES</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Cost of Goods Sold (Inventory Consumption)</Text>
+            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.totalCOGS)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Operational & Business Expenses</Text>
+            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.totalExpenses)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Inventory Loss (Deadstock/Damage)</Text>
+            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.deadstockLoss)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>GST Paid on Purchases (Input Tax Credit)</Text>
+            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.gstPaid)}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.summarySection}>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>GROSS PROFIT</Text>
+          <Text style={[styles.summaryValue, stats.grossProfit >= 0 ? styles.profit : styles.loss]}>
+            {formatCurrencyPDF(stats.grossProfit)}
           </Text>
         </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Net Profit</Text>
-          <Text style={[styles.value, stats.profit >= 0 ? styles.profit : styles.loss]}>
-            {formatCurrency(stats.profit)}
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>NET PROFIT (After All Deductions)</Text>
+          <Text style={[styles.summaryValue, stats.profit >= 0 ? styles.profit : styles.loss]}>
+            {formatCurrencyPDF(stats.profit)}
           </Text>
         </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Profit Margin</Text>
-          <Text style={styles.value}>
-            {stats.totalRevenue > 0 ? ((stats.profit / stats.totalRevenue) * 100).toFixed(2) : 0}%
+        <View style={[styles.summaryRow, { marginTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 10 }]}>
+          <Text style={styles.summaryLabel}>PROFIT MARGIN</Text>
+          <Text style={styles.summaryValue}>
+            {stats.totalRevenue > 0 ? ((stats.profit / stats.totalRevenue) * 100).toFixed(2) : '0.00'}%
           </Text>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Taxation (GST)</Text>
-        <View style={styles.row}>
-          <Text style={styles.label}>Net GST (Collected - Paid)</Text>
-          <Text style={styles.value}>{formatCurrency(stats.netGst)}</Text>
+        <Text style={styles.sectionHeader}>3. TAXATION SUMMARY</Text>
+        <View style={styles.tableRow}>
+          <Text style={styles.tableCellLabel}>Net GST Payable/Refundable</Text>
+          <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.netGst)}</Text>
         </View>
       </View>
 
       <Text style={styles.footer}>
-        Generated on {new Date().toLocaleString()} | {company?.name}
+        This is a computer-generated document. Generated on: {new Date().toLocaleString()} | {company?.name || 'Shree Rudra Jewels'}
       </Text>
     </Page>
   </Document>

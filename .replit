@@ -44,6 +44,15 @@ author = 53911480
 task = "shell.exec"
 args = "git rebase --abort"
 
+[[workflows.workflow]]
+name = "npm i "
+mode = "sequential"
+author = 53750562
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm i jspdf-autotable"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
