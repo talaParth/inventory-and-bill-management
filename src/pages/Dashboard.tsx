@@ -61,7 +61,7 @@ import {
   Activity,
   Star,
   TrendingUp as TrendingUpIcon,
-  AlertTriangle, 
+  AlertTriangle,
   CheckCircle2,
   XCircle,
   StickyNote,
@@ -85,8 +85,9 @@ import {
   Area,
 } from 'recharts';
 
+import { exportDashboardToExcel } from '@/lib/exportDashboardToExcel';
+import { DashboardPDF } from '@/components/DashboardPDF';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import { PLReportPDF } from '@/components/PLReportPDF';
 import { FileSpreadsheet, FileIcon } from 'lucide-react';
 
 export default function Dashboard() {
@@ -155,7 +156,7 @@ export default function Dashboard() {
         // Use the same date format as Notes page (yyyy-MM-dd) using date-fns
         const today = new Date();
         const todayStr = format(today, 'yyyy-MM-dd');
-              
+
         console.log('Loading notes for date:', todayStr);
         const notes = await getNotesByDate(todayStr);
         console.log('All notes for today:', notes);
@@ -168,21 +169,21 @@ export default function Dashboard() {
         toast.error('Failed to load today\'s notes');
       }
     };
-    
+
     loadTodayNotes();
-    
+
     // Reload notes when component becomes visible (user navigates back)
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         loadTodayNotes();
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Also reload when window gains focus (user switches back to tab)
     window.addEventListener('focus', loadTodayNotes);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', loadTodayNotes);
@@ -195,18 +196,18 @@ export default function Dashboard() {
 
   const loadData = async () => {
     setLoading(true);
-      try {
-        const [allBills, products, clients, allPurchaseBills, deadstock, allReturns, allExpenses, company] = await Promise.all([
-          getBills(),
-          getProducts(),
-          getClients(),
-          getPurchaseBills(),
-          getDeadstock(),
-          getBillReturns(),
-          getExpenses(),
-          getCompanyProfile(),
-        ]);
-        setCompanyProfile(company);
+    try {
+      const [allBills, products, clients, allPurchaseBills, deadstock, allReturns, allExpenses, company] = await Promise.all([
+        getBills(),
+        getProducts(),
+        getClients(),
+        getPurchaseBills(),
+        getDeadstock(),
+        getBillReturns(),
+        getExpenses(),
+        getCompanyProfile(),
+      ]);
+      setCompanyProfile(company);
 
       // Build available years for filters
       const yearSet = new Set<number>();
@@ -296,7 +297,7 @@ export default function Dashboard() {
         const transactions = await getProductTransactions(product.id);
         if (transactions && transactions.length > 0) {
           // Sort transactions by date
-          productTransactionsMap[product.id] = transactions.sort((a, b) => 
+          productTransactionsMap[product.id] = transactions.sort((a, b) =>
             new Date(a.date).getTime() - new Date(b.date).getTime()
           );
         }
@@ -324,7 +325,7 @@ export default function Dashboard() {
         // We process up to the sale date to get the cost basis at that moment
         for (const transaction of transactions) {
           const transactionDate = new Date(transaction.date).getTime();
-          
+
           // Only consider transactions before the sale date
           // (We want the cost basis at the moment of sale, not after)
           if (transactionDate < saleDateTime) {
@@ -353,7 +354,7 @@ export default function Dashboard() {
               // For historical accuracy, we'll check if this return was "good" by looking up the return
               const returnItem = allReturns.find(r => r.id === transaction.billId);
               const returnItemData = returnItem?.items.find(i => i.productId === productId);
-              
+
               // Only process good returns (they go back to inventory)
               if (returnItemData && returnItemData.condition === 'good') {
                 if (currentInventory > 0) {
@@ -394,7 +395,7 @@ export default function Dashboard() {
       const currentAveragePrices: Record<string, number> = {};
       await Promise.all(products.map(async (product) => {
         const transactions = productTransactionsMap[product.id];
-        
+
         if (transactions && transactions.length > 0) {
           // Calculate total purchase value and quantity
           const totalPurchaseValue = transactions
@@ -442,8 +443,8 @@ export default function Dashboard() {
 
           // Current Average Price (Avg Buy) = Assets / Current Stock
           // This represents the actual cost basis of remaining inventory
-          currentAveragePrices[product.id] = product.stock > 0 
-            ? roundToTwoDecimals(assets / product.stock) 
+          currentAveragePrices[product.id] = product.stock > 0
+            ? roundToTwoDecimals(assets / product.stock)
             : overallAvgPurchasePrice;
         } else {
           // No purchase history, use product's purchase price
@@ -466,30 +467,30 @@ export default function Dashboard() {
       filteredBillsInRange.forEach(bill => {
         const { key, label } = getBucketKeyLabel(bill.date);
         if (!buckets[key]) buckets[key] = { label, sales: 0, purchases: 0, profit: 0 };
-        
+
         // Use ratio of paidAmount to total to determine how much revenue and profit to recognize
         const totalAmount = bill.total || 1; // Avoid division by zero
         const paymentRatio = (bill.paidAmount || 0) / totalAmount;
-        
+
         // Use discounted subtotal for profit calculation (discount reduces actual revenue)
         const discountAmount = bill.discount || 0;
         const totalRevenueAfterDiscount = roundToTwoDecimals(bill.subtotal - discountAmount);
-        
+
         // Recognized sales is based on what's actually paid
         const sales = roundToTwoDecimals(totalRevenueAfterDiscount * paymentRatio);
-        
+
         let billCogs = 0;
         bill.items.forEach(item => {
           const product = productById[item.productId];
-          const costPrice = product 
+          const costPrice = product
             ? getHistoricalAverageCost(product.id, bill.date)
             : 0;
           billCogs += roundToTwoDecimals(item.quantity * costPrice);
         });
-        
+
         const recognizedCogs = roundToTwoDecimals(billCogs * paymentRatio);
         totalCOGS += recognizedCogs;
-        
+
         buckets[key].sales += sales;
         buckets[key].profit += roundToTwoDecimals(sales - recognizedCogs);
       });
@@ -532,7 +533,7 @@ export default function Dashboard() {
           const paidSubtotalAmount = b.total > 0 ? (b.paidAmount * (discountedSubtotal / b.total)) : 0;
           return sum + (discountedSubtotal - paidSubtotalAmount);
         }, 0);
-      
+
       // Total amounts (including GST) for display
       const totalPending = roundToTwoDecimals(filteredBillsInRange
         .filter(b => b.paymentStatus === 'pending')
@@ -638,7 +639,7 @@ export default function Dashboard() {
         const billSubtotal = bill.subtotal;
         // Calculate discount proportion for each item
         const discountRatio = billSubtotal > 0 ? discountAmount / billSubtotal : 0;
-        
+
         bill.items.forEach(item => {
           const product = productById[item.productId];
           if (!product) return;
@@ -715,8 +716,8 @@ export default function Dashboard() {
 
       // Calculate margins (using markup formula: profit/cost, same as ProductHistory)
       Object.values(productStats).forEach(stat => {
-        stat.margin = stat.cost > 0 
-          ? roundToTwoDecimals((stat.profit / stat.cost) * 100) 
+        stat.margin = stat.cost > 0
+          ? roundToTwoDecimals((stat.profit / stat.cost) * 100)
           : 0;
       });
 
@@ -904,31 +905,19 @@ export default function Dashboard() {
     );
   };
 
-    const exportToExcel = () => {
-      const data = [
-        ['Shree Rudra Jewels - Financial Summary'],
-        ['Generated on', format(new Date(), 'dd-MM-yyyy')],
-        ['Period', `${dateRange.start || 'All Time'} to ${dateRange.end || 'Present'}`],
-        [''],
-        ['Metric', 'Value'],
-        ['Total Revenue', stats.totalRevenue],
-        ['Total Purchases', stats.totalPurchases],
-        ['Gross Profit', stats.grossProfit],
-        ['Net Profit', stats.profit],
-        ['Pending Receivables', stats.pendingAmount],
-        ['Inventory Value', stats.inventoryValue],
-        ['Total Expenses', stats.totalExpenses],
-        ['GST Collected', stats.gstCollected],
-        ['GST Paid', stats.gstPaid],
-        ['Net GST', stats.netGst],
-      ];
-
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Financial Report");
-      XLSX.writeFile(wb, `Dashboard_Stats_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
-      toast.success('Excel report generated successfully');
-    };
+  const exportToExcel = () => {
+    exportDashboardToExcel(
+      stats,
+      chartData,
+      productAnalytics,
+      clientAnalytics,
+      billsInRange, // Use the filtered bills
+      purchaseBills.slice(0, 50), // Include purchase bills
+      companyProfile,
+      dateRange
+    );
+    toast.success('Excel report generated successfully');
+  };
 
   if (loading) {
     return (
@@ -941,7 +930,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6 pb-4 w-full max-w-full overflow-x-hidden">
       {/* Today's Notes Section - At the Top */}
-      
+
 
       {/* Header Section */}
       <div className="flex flex-col gap-3 sm:gap-4">
@@ -951,9 +940,10 @@ export default function Dashboard() {
             <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1 break-words">Comprehensive business analytics and insights</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            {/* Excel Export Button */}
+            <Button
+              variant="outline"
+              size="sm"
               className="flex-1 sm:flex-none items-center gap-2 h-9 sm:h-10"
               onClick={exportToExcel}
               data-testid="button-export-excel"
@@ -962,16 +952,28 @@ export default function Dashboard() {
               Excel
             </Button>
 
+            {/* PDF Export Button */}
             <PDFDownloadLink
-              document={<PLReportPDF stats={stats} company={companyProfile} dateRange={dateRange} />}
-              fileName={`Dashboard_Stats_${format(new Date(), 'dd-MM-yyyy')}.pdf`}
+              document={
+                <DashboardPDF
+                  stats={stats}
+                  chartData={chartData}
+                  productAnalytics={productAnalytics}
+                  clientAnalytics={clientAnalytics}
+                  bills={billsInRange.slice(0, 50)}
+                  purchaseBills={purchaseBills.slice(0, 50)}
+                  company={companyProfile}
+                  dateRange={dateRange}
+                />
+              }
+              fileName={`Dashboard_Report_${format(new Date(), 'dd-MM-yyyy')}.pdf`}
               className="flex-1 sm:flex-none"
-              data-testid="button-export-pdf-trigger"
+              onClick={() => toast.success('Generating PDF report...')}
             >
               {({ loading }) => (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="w-full items-center gap-2 h-9 sm:h-10"
                   disabled={loading}
                 >
@@ -981,6 +983,7 @@ export default function Dashboard() {
               )}
             </PDFDownloadLink>
 
+            {/* Create Bill Button */}
             <Link to="/bills/new" className="flex-1 sm:flex-none">
               <Button size="lg" className="w-full shadow-lg text-xs sm:text-sm md:text-base h-9 sm:h-10">
                 <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
@@ -1170,27 +1173,27 @@ export default function Dashboard() {
                   key={note.id}
                   className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 border rounded-lg bg-background hover:bg-accent/50 transition-colors w-full"
                 >
-                   <button
-                     onClick={async () => {
-                       try {
-                         await updateNoteStatus(note.id, true);
-                         // Reload notes to get fresh data using same date format
-                         const today = new Date();
-                         const todayStr = format(today, 'yyyy-MM-dd');
-                         const notes = await getNotesByDate(todayStr);
-                         setTodayNotes(notes.filter(n => !n.isDone));
-                         toast.success('Note marked as done');
-                       } catch (error) {
-                         console.error('Error updating note:', error);
-                         toast.error('Failed to update note');
-                       }
-                     }}
-                     className="mt-0.5 sm:mt-1 flex-shrink-0 hover:scale-110 transition-transform touch-manipulation"
-                     aria-label="Mark as done"
-                     title="Mark as done"
-                   >
-                     <Circle className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
-                   </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await updateNoteStatus(note.id, true);
+                        // Reload notes to get fresh data using same date format
+                        const today = new Date();
+                        const todayStr = format(today, 'yyyy-MM-dd');
+                        const notes = await getNotesByDate(todayStr);
+                        setTodayNotes(notes.filter(n => !n.isDone));
+                        toast.success('Note marked as done');
+                      } catch (error) {
+                        console.error('Error updating note:', error);
+                        toast.error('Failed to update note');
+                      }
+                    }}
+                    className="mt-0.5 sm:mt-1 flex-shrink-0 hover:scale-110 transition-transform touch-manipulation"
+                    aria-label="Mark as done"
+                    title="Mark as done"
+                  >
+                    <Circle className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" />
+                  </button>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap break-words">
                       {note.content}
@@ -1406,11 +1409,10 @@ export default function Dashboard() {
             </div>
 
             {/* Net Profit */}
-            <div className={`space-y-1.5 sm:space-y-2 p-2.5 sm:p-3 md:p-4 rounded-lg border w-full ${
-              stats.profit >= 0 
-                ? 'bg-blue-500/5 border-blue-200/50' 
-                : 'bg-red-500/5 border-red-200/50'
-            }`}>
+            <div className={`space-y-1.5 sm:space-y-2 p-2.5 sm:p-3 md:p-4 rounded-lg border w-full ${stats.profit >= 0
+              ? 'bg-blue-500/5 border-blue-200/50'
+              : 'bg-red-500/5 border-red-200/50'
+              }`}>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <DollarSign className={`h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 ${stats.profit >= 0 ? 'text-blue-600' : 'text-red-600'}`} />
                 <span className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground truncate">Net Profit</span>
@@ -1419,7 +1421,7 @@ export default function Dashboard() {
                 {stats.profit >= 0 ? '' : '-'}{formatCurrency(Math.abs(stats.profit))}
               </p>
               <p className="text-[10px] sm:text-xs text-muted-foreground break-words">
-                {stats.totalCOGS > 0 
+                {stats.totalCOGS > 0
                   ? `Margin: ${((stats.grossProfit / stats.totalCOGS) * 100).toFixed(1)}%`
                   : 'No revenue'}
               </p>
@@ -1479,7 +1481,7 @@ export default function Dashboard() {
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Profit Margin</span>
                   <span className={`font-bold text-lg ${stats.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {stats.totalCOGS > 0 
+                    {stats.totalCOGS > 0
                       ? `${((stats.grossProfit / stats.totalCOGS) * 100).toFixed(1)}%`
                       : '0%'}
                   </span>
@@ -1523,7 +1525,7 @@ export default function Dashboard() {
                 <p className="text-xs sm:text-sm font-medium text-orange-600 dark:text-orange-400 break-words">Total Returns</p>
                 <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 dark:text-orange-400 break-words mt-1">{stats.totalReturns}</p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 break-words">
-                  {productAnalytics.mostReturnedProducts.length > 0 
+                  {productAnalytics.mostReturnedProducts.length > 0
                     ? `${productAnalytics.mostReturnedProducts.length} products with returns`
                     : 'No returns recorded'}
                 </p>
@@ -1611,16 +1613,16 @@ export default function Dashboard() {
               <p className="text-muted-foreground text-xs sm:text-sm">No data yet</p>
             ) : (
               <div className="w-full min-w-[300px] h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData.monthlySpendVsSales}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData.monthlySpendVsSales}>
                     <XAxis dataKey="period" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
                     <YAxis tickFormatter={(v) => formatCurrency(v).replace('₹', '₹ ')} tick={{ fontSize: 10 }} width={60} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                    <Tooltip formatter={(v: number) => formatCurrency(v)} />
                     <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Bar dataKey="sales" name="Sales (excl. GST)" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="purchases" name="Purchases" fill="#f97316" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+                    <Bar dataKey="sales" name="Sales (excl. GST)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="purchases" name="Purchases" fill="#f97316" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             )}
           </CardContent>
@@ -1635,25 +1637,25 @@ export default function Dashboard() {
               <p className="text-muted-foreground text-xs sm:text-sm">No data yet</p>
             ) : (
               <div className="w-full h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData.paymentBreakdown}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData.paymentBreakdown}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
                       outerRadius={60}
-                    label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
-                  >
-                    {chartData.paymentBreakdown.map((_, index) => (
-                      <Cell key={index} fill={['#10b981', '#f59e0b', '#ef4444'][index % 3]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                      label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
+                    >
+                      {chartData.paymentBreakdown.map((_, index) => (
+                        <Cell key={index} fill={['#10b981', '#f59e0b', '#ef4444'][index % 3]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => formatCurrency(v)} />
                     <Legend wrapperStyle={{ fontSize: '12px' }} />
-                </PieChart>
-              </ResponsiveContainer>
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             )}
           </CardContent>
@@ -1672,15 +1674,15 @@ export default function Dashboard() {
               <p className="text-muted-foreground text-xs sm:text-sm">No data yet</p>
             ) : (
               <div className="w-full min-w-[300px] h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData.monthlyProfit}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData.monthlyProfit}>
                     <XAxis dataKey="period" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
                     <YAxis tickFormatter={(v) => formatCurrency(v).replace('₹', '₹ ')} tick={{ fontSize: 10 }} width={60} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                    <Tooltip formatter={(v: number) => formatCurrency(v)} />
                     <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Line type="monotone" dataKey="profit" name="Profit (excl. GST)" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
+                    <Line type="monotone" dataKey="profit" name="Profit (excl. GST)" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             )}
           </CardContent>
@@ -1796,12 +1798,11 @@ export default function Dashboard() {
                       className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 p-3 sm:p-4 border rounded-lg hover:bg-accent/50 transition-colors w-full"
                     >
                       <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 min-w-0 w-full sm:w-auto">
-                        <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0 ${
-                          index === 0 ? 'bg-yellow-500 text-white' :
+                        <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0 ${index === 0 ? 'bg-yellow-500 text-white' :
                           index === 1 ? 'bg-gray-400 text-white' :
-                          index === 2 ? 'bg-amber-600 text-white' :
-                          'bg-muted text-foreground'
-                        }`}>
+                            index === 2 ? 'bg-amber-600 text-white' :
+                              'bg-muted text-foreground'
+                          }`}>
                           {index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1908,21 +1909,21 @@ export default function Dashboard() {
                     <CardContent className="pt-3 sm:pt-4 md:pt-6 px-2 sm:px-3 md:px-6 pb-3 sm:pb-4 md:pb-6 w-full max-w-full overflow-x-auto">
                       <div className="w-full min-w-[300px] h-[250px] sm:h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={productAnalytics.topProductsByRevenue.slice(0, 5)}>
-                          <XAxis 
-                            dataKey="name" 
+                          <BarChart data={productAnalytics.topProductsByRevenue.slice(0, 5)}>
+                            <XAxis
+                              dataKey="name"
                               tick={{ fontSize: 10 }}
-                            angle={-45}
-                            textAnchor="end"
+                              angle={-45}
+                              textAnchor="end"
                               height={80}
-                          />
+                            />
                             <YAxis tickFormatter={(v) => formatCurrency(v).replace('₹', '₹ ')} tick={{ fontSize: 10 }} width={60} />
-                          <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                            <Tooltip formatter={(v: number) => formatCurrency(v)} />
                             <Legend wrapperStyle={{ fontSize: '12px' }} />
-                          <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
-                          <Bar dataKey="profit" name="Profit" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
+                            <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="profit" name="Profit" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
                       </div>
                     </CardContent>
                   </Card>
@@ -1938,20 +1939,20 @@ export default function Dashboard() {
                       <CardContent className="pt-3 sm:pt-4 md:pt-6 px-2 sm:px-3 md:px-6 pb-3 sm:pb-4 md:pb-6 w-full max-w-full overflow-x-auto">
                         <div className="w-full min-w-[300px] h-[250px] sm:h-[300px]">
                           <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={productAnalytics.topProductsByQuantity.slice(0, 5)}>
-                            <XAxis 
-                              dataKey="name" 
+                            <BarChart data={productAnalytics.topProductsByQuantity.slice(0, 5)}>
+                              <XAxis
+                                dataKey="name"
                                 tick={{ fontSize: 10 }}
-                              angle={-45}
-                              textAnchor="end"
+                                angle={-45}
+                                textAnchor="end"
                                 height={80}
-                            />
+                              />
                               <YAxis tick={{ fontSize: 10 }} width={60} />
-                            <Tooltip />
+                              <Tooltip />
                               <Legend wrapperStyle={{ fontSize: '12px' }} />
-                            <Bar dataKey="quantity" name="Quantity Sold" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                              <Bar dataKey="quantity" name="Quantity Sold" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
                         </div>
                       </CardContent>
                     </Card>
@@ -1988,12 +1989,11 @@ export default function Dashboard() {
                       className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 p-3 sm:p-4 border rounded-lg hover:bg-accent/50 transition-colors w-full"
                     >
                       <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 min-w-0 w-full sm:w-auto">
-                        <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0 ${
-                          index === 0 ? 'bg-yellow-500 text-white' :
+                        <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0 ${index === 0 ? 'bg-yellow-500 text-white' :
                           index === 1 ? 'bg-gray-400 text-white' :
-                          index === 2 ? 'bg-amber-600 text-white' :
-                          'bg-muted text-foreground'
-                        }`}>
+                            index === 2 ? 'bg-amber-600 text-white' :
+                              'bg-muted text-foreground'
+                          }`}>
                           {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -2100,21 +2100,21 @@ export default function Dashboard() {
                   <CardContent className="pt-3 sm:pt-4 md:pt-6 px-2 sm:px-3 md:px-6 pb-3 sm:pb-4 md:pb-6 w-full max-w-full overflow-x-auto">
                     <div className="w-full min-w-[300px] h-[250px] sm:h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={clientAnalytics.topClientsByRevenue.slice(0, 5)}>
-                        <XAxis 
-                          dataKey="name" 
+                        <BarChart data={clientAnalytics.topClientsByRevenue.slice(0, 5)}>
+                          <XAxis
+                            dataKey="name"
                             tick={{ fontSize: 10 }}
-                          angle={-45}
-                          textAnchor="end"
+                            angle={-45}
+                            textAnchor="end"
                             height={80}
-                        />
+                          />
                           <YAxis tickFormatter={(v) => formatCurrency(v).replace('₹', '₹ ')} tick={{ fontSize: 10 }} width={60} />
-                        <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                          <Tooltip formatter={(v: number) => formatCurrency(v)} />
                           <Legend wrapperStyle={{ fontSize: '12px' }} />
-                        <Bar dataKey="revenue" name="Total Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="avgBillValue" name="Avg Bill Value" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                          <Bar dataKey="revenue" name="Total Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="avgBillValue" name="Avg Bill Value" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
                   </CardContent>
                 </Card>
@@ -2276,7 +2276,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Business Summary (Current Filter)</CardTitle>
@@ -2363,7 +2363,7 @@ export default function Dashboard() {
           if (a.paymentStatus !== 'overdue' && b.paymentStatus === 'overdue') return 1;
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         });
-        
+
         return sortedDueBills.length > 0 ? (
           <Card className="border-2 shadow-lg border-amber-500/20 bg-gradient-to-br from-amber-50/50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/20">
             <CardHeader>
@@ -2392,11 +2392,10 @@ export default function Dashboard() {
                       className="block"
                     >
                       <div
-                        className={`flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-all ${
-                          isOverdue
-                            ? 'border-red-300 bg-red-50/50 dark:bg-red-950/20 hover:bg-red-100/50 dark:hover:bg-red-950/30'
-                            : 'border-amber-300 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100/50 dark:hover:bg-amber-950/30'
-                        }`}
+                        className={`flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-all ${isOverdue
+                          ? 'border-red-300 bg-red-50/50 dark:bg-red-950/20 hover:bg-red-100/50 dark:hover:bg-red-950/30'
+                          : 'border-amber-300 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100/50 dark:hover:bg-amber-950/30'
+                          }`}
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -2418,9 +2417,8 @@ export default function Dashboard() {
                         </div>
                         <div className="flex items-center gap-3 ml-4">
                           <div className="text-right">
-                            <p className={`font-bold text-lg ${
-                              isOverdue ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
-                            }`}>
+                            <p className={`font-bold text-lg ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
+                              }`}>
                               {formatCurrency(pendingAmount)}
                             </p>
                             <p className="text-xs text-muted-foreground">
