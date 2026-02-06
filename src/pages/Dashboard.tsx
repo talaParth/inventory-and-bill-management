@@ -6,7 +6,19 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getBills, getProducts, getClients, getPurchaseBills, getDeadstock, getBillReturns, getExpenses, getNotesByDate, updateNoteStatus, getProductTransactions } from '@/lib/storage';
+import {
+  getBills,
+  getProducts,
+  getClients,
+  getPurchaseBills,
+  getDeadstock,
+  getBillReturns,
+  getExpenses,
+  getNotesByDate,
+  updateNoteStatus,
+  getProductTransactions,
+  getCompanyProfile
+} from '@/lib/storage';
 import { Bill, PurchaseBill, Product, DeadstockItem, Expense, Note } from '@/types';
 import { formatCurrency, formatDate, roundToTwoDecimals } from '@/lib/billUtils';
 import { toast } from 'sonner';
