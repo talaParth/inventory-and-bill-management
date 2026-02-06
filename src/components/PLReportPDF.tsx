@@ -1,9 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
-
-// Register a font that supports the Rupee symbol (₹)
-// Using a standard font and a unicode fallback if necessary, but most PDF readers handle ₹ in Helvetica if encoded correctly.
-// However, @react-pdf/renderer sometimes has issues with UTF-8 characters in default fonts.
-// We'll use a safer approach for the currency symbol.
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: {
@@ -13,88 +8,110 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   header: {
-    marginBottom: 30,
+    marginBottom: 20,
     borderBottomWidth: 2,
     borderBottomColor: '#111827',
-    borderBottomStyle: 'solid',
     paddingBottom: 15,
   },
   companyName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#111827',
-    textTransform: 'uppercase',
   },
   reportTitle: {
     fontSize: 14,
     marginTop: 5,
     color: '#374151',
-    fontWeight: 'medium',
   },
   period: {
-    fontSize: 10,
+    fontSize: 9,
     marginTop: 5,
     color: '#6b7280',
   },
   section: {
-    marginTop: 20,
+    marginTop: 15,
     marginBottom: 10,
   },
   sectionHeader: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     backgroundColor: '#f3f4f6',
-    padding: 8,
-    borderLeftWidth: 4,
+    padding: 6,
+    borderLeftWidth: 3,
     borderLeftColor: '#111827',
-    borderLeftStyle: 'solid',
     color: '#111827',
-    marginBottom: 10,
+    marginBottom: 8,
+  },
+  subsectionHeader: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginTop: 10,
+    marginBottom: 5,
   },
   table: {
     width: 'auto',
-    borderStyle: 'solid',
-    borderWidth: 0,
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomColor: '#e5e7eb',
     borderBottomWidth: 1,
-    borderBottomStyle: 'solid',
-    paddingVertical: 8,
-    paddingHorizontal: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  tableRowHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#f9fafb',
+    borderBottomColor: '#d1d5db',
+    borderBottomWidth: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    fontWeight: 'bold',
   },
   tableCellLabel: {
     flex: 2,
     textAlign: 'left',
     color: '#4b5563',
+    fontSize: 9,
   },
   tableCellValue: {
     flex: 1,
     textAlign: 'right',
     fontWeight: 'bold',
     color: '#111827',
+    fontSize: 9,
   },
-  summarySection: {
-    marginTop: 30,
-    padding: 15,
+  tableCell: {
+    flex: 1,
+    textAlign: 'left',
+    fontSize: 8,
+    color: '#374151',
+  },
+  tableCellRight: {
+    flex: 1,
+    textAlign: 'right',
+    fontSize: 8,
+    color: '#374151',
+  },
+  summaryBox: {
+    marginTop: 15,
+    padding: 12,
     backgroundColor: '#f9fafb',
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    borderRadius: 4,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 5,
+    paddingVertical: 4,
   },
   summaryLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
     color: '#374151',
   },
   summaryValue: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
   },
   profit: {
@@ -105,26 +122,53 @@ const styles = StyleSheet.create({
   },
   footer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 20,
     left: 40,
     right: 40,
     textAlign: 'center',
     color: '#9ca3af',
-    fontSize: 8,
+    fontSize: 7,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    borderTopStyle: 'solid',
-    paddingTop: 10,
+    paddingTop: 8,
+  },
+  divider: {
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 8,
+  },
+  rankBadge: {
+    width: 20,
+    textAlign: 'center',
+    fontSize: 8,
+    fontWeight: 'bold',
+  },
+  productName: {
+    flex: 3,
+    fontSize: 8,
+    color: '#374151',
+  },
+  metric: {
+    flex: 1,
+    textAlign: 'right',
+    fontSize: 8,
+    color: '#374151',
   },
 });
 
-interface PLReportProps {
+interface DashboardPDFProps {
   stats: any;
+  chartData: any;
+  productAnalytics: any;
+  clientAnalytics: any;
+  bills: any[];
+  purchaseBills: any[];
   company?: any;
   dateRange: { start: string; end: string };
 }
 
-const formatCurrencyPDF = (amount: number) => {
+const formatCurrency = (amount: number) => {
   const formatted = new Intl.NumberFormat('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -132,93 +176,438 @@ const formatCurrencyPDF = (amount: number) => {
   return `${amount < 0 ? '-' : ''}Rs. ${formatted}`;
 };
 
-const formatDatePDF = (date: string) => {
+const formatDate = (date: string) => {
   if (!date) return 'N/A';
   return new Date(date).toLocaleDateString('en-IN', {
     day: '2-digit',
-    month: 'long',
+    month: 'short',
     year: 'numeric',
   });
 };
 
-export const PLReportPDF = ({ stats, company, dateRange }: PLReportProps) => (
+export const DashboardPDF = ({ 
+  stats, 
+  chartData, 
+  productAnalytics, 
+  clientAnalytics, 
+  bills, 
+  purchaseBills, 
+  company, 
+  dateRange 
+}: DashboardPDFProps) => (
   <Document>
+    {/* PAGE 1: EXECUTIVE SUMMARY */}
     <Page size="A4" style={styles.page}>
       <View style={styles.header}>
         <Text style={styles.companyName}>{company?.name || 'SHREE RUDRA JEWELS'}</Text>
-        <Text style={styles.reportTitle}>Profit & Loss Statement (Financial Report)</Text>
+        <Text style={styles.reportTitle}>Dashboard Executive Summary</Text>
         <Text style={styles.period}>
-          Reporting Period: {dateRange.start ? formatDatePDF(dateRange.start) : 'All Time'} - {dateRange.end ? formatDatePDF(dateRange.end) : 'Present'}
+          Period: {dateRange.start ? formatDate(dateRange.start) : 'All Time'} - {dateRange.end ? formatDate(dateRange.end) : 'Present'}
+        </Text>
+        <Text style={styles.period}>
+          Generated: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </Text>
       </View>
 
+      {/* Financial Overview */}
       <View style={styles.section}>
-        <Text style={styles.sectionHeader}>1. OPERATING REVENUE</Text>
+        <Text style={styles.sectionHeader}>FINANCIAL OVERVIEW</Text>
         <View style={styles.table}>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCellLabel}>Gross Sales Revenue (Received)</Text>
-            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.totalRevenue)}</Text>
+            <Text style={styles.tableCellLabel}>Total Revenue (Received)</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.totalRevenue)}</Text>
           </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Total Revenue (excl. GST)</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.totalRevenue - stats.gstCollected)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Total Discount Given</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.totalDiscount)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Total Purchases</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.totalPurchases)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Gross Profit</Text>
+            <Text style={[styles.tableCellValue, stats.grossProfit >= 0 ? styles.profit : styles.loss]}>
+              {formatCurrency(stats.grossProfit)}
+            </Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Net Profit (After All Deductions)</Text>
+            <Text style={[styles.tableCellValue, stats.profit >= 0 ? styles.profit : styles.loss]}>
+              {formatCurrency(stats.profit)}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Cost Breakdown */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>COST BREAKDOWN</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Cost of Goods Sold (COGS)</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.totalCOGS)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Operational Expenses</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.totalExpenses)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Deadstock Loss</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.deadstockLoss)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Total Costs</Text>
+            <Text style={styles.tableCellValue}>
+              {formatCurrency(stats.totalCOGS + stats.totalExpenses + stats.deadstockLoss)}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Key Metrics */}
+      <View style={styles.summaryBox}>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Profit Margin</Text>
+          <Text style={styles.summaryValue}>
+            {stats.totalCOGS > 0 ? ((stats.grossProfit / stats.totalCOGS) * 100).toFixed(2) : '0.00'}%
+          </Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>ROI (Return on Investment)</Text>
+          <Text style={styles.summaryValue}>
+            {stats.totalPurchases > 0 ? ((stats.profit / stats.totalPurchases) * 100).toFixed(2) : 'N/A'}%
+          </Text>
+        </View>
+      </View>
+
+      {/* GST Analysis */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>GST ANALYSIS</Text>
+        <View style={styles.table}>
           <View style={styles.tableRow}>
             <Text style={styles.tableCellLabel}>GST Collected (Output Tax)</Text>
-            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.gstCollected)}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>2. DIRECT COSTS & EXPENSES</Text>
-        <View style={styles.table}>
-          <View style={styles.tableRow}>
-            <Text style={styles.tableCellLabel}>Cost of Goods Sold (Inventory Consumption)</Text>
-            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.totalCOGS)}</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.gstCollected)}</Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCellLabel}>Operational & Business Expenses</Text>
-            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.totalExpenses)}</Text>
+            <Text style={styles.tableCellLabel}>GST Paid (Input Tax Credit)</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.gstPaid)}</Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCellLabel}>Inventory Loss (Deadstock/Damage)</Text>
-            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.deadstockLoss)}</Text>
+            <Text style={styles.tableCellLabel}>Net GST Payable/Refundable</Text>
+            <Text style={[styles.tableCellValue, stats.netGst >= 0 ? styles.loss : styles.profit]}>
+              {formatCurrency(stats.netGst)}
+            </Text>
           </View>
-          <View style={styles.tableRow}>
-            <Text style={styles.tableCellLabel}>GST Paid on Purchases (Input Tax Credit)</Text>
-            <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.gstPaid)}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.summarySection}>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>GROSS PROFIT</Text>
-          <Text style={[styles.summaryValue, stats.grossProfit >= 0 ? styles.profit : styles.loss]}>
-            {formatCurrencyPDF(stats.grossProfit)}
-          </Text>
-        </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>NET PROFIT (After All Deductions)</Text>
-          <Text style={[styles.summaryValue, stats.profit >= 0 ? styles.profit : styles.loss]}>
-            {formatCurrencyPDF(stats.profit)}
-          </Text>
-        </View>
-        <View style={[styles.summaryRow, { marginTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 10 }]}>
-          <Text style={styles.summaryLabel}>PROFIT MARGIN</Text>
-          <Text style={styles.summaryValue}>
-            {stats.totalRevenue > 0 ? ((stats.profit / stats.totalRevenue) * 100).toFixed(2) : '0.00'}%
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>3. TAXATION SUMMARY</Text>
-        <View style={styles.tableRow}>
-          <Text style={styles.tableCellLabel}>Net GST Payable/Refundable</Text>
-          <Text style={styles.tableCellValue}>{formatCurrencyPDF(stats.netGst)}</Text>
         </View>
       </View>
 
       <Text style={styles.footer}>
-        This is a computer-generated document. Generated on: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')} | {company?.name || 'Shree Rudra Jewels'}
+        {company?.name || 'Shree Rudra Jewels'} | Page 1 of 4
+      </Text>
+    </Page>
+
+    {/* PAGE 2: PAYMENT STATUS & INVENTORY */}
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header}>
+        <Text style={styles.companyName}>{company?.name || 'SHREE RUDRA JEWELS'}</Text>
+        <Text style={styles.reportTitle}>Payment Status & Inventory Analysis</Text>
+      </View>
+
+      {/* Payment Status */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>PAYMENT STATUS BREAKDOWN</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRowHeader}>
+            <Text style={styles.tableCellLabel}>Status</Text>
+            <Text style={styles.tableCellValue}>Amount (Total)</Text>
+            <Text style={styles.tableCellValue}>Amount (Subtotal)</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Paid</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.totalRevenue)}</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.paidSubtotal)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Pending</Text>
+            <Text style={styles.tableCellValue}>
+              {formatCurrency(chartData.paymentBreakdown.find((p: any) => p.name === 'Pending')?.value || 0)}
+            </Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.pendingSubtotal)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Overdue</Text>
+            <Text style={styles.tableCellValue}>
+              {formatCurrency(chartData.paymentBreakdown.find((p: any) => p.name === 'Overdue')?.value || 0)}
+            </Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.overdueSubtotal)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Total Pending Receivable</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.pendingAmount)}</Text>
+            <Text style={styles.tableCellValue}>-</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Inventory & Returns */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>INVENTORY & RETURNS</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Current Inventory Value</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.inventoryValue)}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Total Products in Stock</Text>
+            <Text style={styles.tableCellValue}>{stats.totalProducts}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Total Returns</Text>
+            <Text style={styles.tableCellValue}>{stats.totalReturns}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Deadstock Loss</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.deadstockLoss)}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Business Metrics */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>BUSINESS METRICS</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Total Sales Bills</Text>
+            <Text style={styles.tableCellValue}>{stats.totalBills}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Total Purchase Bills</Text>
+            <Text style={styles.tableCellValue}>{stats.totalPurchaseBills}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Total Clients</Text>
+            <Text style={styles.tableCellValue}>{stats.totalClients}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Overdue Bills Count</Text>
+            <Text style={styles.tableCellValue}>{stats.overdueBills}</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCellLabel}>Pending Purchases Payable</Text>
+            <Text style={styles.tableCellValue}>{formatCurrency(stats.pendingPurchases)}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Sales vs Purchases Trend */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>SALES VS PURCHASES TREND</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRowHeader}>
+            <Text style={[styles.tableCell, { flex: 2 }]}>Period</Text>
+            <Text style={styles.tableCellRight}>Sales</Text>
+            <Text style={styles.tableCellRight}>Purchases</Text>
+            <Text style={styles.tableCellRight}>Profit</Text>
+          </View>
+          {chartData.monthlySpendVsSales.slice(0, 8).map((row: any) => {
+            const profitRow = chartData.monthlyProfit.find((p: any) => p.period === row.period);
+            return (
+              <View key={row.period} style={styles.tableRow}>
+                <Text style={[styles.tableCell, { flex: 2 }]}>{row.period}</Text>
+                <Text style={styles.tableCellRight}>{formatCurrency(row.sales)}</Text>
+                <Text style={styles.tableCellRight}>{formatCurrency(row.purchases)}</Text>
+                <Text style={[styles.tableCellRight, (profitRow?.profit || 0) >= 0 ? styles.profit : styles.loss]}>
+                  {formatCurrency(profitRow?.profit || 0)}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      <Text style={styles.footer}>
+        {company?.name || 'Shree Rudra Jewels'} | Page 2 of 4
+      </Text>
+    </Page>
+
+    {/* PAGE 3: PRODUCT PERFORMANCE */}
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header}>
+        <Text style={styles.companyName}>{company?.name || 'SHREE RUDRA JEWELS'}</Text>
+        <Text style={styles.reportTitle}>Product Performance Analysis</Text>
+      </View>
+
+      {/* Top Products by Revenue */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>TOP PRODUCTS BY REVENUE</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRowHeader}>
+            <Text style={styles.rankBadge}>#</Text>
+            <Text style={styles.productName}>Product Name</Text>
+            <Text style={styles.metric}>Revenue</Text>
+            <Text style={styles.metric}>Qty</Text>
+            <Text style={styles.metric}>Profit</Text>
+            <Text style={styles.metric}>Margin</Text>
+          </View>
+          {productAnalytics.topProductsByRevenue.slice(0, 10).map((product: any, index: number) => (
+            <View key={product.productId} style={styles.tableRow}>
+              <Text style={styles.rankBadge}>{index + 1}</Text>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.metric}>{formatCurrency(product.revenue)}</Text>
+              <Text style={styles.metric}>{product.quantity.toFixed(2)}</Text>
+              <Text style={[styles.metric, product.profit >= 0 ? styles.profit : styles.loss]}>
+                {formatCurrency(product.profit)}
+              </Text>
+              <Text style={styles.metric}>{product.margin.toFixed(1)}%</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Top Products by Profit Margin */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>TOP PRODUCTS BY PROFIT MARGIN</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRowHeader}>
+            <Text style={styles.rankBadge}>#</Text>
+            <Text style={styles.productName}>Product Name</Text>
+            <Text style={styles.metric}>Margin</Text>
+            <Text style={styles.metric}>Profit</Text>
+            <Text style={styles.metric}>Revenue</Text>
+          </View>
+          {productAnalytics.topProductsByProfit.slice(0, 8).map((product: any, index: number) => (
+            <View key={product.productId} style={styles.tableRow}>
+              <Text style={styles.rankBadge}>{index + 1}</Text>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.metric}>{product.margin.toFixed(1)}%</Text>
+              <Text style={[styles.metric, product.profit >= 0 ? styles.profit : styles.loss]}>
+                {formatCurrency(product.profit)}
+              </Text>
+              <Text style={styles.metric}>{formatCurrency(product.revenue)}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Products with Returns */}
+      {productAnalytics.mostReturnedProducts.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>PRODUCTS WITH MOST RETURNS</Text>
+          <View style={styles.table}>
+            <View style={styles.tableRowHeader}>
+              <Text style={styles.rankBadge}>#</Text>
+              <Text style={styles.productName}>Product Name</Text>
+              <Text style={styles.metric}>Returns</Text>
+              <Text style={styles.metric}>Rate</Text>
+              <Text style={styles.metric}>Value</Text>
+            </View>
+            {productAnalytics.mostReturnedProducts.slice(0, 8).map((product: any, index: number) => (
+              <View key={product.productId} style={styles.tableRow}>
+                <Text style={styles.rankBadge}>{index + 1}</Text>
+                <Text style={styles.productName}>{product.name}</Text>
+                <Text style={styles.metric}>{product.returnQuantity.toFixed(2)}</Text>
+                <Text style={[styles.metric, styles.loss]}>{product.returnRate.toFixed(1)}%</Text>
+                <Text style={[styles.metric, styles.loss]}>{formatCurrency(product.returnValue)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <Text style={styles.footer}>
+        {company?.name || 'Shree Rudra Jewels'} | Page 3 of 4
+      </Text>
+    </Page>
+
+    {/* PAGE 4: CLIENT ANALYSIS */}
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header}>
+        <Text style={styles.companyName}>{company?.name || 'SHREE RUDRA JEWELS'}</Text>
+        <Text style={styles.reportTitle}>Client Performance Analysis</Text>
+      </View>
+
+      {/* Top Clients by Revenue */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>TOP CLIENTS BY REVENUE</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRowHeader}>
+            <Text style={styles.rankBadge}>#</Text>
+            <Text style={styles.productName}>Client Name</Text>
+            <Text style={styles.metric}>Revenue</Text>
+            <Text style={styles.metric}>Orders</Text>
+            <Text style={styles.metric}>Avg Bill</Text>
+            <Text style={styles.metric}>Pending</Text>
+          </View>
+          {clientAnalytics.topClientsByRevenue.slice(0, 10).map((client: any, index: number) => (
+            <View key={client.clientId} style={styles.tableRow}>
+              <Text style={styles.rankBadge}>{index + 1}</Text>
+              <Text style={styles.productName}>{client.name}</Text>
+              <Text style={[styles.metric, styles.profit]}>{formatCurrency(client.revenue)}</Text>
+              <Text style={styles.metric}>{client.billCount}</Text>
+              <Text style={styles.metric}>{formatCurrency(client.avgBillValue)}</Text>
+              <Text style={[styles.metric, client.pendingAmount > 0 ? styles.loss : {}]}>
+                {formatCurrency(client.pendingAmount)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Most Active Clients */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>MOST ACTIVE CLIENTS (BY ORDERS)</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRowHeader}>
+            <Text style={styles.rankBadge}>#</Text>
+            <Text style={styles.productName}>Client Name</Text>
+            <Text style={styles.metric}>Orders</Text>
+            <Text style={styles.metric}>Revenue</Text>
+            <Text style={styles.metric}>Avg Bill</Text>
+          </View>
+          {clientAnalytics.topClientsByOrders.slice(0, 8).map((client: any, index: number) => (
+            <View key={client.clientId} style={styles.tableRow}>
+              <Text style={styles.rankBadge}>{index + 1}</Text>
+              <Text style={styles.productName}>{client.name}</Text>
+              <Text style={styles.metric}>{client.billCount}</Text>
+              <Text style={styles.metric}>{formatCurrency(client.revenue)}</Text>
+              <Text style={styles.metric}>{formatCurrency(client.avgBillValue)}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Clients with Returns */}
+      {clientAnalytics.clientReturnStats.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>CLIENTS WITH RETURNS</Text>
+          <View style={styles.table}>
+            <View style={styles.tableRowHeader}>
+              <Text style={styles.rankBadge}>#</Text>
+              <Text style={styles.productName}>Client Name</Text>
+              <Text style={styles.metric}>Returns</Text>
+              <Text style={styles.metric}>Rate</Text>
+              <Text style={styles.metric}>Value</Text>
+            </View>
+            {clientAnalytics.clientReturnStats.slice(0, 8).map((client: any, index: number) => (
+              <View key={client.clientId} style={styles.tableRow}>
+                <Text style={styles.rankBadge}>{index + 1}</Text>
+                <Text style={styles.productName}>{client.name}</Text>
+                <Text style={styles.metric}>{client.returnCount}</Text>
+                <Text style={[styles.metric, styles.loss]}>{client.returnRate.toFixed(1)}%</Text>
+                <Text style={[styles.metric, styles.loss]}>{formatCurrency(client.returnValue)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <Text style={styles.footer}>
+        {company?.name || 'Shree Rudra Jewels'} | Page 4 of 4 | Report generated on {new Date().toLocaleDateString('en-IN')}
       </Text>
     </Page>
   </Document>
