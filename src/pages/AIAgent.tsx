@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, User, Send, Briefcase } from "lucide-react";
 import { toast } from "sonner";
+import { getBusinessDataForAI } from "@/lib/businessDataCollector";
 
 interface Message {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
 }
 
@@ -33,25 +34,40 @@ export default function AIAgent() {
 
   const handleAnalyseBusiness = async () => {
     setIsLoading(true);
-    const initialMessage: Message = {
-      role: "user",
-      content: "Please analyse my business and provide recommendations for growth.",
-    };
-    
-    setMessages([initialMessage]);
-    
     try {
-      const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
+      const businessData = await getBusinessDataForAI();
+      
+      const systemPrompt = `You are an expert Business Consultant and Growth Strategist. 
+Analyze the provided business data carefully.
+Identify:
+1. Critical mistakes in financial management (e.g., high pending payments, low margins).
+2. Growth opportunities based on top clients and sales trends.
+3. Inventory and expense optimization.
+Provide actionable recommendations.
+
+Business Data:
+${JSON.stringify(businessData, null, 2)}`;
+
+      const initialMessage: Message = {
+        role: "user",
+        content: "Analyze my business data and provide a detailed growth strategy and mistake analysis.",
+      };
+      
+      setMessages([initialMessage]);
+      
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'api-subscription-key': import.meta.env.SARVAM_API_KEY || 'sk_cgklaer7_PyVfuZMemeppS9aL53Cvbldg',
+          'Authorization': `Bearer ${import.meta.env.AI_INTEGRATIONS_OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'sarvam-m',
-          messages: [initialMessage],
+          model: 'gpt-5.1',
+          messages: [
+            { role: "system", content: systemPrompt },
+            initialMessage
+          ],
           temperature: 0.7,
-          max_tokens: 500,
         }),
       });
 
@@ -59,7 +75,7 @@ export default function AIAgent() {
         throw new Error('Failed to fetch response from AI');
       }
 
-      const data = await response.ok ? await response.json() : null;
+      const data = await response.json();
       if (data && data.choices && data.choices[0]) {
         setMessages(prev => [...prev, {
           role: "assistant",
@@ -87,17 +103,20 @@ export default function AIAgent() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
+      const businessData = await getBusinessDataForAI();
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'api-subscription-key': import.meta.env.SARVAM_API_KEY || 'sk_cgklaer7_PyVfuZMemeppS9aL53Cvbldg',
+          'Authorization': `Bearer ${import.meta.env.AI_INTEGRATIONS_OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'sarvam-m',
-          messages: newMessages,
+          model: 'gpt-5.1',
+          messages: [
+            { role: "system", content: "You are an expert business consultant. Keep context of the business data: " + JSON.stringify(businessData) },
+            ...newMessages
+          ],
           temperature: 0.7,
-          max_tokens: 500,
         }),
       });
 
