@@ -1120,9 +1120,16 @@ export default function PurchaseBills() {
 
                     <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t pt-3">
                       <div className="flex flex-col gap-1">
-                        <p className="text-lg font-bold text-foreground">
-                          {formatCurrency(bill.total)}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-lg font-bold text-foreground">
+                            {formatCurrency(bill.total)}
+                          </p>
+                          {bill.paymentStatus !== "paid" && (
+                            <Badge variant="outline" className="text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/30">
+                              {formatCurrency(bill.total - (bill.paidAmount || 0))} Due
+                            </Badge>
+                          )}
+                        </div>
                         {bill.paidAmount > 0 && bill.payments && bill.payments.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-1">
                             {Object.entries(
