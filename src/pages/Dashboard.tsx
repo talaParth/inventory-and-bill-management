@@ -87,7 +87,7 @@ import {
 
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { PLReportPDF } from '@/components/PLReportPDF';
-import { Download, FileSpreadsheet, FileIcon } from 'lucide-react';
+import { FileSpreadsheet, FileIcon } from 'lucide-react';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
