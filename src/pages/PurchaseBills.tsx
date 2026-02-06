@@ -1124,11 +1124,7 @@ export default function PurchaseBills() {
                           <p className="text-lg font-bold text-foreground">
                             {formatCurrency(bill.total)}
                           </p>
-                          {bill.paymentStatus !== "paid" && (
-                            <Badge variant="outline" className="text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/30">
-                              {formatCurrency(bill.total - (bill.paidAmount || 0))} Due
-                            </Badge>
-                          )}
+                         
                         </div>
                         {bill.paidAmount > 0 && bill.payments && bill.payments.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-1">
@@ -1994,7 +1990,7 @@ export default function PurchaseBills() {
                       <div className="border-t-4 border-primary pt-6 space-y-4">
                         <div className="flex justify-between text-xl lg:text-3xl text-muted-foreground">
                           <span>Original Bill Amount</span>
-                          <span className="font-semibold line-through decoration-red-500/50">
+                          <span className="font-semibold  decoration-red-500/50">
                             {formatCurrency(
                               isEditing
                                 ? (editedBill?.items.reduce(
