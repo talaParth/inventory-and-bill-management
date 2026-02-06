@@ -74,47 +74,41 @@ export default function AIAgent() {
         ]);
 
         const systemData = {
-          companyProfile: profile,
-          sales: bills.map(b => ({
-            id: b.id,
-            date: b.date,
-            client: b.client?.name || (b as any).clientName,
-            total: b.total,
-            paymentStatus: b.paymentStatus,
-            items: b.items?.map(i => ({ name: i.productName, quantity: i.quantity, rate: i.ratePerUnit }))
-          })),
-          inventory: products.map(p => ({
-            name: p.name,
-            stock: p.stock,
-            price: p.sellingPrice,
-            purchasePrice: p.purchasePrice,
-            category: (p as any).category
-          })),
-          purchases: purchaseBills.map(p => ({
-            vendor: p.vendorName,
-            date: p.billDate,
-            total: p.total,
-            items: p.items?.map(i => ({ name: i.description, quantity: i.quantity, rate: i.rate }))
-          })),
-          expenses: expenses.map(e => ({
-            category: e.category,
-            amount: e.amount,
-            date: e.date,
-            description: e.description
-          })),
-          returns: {
-            sales: billReturns.map(r => ({ date: r.returnDate || r.createdAt, total: r.totalReturnValue })),
+          summary: {
+            totalSales: bills.reduce((sum, b) => sum + b.total, 0),
+            totalPurchases: purchaseBills.reduce((sum, b) => sum + b.total, 0),
+            totalExpenses: expenses.reduce((sum, b) => sum + b.amount, 0),
+            stockValue: products.reduce((sum, p) => sum + (p.stock * p.purchasePrice), 0),
+            itemCount: products.length,
+            clientCount: clients.length
           },
-          deadstock: deadstock.map(d => ({
-            name: d.productName,
-            quantity: d.quantity,
-          })),
-          clients: clients.map(c => ({
-            name: c.name,
-            totalSales: bills.filter(b => b.clientId === c.id).reduce((sum, b) => sum + b.total, 0)
-          })),
-          notes: notes.map(n => ({ content: n.content, date: n.date })),
-          recentActivity: inventoryTransactions.slice(0, 50)
+          topSales: bills
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 10)
+            .map(b => ({
+              date: b.date,
+              client: b.client?.name || (b as any).clientName,
+              total: b.total,
+              status: b.paymentStatus
+            })),
+          inventoryStatus: products
+            .filter(p => p.stock < 10 || p.stock > 100)
+            .slice(0, 15)
+            .map(p => ({
+              name: p.name,
+              stock: p.stock,
+              price: p.sellingPrice
+            })),
+          recentExpenses: expenses
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 10)
+            .map(e => ({
+              cat: e.category,
+              amt: e.amount,
+              date: e.date
+            })),
+          deadstockCount: deadstock.length,
+          recentNotes: notes.slice(-5).map(n => n.content)
         };
 
         const initialMessage: Message = {
