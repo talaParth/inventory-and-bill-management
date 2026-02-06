@@ -184,14 +184,13 @@ export const numberToWords = (num: number): string => {
 };
 
 export const formatCurrency = (amount: number): string => {
-  // Round to 2 decimals first to fix floating point precision issues
   const roundedAmount = roundToTwoDecimals(amount);
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(roundedAmount);
+  }).format(roundedAmount).replace("INR", "₹");
 };
 
 export const formatDate = (date: string): string => {

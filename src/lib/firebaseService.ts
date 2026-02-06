@@ -841,9 +841,11 @@ export const savePurchaseReturn = async (
         if (productDoc) {
           const productRef = productDoc.ref;
           const currentStock = productDoc.data().stock || 0;
+
           // For PURCHASE return, we are returning items TO the vendor, so stock should DECREASE
           const newStock = currentStock - item.quantity;
           batch.update(productRef, { stock: Math.round(newStock * 100) / 100 });
+
 
           // Record inventory transaction for the return
           const transactionRef = doc(collection(db, COLLECTIONS.INVENTORY));
@@ -996,10 +998,24 @@ const updateExistingProduct = async (
   userId: string
 ) => {
   const productRef = doc(db, COLLECTIONS.PRODUCTS, existingProduct.id);
-  const newStock = existingProduct.stock + item.quantity;
+  const currentStock = existingProduct.stock || 0;
+  const currentPurchasePrice = existingProduct.purchasePrice || 0;
+  
+  // Calculate new stock
+  const newStock = Math.round((currentStock + item.quantity) * 100) / 100;
+  
+  // Calculate new weighted average purchase price
+  // Formula: ((Existing Stock * Old Avg Price) + (New Quantity * New Purchase Price)) / New Total Stock
+  let newPurchasePrice = item.purchasePrice;
+  if (newStock > 0) {
+    const existingValue = currentStock * currentPurchasePrice;
+    const newValue = item.quantity * item.purchasePrice;
+    newPurchasePrice = Math.round(((existingValue + newValue) / newStock) * 100) / 100;
+  }
+
   const updates: any = {
     stock: newStock,
-    purchasePrice: item.purchasePrice,
+    purchasePrice: newPurchasePrice,
   };
 
   if (item.sellingPrice > 0) {
@@ -1034,11 +1050,24 @@ const updateExistingProductWithNameChange = async (
   userId: string
 ) => {
   const productRef = doc(db, COLLECTIONS.PRODUCTS, existingProduct.id);
-  const newStock = existingProduct.stock + item.quantity;
+  const currentStock = existingProduct.stock || 0;
+  const currentPurchasePrice = existingProduct.purchasePrice || 0;
+  
+  // Calculate new stock
+  const newStock = Math.round((currentStock + item.quantity) * 100) / 100;
+  
+  // Calculate new weighted average purchase price
+  let newPurchasePrice = item.purchasePrice;
+  if (newStock > 0) {
+    const existingValue = currentStock * currentPurchasePrice;
+    const newValue = item.quantity * item.purchasePrice;
+    newPurchasePrice = Math.round(((existingValue + newValue) / newStock) * 100) / 100;
+  }
+
   const updates: any = {
     name: chosenName, // Update name
     stock: newStock,
-    purchasePrice: item.purchasePrice,
+    purchasePrice: newPurchasePrice,
     gstRate: item.gstRate || existingProduct.gstRate,
     unit: item.unit || existingProduct.unit,
   };
