@@ -1122,9 +1122,10 @@ export default function PurchaseBills() {
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
                           <p className="text-lg font-bold text-foreground">
-                            {formatCurrency(bill.total)}
+                            {formatCurrency(
+                              bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)
+                            )}
                           </p>
-                         
                         </div>
                         {bill.paidAmount > 0 && bill.payments && bill.payments.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-1">
@@ -1990,7 +1991,7 @@ export default function PurchaseBills() {
                       <div className="border-t-4 border-primary pt-6 space-y-4">
                         <div className="flex justify-between text-xl lg:text-3xl text-muted-foreground">
                           <span>Original Bill Amount</span>
-                          <span className="font-semibold  decoration-red-500/50">
+                          <span className="font-semibold decoration-red-500/50">
                             {formatCurrency(
                               isEditing
                                 ? (editedBill?.items.reduce(
@@ -2006,6 +2007,19 @@ export default function PurchaseBills() {
                             )}
                           </span>
                         </div>
+                        {selectedBill?.returns && selectedBill.returns.length > 0 && (
+                          <div className="flex justify-between text-xl lg:text-3xl text-red-600">
+                            <span>- Returns</span>
+                            <span className="font-semibold">
+                              {formatCurrency(
+                                selectedBill.returns.reduce(
+                                  (sum, r) => sum + r.totalReturnValue,
+                                  0
+                                )
+                              )}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between text-2xl lg:text-4xl">
                           <span className="font-bold">Current Total</span>
                           <span className="font-bold text-primary">
