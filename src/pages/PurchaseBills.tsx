@@ -102,6 +102,7 @@ export default function PurchaseBills() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [selectedBill, setSelectedBill] = useState<PurchaseBill | null>(null);
   const [viewImageBill, setViewImageBill] = useState<PurchaseBill | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [selectedBillForHistory, setSelectedBillForHistory] = useState<PurchaseBill | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
