@@ -143,7 +143,7 @@ export default function AIAgent() {
           },
           body: JSON.stringify({
             model: 'sarvam-m',
-            messages: [initialMessage],
+            messages: [{ role: "assistant", content: "I am ready." }, initialMessage],
             temperature: 0.7,
             max_tokens: 2000,
           }),
@@ -185,6 +185,10 @@ export default function AIAgent() {
     setIsLoading(true);
 
     try {
+      const messagesForAPI = messages.length === 0 
+        ? [{ role: "assistant", content: "I am ready." }, userMessage]
+        : [...messages, userMessage];
+
       const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -193,7 +197,7 @@ export default function AIAgent() {
         },
         body: JSON.stringify({
           model: 'sarvam-m',
-          messages: newMessages,
+          messages: messagesForAPI,
           temperature: 0.7,
           max_tokens: 1000,
         }),
