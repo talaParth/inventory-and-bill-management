@@ -61,7 +61,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import {
   Select,
   SelectContent,
@@ -593,7 +593,7 @@ export default function Products() {
       formatCurrency(stockValues[p.id] || 0),
     ]);
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 20,
