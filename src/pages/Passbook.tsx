@@ -11,8 +11,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { getBills, getPurchaseBills, getExpenses, getBillReturns } from '@/lib/storage';
-import { Bill, PurchaseBill, Expense, BillReturn } from '@/types';
+import { getBills, getPurchaseBills, getExpenses, getBillReturns, getProducts } from '@/lib/storage';
+import { Bill, PurchaseBill, Expense, BillReturn, Product } from '@/types';
 import {
     BookOpen,
     TrendingUp,
@@ -44,6 +44,7 @@ export default function Passbook() {
     const [entries, setEntries] = useState<PassbookEntry[]>([]);
     const [filteredEntries, setFilteredEntries] = useState<PassbookEntry[]>([]);
     const [loading, setLoading] = useState(true);
+    const [inventoryValue, setInventoryValue] = useState(0);
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [filterType, setFilterType] = useState<string>('all');
     const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -64,12 +65,21 @@ export default function Passbook() {
     const loadPassbookData = async () => {
         setLoading(true);
         try {
-            const [bills, purchaseBills, expenses, returns] = await Promise.all([
+            const [bills, purchaseBills, expenses, returns, products] = await Promise.all([
                 getBills(),
                 getPurchaseBills(),
                 getExpenses(),
                 getBillReturns(),
+                getProducts(),
             ]);
+
+            // Calculate inventory value
+            const totalInv = products.reduce((sum, product) => {
+                const stock = product.stock || 0;
+                const price = product.purchasePrice || product.price || 0;
+                return sum + (stock * price);
+            }, 0);
+            setInventoryValue(totalInv);
 
             const allEntries: PassbookEntry[] = [];
 
@@ -305,7 +315,7 @@ export default function Passbook() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-white shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                         <CardTitle className="text-sm font-semibold text-green-700">Total Income</CardTitle>
@@ -314,7 +324,7 @@ export default function Passbook() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-green-600 mb-1">{formatCurrency(totalIncome)}</div>
+                        <div className="text-2xl md:text-3xl font-bold text-green-600 mb-1">{formatCurrency(totalIncome)}</div>
                         <p className="text-xs text-muted-foreground">
                             Money received from sales
                         </p>
@@ -329,14 +339,29 @@ export default function Passbook() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-red-600 mb-1">{formatCurrency(totalExpenses)}</div>
+                        <div className="text-2xl md:text-3xl font-bold text-red-600 mb-1">{formatCurrency(totalExpenses)}</div>
                         <p className="text-xs text-muted-foreground">
                             Money spent on purchases & expenses
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className={`border-2 shadow-md hover:shadow-lg transition-shadow sm:col-span-2 lg:col-span-1 ${netBalance >= 0 ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-white' : 'border-red-200 bg-gradient-to-br from-red-50 to-white'}`}>
+                <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-md hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                        <CardTitle className="text-sm font-semibold text-amber-700">Total Inventory</CardTitle>
+                        <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                            <BookOpen className="h-5 w-5 text-amber-600" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl md:text-3xl font-bold text-amber-600 mb-1">{formatCurrency(inventoryValue)}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Total value of stock in hand
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className={`border-2 shadow-md hover:shadow-lg transition-shadow ${netBalance >= 0 ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-white' : 'border-red-200 bg-gradient-to-br from-red-50 to-white'}`}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                         <CardTitle className={`text-sm font-semibold ${netBalance >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
                             Net Balance
@@ -346,7 +371,7 @@ export default function Passbook() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-3xl font-bold mb-1 ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <div className={`text-2xl md:text-3xl font-bold mb-1 ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {formatCurrency(netBalance)}
                         </div>
                         <p className="text-xs text-muted-foreground">
