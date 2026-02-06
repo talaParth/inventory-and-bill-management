@@ -950,7 +950,7 @@ export default function Dashboard() {
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground break-words">Dashboard</h1>
             <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1 break-words">Comprehensive business analytics and insights</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button 
               variant="outline" 
               size="sm" 
@@ -961,24 +961,32 @@ export default function Dashboard() {
               <FileSpreadsheet className="h-4 w-4" />
               Excel
             </Button>
-            <PDFDownloadLink
-              document={<PLReportPDF stats={stats} company={companyProfile} dateRange={dateRange} />}
-              fileName={`Dashboard_Stats_${format(new Date(), 'dd-MM-yyyy')}.pdf`}
-              className="flex-1 sm:flex-none"
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 sm:flex-none items-center gap-2 h-9 sm:h-10"
+              onClick={() => {
+                const link = document.createElement('a');
+                link.id = 'hidden-pdf-download';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                // The actual download is handled by PDFDownloadLink below
+              }}
+              data-testid="button-export-pdf-trigger"
             >
-              {({ loading }) => (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full items-center gap-2 h-9 sm:h-10"
-                  disabled={loading}
-                  data-testid="button-export-pdf"
-                >
-                  <FileIcon className="h-4 w-4" />
-                  {loading ? '...' : 'PDF'}
-                </Button>
-              )}
-            </PDFDownloadLink>
+              <PDFDownloadLink
+                document={<PLReportPDF stats={stats} company={companyProfile} dateRange={dateRange} />}
+                fileName={`Dashboard_Stats_${format(new Date(), 'dd-MM-yyyy')}.pdf`}
+                className="w-full h-full flex items-center justify-center gap-2"
+              >
+                {({ loading }) => (
+                  <>
+                    <FileIcon className="h-4 w-4" />
+                    {loading ? '...' : 'PDF'}
+                  </>
+                )}
+              </PDFDownloadLink>
+            </Button>
             <Link to="/bills/new" className="flex-1 sm:flex-none">
               <Button size="lg" className="w-full shadow-lg text-xs sm:text-sm md:text-base h-9 sm:h-10">
                 <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
