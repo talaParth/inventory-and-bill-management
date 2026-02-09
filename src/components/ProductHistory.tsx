@@ -818,7 +818,6 @@
 //   );
 // }
 
-
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -829,8 +828,14 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
-import { Product, Bill, PurchaseBill, BillReturn, ProductTransaction } from "@/types";
+import {
+  Product,
+  Bill,
+  PurchaseBill,
+  BillReturn,
+} from "@/types";
 import {
   getBills,
   getPurchaseBills,
@@ -845,6 +850,7 @@ import {
   DollarSign,
   BarChart3,
   RotateCcw,
+  Search,
   Info,
 } from "lucide-react";
 
@@ -896,7 +902,7 @@ export function ProductHistory({
   onOpenChange,
 }: ProductHistoryProps) {
   const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistoryItem[]>(
-    []
+    [],
   );
   const [salesHistory, setSalesHistory] = useState<SalesHistoryItem[]>([]);
   const [returnHistory, setReturnHistory] = useState<ReturnHistoryItem[]>([]);
@@ -937,7 +943,7 @@ export function ProductHistory({
                   product.name.toLowerCase().trim() ||
                 (item.hsnCode &&
                   product.hsnCode &&
-                  item.hsnCode.trim() === product.hsnCode.trim())
+                  item.hsnCode.trim() === product.hsnCode.trim()),
             );
             purchases.push({
               id: transaction.id,
@@ -1028,13 +1034,17 @@ export function ProductHistory({
       // Find return history - match by productId
       const returns: ReturnHistoryItem[] = [];
       billReturns.forEach((billReturn) => {
-        billReturn.items.forEach((item) => {
-          if (item.productId === product.id) {
+        const items = (billReturn as any).items || [];
+        items.forEach((item: any) => {
+          // Robust ID matching
+          const isMatch = String(item.productId) === String(product.id);
+          
+          if (isMatch) {
             const returnItem: ReturnHistoryItem = {
               id: `${billReturn.id}-${item.productId}`,
               date: billReturn.returnDate || billReturn.createdAt,
               clientName: billReturn.clientName,
-              quantity: item.quantity,
+              quantity: Number(item.quantity),
               unit: product.unit,
               condition: item.condition,
               returnReason: item.returnReason,
@@ -1044,33 +1054,40 @@ export function ProductHistory({
             returns.push(returnItem);
 
             // Also add to purchase history as a negative entry (return)
-            purchases.push({
-              id: `return-${billReturn.id}-${item.productId}`,
-              date: billReturn.returnDate || billReturn.createdAt,
-              vendorName: `Return: ${billReturn.clientName}`,
-              quantity: -item.quantity, // Negative quantity for return
-              unit: product.unit,
-              purchasePrice: item.ratePerUnit || 0,
-              totalAmount: -(item.quantity * (item.ratePerUnit || 0)),
-              billNumber: billReturn.billNumber,
-              addedToInventory: item.condition === "good",
-            });
+            // Use price from the return item or fallback to product selling/purchase price
+            const itemAny = item as any;
+            const price = Number(itemAny.ratePerUnit || itemAny.rate || itemAny.sellingPrice || product.sellingPrice || product.purchasePrice || 0);
+            const qty = Number(itemAny.quantity || 0);
+            
+            if (qty > 0) {
+              purchases.push({
+                id: `return-${billReturn.id}-${item.productId}`,
+                date: billReturn.returnDate || billReturn.createdAt,
+                vendorName: `Sales Return: ${billReturn.clientName}`,
+                quantity: -qty, // Negative quantity for return
+                unit: product.unit,
+                purchasePrice: price,
+                totalAmount: -(qty * price),
+                billNumber: billReturn.billNumber,
+                addedToInventory: item.condition === "good",
+              });
+            }
           }
         });
       });
 
       // Sort by date ascending for FIFO calculation, descending for display
       const purchasesSortedForFIFO = [...purchases].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
       purchases.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       );
       sales.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       );
       returns.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       );
 
       setPurchaseHistory(purchases);
@@ -1087,15 +1104,15 @@ export function ProductHistory({
   const calculateStats = () => {
     const totalPurchased = purchaseHistory.reduce(
       (sum, item) => sum + item.quantity,
-      0
+      0,
     );
     const totalSold = salesHistory.reduce(
       (sum, item) => sum + item.quantity,
-      0
+      0,
     );
     const totalReturned = returnHistory.reduce(
       (sum, item) => sum + item.quantity,
-      0
+      0,
     );
     const totalReturnedGood = returnHistory
       .filter((r) => r.condition === "good")
@@ -1106,11 +1123,11 @@ export function ProductHistory({
 
     const totalPurchaseValue = purchaseHistory.reduce(
       (sum, item) => sum + item.totalAmount,
-      0
+      0,
     );
     const totalSalesValue = salesHistory.reduce(
       (sum, item) => sum + item.totalAmount,
-      0
+      0,
     );
 
     // Overall weighted average purchase price
@@ -1199,10 +1216,12 @@ export function ProductHistory({
   };
 
   const filteredPurchases = purchaseHistory.filter((item) => {
-    const matchesSearch =
-      item.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.billNumber &&
-        item.billNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+    const searchStr = searchTerm.toLowerCase();
+    const vendorMatch = (item.vendorName || "").toLowerCase().includes(searchStr);
+    const billMatch = (item.billNumber || "").toLowerCase().includes(searchStr);
+    
+    const matchesSearch = vendorMatch || billMatch;
+    
     const itemDate = new Date(item.date);
     const matchesStartDate = !startDate || itemDate >= new Date(startDate);
     const matchesEndDate = !endDate || itemDate <= new Date(endDate);
@@ -1210,9 +1229,12 @@ export function ProductHistory({
   });
 
   const filteredSales = salesHistory.filter((item) => {
-    const matchesSearch =
-      item.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.billNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchStr = searchTerm.toLowerCase();
+    const clientMatch = (item.clientName || "").toLowerCase().includes(searchStr);
+    const billMatch = (item.billNumber || "").toLowerCase().includes(searchStr);
+    
+    const matchesSearch = clientMatch || billMatch;
+    
     const itemDate = new Date(item.date);
     const matchesStartDate = !startDate || itemDate >= new Date(startDate);
     const matchesEndDate = !endDate || itemDate <= new Date(endDate);
@@ -1220,11 +1242,13 @@ export function ProductHistory({
   });
 
   const filteredReturns = returnHistory.filter((item) => {
-    const matchesSearch =
-      item.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.returnReason &&
-        item.returnReason.toLowerCase().includes(searchTerm.toLowerCase()));
+    const searchStr = searchTerm.toLowerCase();
+    const clientMatch = (item.clientName || "").toLowerCase().includes(searchStr);
+    const billMatch = (item.billNumber || "").toLowerCase().includes(searchStr);
+    const reasonMatch = (item.returnReason || "").toLowerCase().includes(searchStr);
+    
+    const matchesSearch = clientMatch || billMatch || reasonMatch;
+    
     const itemDate = new Date(item.date);
     const matchesStartDate = !startDate || itemDate >= new Date(startDate);
     const matchesEndDate = !endDate || itemDate <= new Date(endDate);
@@ -1592,7 +1616,9 @@ export function ProductHistory({
                                 </td>
                                 <td
                                   className={`p-3 sm:p-4 text-xs sm:text-sm text-right whitespace-nowrap ${
-                                    item.quantity < 0 ? "text-red-600 font-bold" : ""
+                                    item.quantity < 0
+                                      ? "text-red-600 font-bold"
+                                      : ""
                                   }`}
                                 >
                                   {item.quantity} {item.unit}
@@ -1623,8 +1649,8 @@ export function ProductHistory({
                                     {item.addedToInventory
                                       ? "In Inventory"
                                       : item.quantity < 0
-                                      ? "Rejected/Bad"
-                                      : "Pending"}
+                                        ? "Rejected/Bad"
+                                        : "Pending"}
                                   </Badge>
                                 </td>
                               </tr>
@@ -1814,7 +1840,11 @@ export function ProductHistory({
                                   Total
                                 </p>
                                 <p className="text-sm font-semibold text-orange-600">
-                                  {filteredReturns.reduce((sum, r) => sum + r.quantity, 0)} {product.unit}
+                                  {filteredReturns.reduce(
+                                    (sum, r) => sum + r.quantity,
+                                    0,
+                                  )}{" "}
+                                  {product.unit}
                                 </p>
                               </div>
                               <div>
@@ -1822,7 +1852,13 @@ export function ProductHistory({
                                   Good
                                 </p>
                                 <p className="text-sm font-semibold text-emerald-600">
-                                  {filteredReturns.filter(r => r.condition === "good").reduce((sum, r) => sum + r.quantity, 0)} {product.unit}
+                                  {filteredReturns
+                                    .filter((r) => r.condition === "good")
+                                    .reduce(
+                                      (sum, r) => sum + r.quantity,
+                                      0,
+                                    )}{" "}
+                                  {product.unit}
                                 </p>
                               </div>
                               <div>
@@ -1830,7 +1866,13 @@ export function ProductHistory({
                                   Bad
                                 </p>
                                 <p className="text-sm font-semibold text-red-600">
-                                  {filteredReturns.filter(r => r.condition === "bad").reduce((sum, r) => sum + r.quantity, 0)} {product.unit}
+                                  {filteredReturns
+                                    .filter((r) => r.condition === "bad")
+                                    .reduce(
+                                      (sum, r) => sum + r.quantity,
+                                      0,
+                                    )}{" "}
+                                  {product.unit}
                                 </p>
                               </div>
                             </div>
