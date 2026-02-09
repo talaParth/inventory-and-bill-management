@@ -51,7 +51,7 @@ author = 53750562
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm i jspdf-autotable"
+args = "npm i react-markdown"
 
 [[ports]]
 localPort = 5000
