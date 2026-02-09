@@ -128,6 +128,7 @@ export default function PurchaseBills() {
       type: 'purchase',
       description: `Purchase - Bill #${bill.billNumber || 'N/A'}`,
       amount: -bill.total,
+      quantity: bill.items.reduce((sum, item) => sum + item.quantity, 0),
     });
 
     // Add payments
@@ -139,6 +140,7 @@ export default function PurchaseBills() {
           type: 'payment',
           description: `Payment Made (${payment.method})${payment.note ? ` - ${payment.note}` : ''}`,
           amount: payment.amount,
+          quantity: 0,
         });
       });
     }
@@ -147,18 +149,35 @@ export default function PurchaseBills() {
     if (bill.returns && bill.returns.length > 0) {
       bill.returns.forEach(ret => {
         const productNames = ret.items.map(item => item.description).join(", ");
+        const returnQty = ret.items.reduce((sum, item) => sum + item.quantity, 0);
         history.push({
           id: `return-${ret.id}`,
           date: ret.returnDate,
           type: 'return',
           description: `Purchase Return (${productNames})${ret.notes ? ` - ${ret.notes}` : ''}`,
           amount: ret.totalReturnValue,
+          quantity: returnQty,
         });
       });
     }
 
     // Sort by date descending
     return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+
+  const getAvailableStockForBill = (bill: PurchaseBill) => {
+    if (!bill || !products) return 0;
+    const billProductIds = new Set(bill.items.map(item => {
+      const p = products.find(p => 
+        p.name.toLowerCase().trim() === item.description.toLowerCase().trim() || 
+        (item.hsnCode && p.hsnCode === item.hsnCode)
+      );
+      return p?.id;
+    }).filter(Boolean));
+    
+    return products
+      .filter(p => billProductIds.has(p.id))
+      .reduce((sum, p) => sum + (p.stock || 0), 0);
   };
 
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
@@ -2484,7 +2503,7 @@ export default function PurchaseBills() {
             {selectedBillForHistory && (
               <div className="p-6 space-y-6">
                 {/* Summary Info Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <Card className="p-4 border shadow-sm">
                     <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Total Bill</p>
                     <p className="text-lg font-bold">{formatCurrency(selectedBillForHistory.total)}</p>
@@ -2505,6 +2524,12 @@ export default function PurchaseBills() {
                       {formatCurrency(selectedBillForHistory.total - (selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0))}
                     </p>
                   </Card>
+                  <Card className="p-4 border shadow-sm bg-blue-50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900">
+                    <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase font-bold mb-1">Available Stock</p>
+                    <p className="text-lg font-black text-blue-600 dark:text-blue-400">
+                      {getAvailableStockForBill(selectedBillForHistory)} Units
+                    </p>
+                  </Card>
                 </div>
 
                 {/* Timeline Table */}
@@ -2515,6 +2540,7 @@ export default function PurchaseBills() {
                         <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Date</th>
                         <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Type</th>
                         <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Details</th>
+                        <th className="text-right p-4 font-bold text-xs uppercase text-muted-foreground">Qty</th>
                         <th className="text-right p-4 font-bold text-xs uppercase text-muted-foreground">Amount</th>
                         <th className="p-4 font-bold text-xs uppercase text-muted-foreground text-center">Actions</th>
                       </tr>
@@ -2543,6 +2569,11 @@ export default function PurchaseBills() {
                             <p className="text-sm font-medium text-foreground max-w-[250px] leading-relaxed">
                               {entry.description}
                             </p>
+                          </td>
+                          <td className="p-4 text-right">
+                            <span className="text-sm font-bold tabular-nums">
+                              {entry.quantity || "—"}
+                            </span>
                           </td>
                           <td className="p-4 text-right">
                             <span className={`font-black tabular-nums text-sm ${entry.amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
