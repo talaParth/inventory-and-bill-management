@@ -124,14 +124,24 @@ export function Layout({ children }: LayoutProps) {
         
         const finalItems = [...orderedItems, ...newItems];
         // Only update if the items have actually changed
-        if (JSON.stringify(navItems.map(i => i.path)) !== JSON.stringify(finalItems.map(i => i.path))) {
+        const currentPaths = navItems.map(i => i.path).join(',');
+        const finalPaths = finalItems.map(i => i.path).join(',');
+        if (currentPaths !== finalPaths) {
           setNavItems(finalItems);
         }
       } catch (e) {
+        const currentPaths = navItems.map(i => i.path).join(',');
+        const itemsPaths = items.map(i => i.path).join(',');
+        if (currentPaths !== itemsPaths) {
+          setNavItems(items);
+        }
+      }
+    } else {
+      const currentPaths = navItems.map(i => i.path).join(',');
+      const itemsPaths = items.map(i => i.path).join(',');
+      if (currentPaths !== itemsPaths) {
         setNavItems(items);
       }
-    } else if (JSON.stringify(navItems.map(i => i.path)) !== JSON.stringify(items.map(i => i.path))) {
-      setNavItems(items);
     }
   }, [user.role, permissions]);
 
