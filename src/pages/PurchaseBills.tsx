@@ -2447,25 +2447,25 @@ export default function PurchaseBills() {
         }}
       >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
-          <DialogHeader className="p-8 border-b shrink-0 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+          <DialogHeader className="p-8 border-b shrink-0 bg-primary text-primary-foreground">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                    <Clock className="h-6 w-6 text-white" />
+                  <div className="p-2 bg-background/20 rounded-lg backdrop-blur-sm">
+                    <Clock className="h-6 w-6 text-primary-foreground" />
                   </div>
                   Transaction History
                 </DialogTitle>
                 {selectedBillForHistory && (
-                  <p className="text-blue-100 font-medium">
+                  <p className="text-primary-foreground/80 font-medium">
                     Bill #{selectedBillForHistory.billNumber || "N/A"} • {selectedBillForHistory.vendorName}
                   </p>
                 )}
               </div>
               {selectedBillForHistory && (
                 <div className="text-right hidden sm:block">
-                  <p className="text-xs text-blue-200 uppercase font-bold tracking-widest opacity-80">Remaining Balance</p>
-                  <p className="text-2xl font-black text-white">
+                  <p className="text-xs text-primary-foreground/70 uppercase font-bold tracking-widest opacity-80">Remaining Balance</p>
+                  <p className="text-2xl font-black text-primary-foreground">
                     {formatCurrency(
                       (selectedBillForHistory.total - (selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)) - selectedBillForHistory.paidAmount
                     )}
@@ -2475,72 +2475,72 @@ export default function PurchaseBills() {
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto bg-slate-50/50">
+          <div className="flex-1 overflow-y-auto bg-background">
             {selectedBillForHistory && (
               <div className="p-6 space-y-6">
                 {/* Summary Info Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Card className="p-4 border-none shadow-sm bg-white">
+                  <Card className="p-4 border shadow-sm">
                     <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Total Bill</p>
                     <p className="text-lg font-bold">{formatCurrency(selectedBillForHistory.total)}</p>
                   </Card>
-                  <Card className="p-4 border-none shadow-sm bg-white">
-                    <p className="text-[10px] text-orange-600 uppercase font-bold mb-1">Returns</p>
-                    <p className="text-lg font-bold text-orange-600">
+                  <Card className="p-4 border shadow-sm">
+                    <p className="text-[10px] text-orange-600 dark:text-orange-400 uppercase font-bold mb-1">Returns</p>
+                    <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
                       -{formatCurrency(selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)}
                     </p>
                   </Card>
-                  <Card className="p-4 border-none shadow-sm bg-white">
-                    <p className="text-[10px] text-emerald-600 uppercase font-bold mb-1">Total Paid</p>
-                    <p className="text-lg font-bold text-emerald-600">{formatCurrency(selectedBillForHistory.paidAmount)}</p>
+                  <Card className="p-4 border shadow-sm">
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold mb-1">Total Paid</p>
+                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(selectedBillForHistory.paidAmount)}</p>
                   </Card>
-                  <Card className="p-4 border-none shadow-sm bg-indigo-50 border border-indigo-100">
-                    <p className="text-[10px] text-indigo-700 uppercase font-bold mb-1">Net Payable</p>
-                    <p className="text-lg font-black text-indigo-700">
+                  <Card className="p-4 border shadow-sm bg-accent/50 border-accent">
+                    <p className="text-[10px] text-accent-foreground uppercase font-bold mb-1">Net Payable</p>
+                    <p className="text-lg font-black text-accent-foreground">
                       {formatCurrency(selectedBillForHistory.total - (selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0))}
                     </p>
                   </Card>
                 </div>
 
                 {/* Timeline Table */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                   <table className="w-full border-collapse">
-                    <thead className="bg-slate-50 border-b border-slate-200">
+                    <thead className="bg-muted border-b border-border">
                       <tr>
-                        <th className="text-left p-4 font-bold text-xs uppercase text-slate-500">Date</th>
-                        <th className="text-left p-4 font-bold text-xs uppercase text-slate-500">Type</th>
-                        <th className="text-left p-4 font-bold text-xs uppercase text-slate-500">Details</th>
-                        <th className="text-right p-4 font-bold text-xs uppercase text-slate-500">Amount</th>
-                        <th className="p-4 font-bold text-xs uppercase text-slate-500 text-center">Actions</th>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Date</th>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Type</th>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Details</th>
+                        <th className="text-right p-4 font-bold text-xs uppercase text-muted-foreground">Amount</th>
+                        <th className="p-4 font-bold text-xs uppercase text-muted-foreground text-center">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-border">
                       {getPurchaseHistory(selectedBillForHistory).map((entry: any) => (
-                        <tr key={entry.id} className="hover:bg-indigo-50/30 transition-colors group">
+                        <tr key={entry.id} className="hover:bg-muted/50 transition-colors group">
                           <td className="p-4">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                              <Calendar className="h-4 w-4 text-slate-400" />
+                            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
                               {formatDate(entry.date)}
                             </div>
                           </td>
                           <td className="p-4">
                             <Badge
                               className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                entry.type === 'purchase' ? 'bg-rose-100 text-rose-700 border-rose-200' :
-                                entry.type === 'payment' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                                'bg-sky-100 text-sky-700 border-sky-200'
+                                entry.type === 'purchase' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800' :
+                                entry.type === 'payment' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' :
+                                'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800'
                               }`}
                             >
                               {entry.type}
                             </Badge>
                           </td>
                           <td className="p-4">
-                            <p className="text-sm font-medium text-slate-600 max-w-[250px] leading-relaxed">
+                            <p className="text-sm font-medium text-foreground max-w-[250px] leading-relaxed">
                               {entry.description}
                             </p>
                           </td>
                           <td className="p-4 text-right">
-                            <span className={`font-black tabular-nums text-sm ${entry.amount >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                            <span className={`font-black tabular-nums text-sm ${entry.amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                               {entry.amount >= 0 ? "+" : ""}
                               {formatCurrency(entry.amount)}
                             </span>
@@ -2551,7 +2551,7 @@ export default function PurchaseBills() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
                                   onClick={() => handleEditTransaction(entry)}
                                 >
                                   <Edit2 className="h-4 w-4" />
@@ -2561,23 +2561,23 @@ export default function PurchaseBills() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </AlertDialogTrigger>
-                                  <AlertDialogContent className="rounded-2xl border-none shadow-2xl">
+                                  <AlertDialogContent className="rounded-2xl">
                                     <AlertDialogHeader>
                                       <AlertDialogTitle className="text-xl font-bold">Delete Transaction?</AlertDialogTitle>
-                                      <AlertDialogDescription className="text-slate-600">
+                                      <AlertDialogDescription>
                                         This will permanently remove this {entry.type} entry and update the bill balance.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel className="rounded-xl border-slate-200">Cancel</AlertDialogCancel>
+                                      <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
                                       <AlertDialogAction 
                                         onClick={() => handleDeleteTransaction(entry)}
-                                        className="rounded-xl bg-rose-600 hover:bg-rose-700"
+                                        className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                       >
                                         Delete Forever
                                       </AlertDialogAction>
@@ -2598,17 +2598,17 @@ export default function PurchaseBills() {
 
           {/* Inline Edit Section */}
           {editingTransaction && (
-            <div className="p-6 border-t bg-indigo-50/50 shrink-0">
+            <div className="p-6 border-t bg-muted shrink-0">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 max-w-2xl mx-auto">
                 <div className="space-y-2 flex-1">
-                  <Label className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Update Amount</Label>
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Update Amount</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">₹</span>
                     <Input
                       type="number"
                       value={transactionAmount}
                       onChange={(e) => setTransactionAmount(e.target.value)}
-                      className="pl-8 h-12 rounded-xl border-indigo-200 focus:ring-indigo-500 text-lg font-bold"
+                      className="pl-8 h-12 rounded-xl text-lg font-bold"
                       autoFocus
                     />
                   </div>
@@ -2617,13 +2617,13 @@ export default function PurchaseBills() {
                   <Button 
                     variant="outline" 
                     onClick={() => setEditingTransaction(null)}
-                    className="h-12 px-6 rounded-xl border-slate-200"
+                    className="h-12 px-6 rounded-xl"
                   >
                     Cancel
                   </Button>
                   <Button 
                     onClick={saveEditedTransaction}
-                    className="h-12 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold"
+                    className="h-12 px-8 rounded-xl font-bold"
                   >
                     Save Changes
                   </Button>

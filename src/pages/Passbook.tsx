@@ -353,45 +353,45 @@ export default function Passbook() {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-white shadow-md hover:shadow-lg transition-shadow">
+                <Card className="border shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-semibold text-green-700">Total Income</CardTitle>
-                        <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                            <TrendingUp className="h-5 w-5 text-green-600" />
+                        <CardTitle className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Total Income</CardTitle>
+                        <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl md:text-3xl font-bold text-green-600 mb-1">{formatCurrency(totalIncome)}</div>
+                        <div className="text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">{formatCurrency(totalIncome)}</div>
                         <p className="text-xs text-muted-foreground">
                             Money received from sales
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="border-2 border-red-200 bg-gradient-to-br from-red-50 to-white shadow-md hover:shadow-lg transition-shadow">
+                <Card className="border shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-semibold text-red-700">Total Outflow</CardTitle>
-                        <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
-                            <TrendingDown className="h-5 w-5 text-red-600" />
+                        <CardTitle className="text-sm font-semibold text-rose-600 dark:text-rose-400">Total Outflow</CardTitle>
+                        <div className="h-10 w-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                            <TrendingDown className="h-5 w-5 text-rose-600 dark:text-rose-400" />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl md:text-3xl font-bold text-red-600 mb-1">{formatCurrency(totalOutflow)}</div>
+                        <div className="text-2xl md:text-3xl font-bold text-rose-600 dark:text-rose-400 mb-1">{formatCurrency(totalOutflow)}</div>
                         <p className="text-xs text-muted-foreground">
                             Purchases: {formatCurrency(totalPurchases)} | Expenses: {formatCurrency(totalExpensesOnly)}
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-md hover:shadow-lg transition-shadow">
+                <Card className="border shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-semibold text-blue-700">Returns</CardTitle>
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <ArrowUpDown className="h-5 w-5 text-blue-600" />
+                        <CardTitle className="text-sm font-semibold text-blue-600 dark:text-blue-400">Returns</CardTitle>
+                        <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <ArrowUpDown className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl md:text-3xl font-bold mb-1 ${totalReturnsValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <div className={`text-2xl md:text-3xl font-bold mb-1 ${totalReturnsValue >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                             {formatCurrency(totalReturnsValue)}
                         </div>
                         <p className="text-xs text-muted-foreground">
@@ -400,32 +400,32 @@ export default function Passbook() {
                     </CardContent>
                 </Card>
 
-                <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-md hover:shadow-lg transition-shadow">
+                <Card className="border shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-semibold text-amber-700">Total Inventory</CardTitle>
-                        <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-                            <BookOpen className="h-5 w-5 text-amber-600" />
+                        <CardTitle className="text-sm font-semibold text-amber-600 dark:text-amber-400">Total Inventory</CardTitle>
+                        <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                            <BookOpen className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl md:text-3xl font-bold text-amber-600 mb-1">{formatCurrency(inventoryValue)}</div>
+                        <div className="text-2xl md:text-3xl font-bold text-amber-600 dark:text-amber-400 mb-1">{formatCurrency(inventoryValue)}</div>
                         <p className="text-xs text-muted-foreground">
                             Total value of stock in hand
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className={`border-2 shadow-md hover:shadow-lg transition-shadow ${netBalance >= 0 ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-white' : 'border-red-200 bg-gradient-to-br from-red-50 to-white'}`}>
+                <Card className={`border shadow-md hover:shadow-lg transition-shadow ${netBalance >= 0 ? 'border-primary/20 bg-primary/5' : 'border-destructive/20 bg-destructive/5'}`}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className={`text-sm font-semibold ${netBalance >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+                        <CardTitle className={`text-sm font-semibold ${netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
                             Net Balance
                         </CardTitle>
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${netBalance >= 0 ? 'bg-blue-100' : 'bg-red-100'}`}>
-                            <BookOpen className={`h-5 w-5 ${netBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`} />
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${netBalance >= 0 ? 'bg-primary/10' : 'bg-destructive/10'}`}>
+                            <BookOpen className={`h-5 w-5 ${netBalance >= 0 ? 'text-primary' : 'text-destructive'}`} />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl md:text-3xl font-bold mb-1 ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <div className={`text-2xl md:text-3xl font-bold mb-1 ${netBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                             {formatCurrency(netBalance)}
                         </div>
                         <p className="text-xs text-muted-foreground">
@@ -437,13 +437,13 @@ export default function Passbook() {
 
             {/* Collection by Payment Mode */}
             <div>
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-foreground">
+                    <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                     Collections by Payment Mode
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                     {['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Other'].map((method) => (
-                        <Card key={method} className="border border-border shadow-sm hover:shadow-md transition-shadow">
+                        <Card key={method} className="border shadow-sm hover:shadow-md transition-shadow">
                             <CardHeader className="p-3 pb-1">
                                 <CardTitle className="text-xs font-medium text-muted-foreground uppercase">{method}</CardTitle>
                             </CardHeader>
@@ -459,8 +459,8 @@ export default function Passbook() {
 
             {/* Filters */}
             <Card className="border shadow-sm">
-                <CardHeader className="bg-gradient-to-r from-blue-500/5 to-purple-500/5 border-b">
-                    <CardTitle className="flex items-center gap-2 text-xl">
+                <CardHeader className="bg-muted border-b">
+                    <CardTitle className="flex items-center gap-2 text-xl text-foreground">
                         <Filter className="h-5 w-5 text-primary" />
                         Filters & Search
                     </CardTitle>
