@@ -290,11 +290,11 @@ export default function Passbook() {
         }
     };
 
-    const totalIncome = entries.filter(e => e.amount > 0).reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = entries.filter(e => e.amount > 0 && e.type !== 'return').reduce((sum, e) => sum + e.amount, 0);
     const totalPurchases = Math.abs(entries.filter(e => e.type === 'purchase').reduce((sum, e) => sum + e.amount, 0));
     const totalExpensesOnly = Math.abs(entries.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0));
-    const totalReturns = entries.filter(e => e.type === 'return').reduce((sum, e) => sum + e.amount, 0);
-    const totalOutflow = Math.abs(entries.filter(e => e.amount < 0).reduce((sum, e) => sum + e.amount, 0));
+    const totalReturnsValue = entries.filter(e => e.type === 'return').reduce((sum, e) => sum + e.amount, 0);
+    const totalOutflow = Math.abs(entries.filter(e => e.amount < 0 && e.type !== 'return').reduce((sum, e) => sum + e.amount, 0));
     const netBalance = entries.length > 0 ? entries[entries.length - 1].balance : 0;
 
     const paymentMethodTotals = entries
@@ -352,7 +352,7 @@ export default function Passbook() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-white shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                         <CardTitle className="text-sm font-semibold text-green-700">Total Income</CardTitle>
@@ -379,6 +379,23 @@ export default function Passbook() {
                         <div className="text-2xl md:text-3xl font-bold text-red-600 mb-1">{formatCurrency(totalOutflow)}</div>
                         <p className="text-xs text-muted-foreground">
                             Purchases: {formatCurrency(totalPurchases)} | Expenses: {formatCurrency(totalExpensesOnly)}
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-md hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                        <CardTitle className="text-sm font-semibold text-blue-700">Returns</CardTitle>
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <ArrowUpDown className="h-5 w-5 text-blue-600" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className={`text-2xl md:text-3xl font-bold mb-1 ${totalReturnsValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(totalReturnsValue)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Net value of all returns
                         </p>
                     </CardContent>
                 </Card>
