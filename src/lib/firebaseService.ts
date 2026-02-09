@@ -920,6 +920,13 @@ export const savePurchaseReturn = async (
       }
     }
 
+    await batch.commit();
+  } catch (error) {
+    console.error("Error saving purchase return:", error);
+    throw error;
+  }
+};
+
 export const deletePurchaseReturn = async (returnId: string, purchaseBillId: string, adjustStock: boolean = true): Promise<void> => {
   try {
     const userId = getUserId();
@@ -976,148 +983,6 @@ export const deletePurchaseReturn = async (returnId: string, purchaseBillId: str
     throw error;
   }
 };
-
-export const checkStockAvailability = async (productId: string, quantity: number): Promise<boolean> => {
-  try {
-    const docRef = doc(db, COLLECTIONS.PRODUCTS, productId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return docSnap.data().stock >= quantity;
-    }
-    return false;
-  } catch (error) {
-    return false;
-  }
-};
-
-export const validateBillStock = async (bill: Bill): Promise<boolean> => {
-  return true;
-};
-
-export const getBillReturns = async (): Promise<BillReturn[]> => {
-  return [];
-};
-
-export const saveBillReturn = async (billReturn: BillReturn): Promise<void> => {};
-
-export const getDeadstock = async (): Promise<DeadstockItem[]> => {
-  return [];
-};
-
-export const saveDeadstockItem = async (item: DeadstockItem): Promise<void> => {};
-
-export const processBillReturn = async (billReturn: BillReturn): Promise<void> => {};
-
-export const updateBillAfterReturn = async (billId: string, returnTotal: number): Promise<void> => {};
-
-export const getBillReturnsByBillId = async (billId: string): Promise<BillReturn[]> => {
-  return [];
-};
-
-export const getReturnedQuantity = async (billId: string, productId: string): Promise<number> => {
-  return 0;
-};
-
-export const getTotalDeadstockLoss = async (): Promise<number> => {
-  return 0;
-};
-
-export const getCostOfGoodsSold = async (): Promise<number> => {
-  return 0;
-};
-
-export const getUserPreference = async (key: string): Promise<any> => {
-  return null;
-};
-
-export const setUserPreference = async (key: string, value: any): Promise<void> => {};
-
-export const getExpenses = async (): Promise<Expense[]> => {
-  return [];
-};
-
-export const saveExpense = async (expense: Expense): Promise<void> => {};
-
-export const deleteExpense = async (id: string): Promise<void> => {};
-
-export const uploadFile = async (file: File, path: string): Promise<string> => {
-  return "";
-};
-
-export const getFiles = async (): Promise<UploadedFile[]> => {
-  return [];
-};
-
-export const deleteFile = async (id: string): Promise<void> => {};
-
-export const downloadFile = async (url: string): Promise<void> => {};
-
-export const getNotes = async (): Promise<Note[]> => {
-  return [];
-};
-
-export const getNotesByDate = async (date: string): Promise<Note[]> => {
-  return [];
-};
-
-export const saveNote = async (note: Note): Promise<void> => {};
-
-export const deleteNote = async (id: string): Promise<void> => {};
-
-export const updateNoteStatus = async (id: string, status: string): Promise<void> => {};
-
-export const getProductSalesData = async (productId: string): Promise<any> => {
-  return null;
-};
-
-export const getSampleBills = async (): Promise<SampleBill[]> => {
-  return [];
-};
-
-export const deleteSampleBill = async (id: string): Promise<void> => {};
-
-export const updateSampleBillPayment = async (id: string, amount: number): Promise<void> => {};
-
-export const saveSampleBill = async (bill: SampleBill): Promise<void> => {};
-
-export const getSampleBillCounter = async (): Promise<number> => {
-  return 0;
-};
-
-export const incrementSampleBillCounter = async (): Promise<number> => {
-  return 0;
-};
-
-export type InventoryItemInput = {
-  description: string;
-  hsnCode: string;
-  quantity: number;
-  unit: string;
-  purchasePrice: number;
-  sellingPrice: number;
-  gstRate: number;
-  productId?: string;
-  isNewProduct?: boolean;
-};
-
-export const isPurchaseBillDuplicate = async (billNumber: string, vendorName: string): Promise<boolean> => {
-  return false;
-};
-
-export const isPurchaseBillInventoryAdded = async (billId: string): Promise<boolean> => {
-  return false;
-};
-
-export const updatePurchaseBillOverdueStatus = async (): Promise<void> => {};
-
-export const addPurchaseItemsToInventory = async (
-  bill: PurchaseBill,
-  items: InventoryItemInput[],
-  resolutions?: Map<string, string>
-): Promise<any> => {
-  return { added: 0, updated: 0 };
-};
-
 
 export const addPurchaseItemsToInventory = async (
   bill: PurchaseBill,
