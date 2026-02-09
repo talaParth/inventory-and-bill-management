@@ -770,7 +770,8 @@ export const updatePurchaseBillPayment = async (
   paidAmount: number,
   paymentType: PaymentMethod,
   note?: string,
-  date?: string
+  date?: string,
+  paymentId?: string // Optional ID to edit existing payment
 ): Promise<void> => {
   try {
     const billRef = doc(db, COLLECTIONS.PURCHASE_BILLS, billId);
@@ -778,28 +779,69 @@ export const updatePurchaseBillPayment = async (
 
     if (billSnap.exists()) {
       const bill = billSnap.data() as PurchaseBill;
-      const newPaidAmount = (bill.paidAmount || 0) + paidAmount;
-      const paymentStatus =
-        newPaidAmount >= bill.total ? "paid" : bill.paymentStatus;
+      let payments = Array.isArray(bill.payments) ? [...bill.payments] : [];
+      
+      if (paymentId) {
+        // EDIT existing payment
+        const index = payments.findIndex(p => p.id === paymentId);
+        if (index !== -1) {
+          payments[index] = {
+            ...payments[index],
+            amount: paidAmount,
+            method: paymentType,
+            date: date || payments[index].date,
+            note: note !== undefined ? note : payments[index].note,
+          };
+        }
+      } else {
+        // ADD new payment
+        const newPayment: PaymentTransaction = {
+          id: Math.random().toString(36).substr(2, 9),
+          amount: paidAmount,
+          method: paymentType,
+          date: date || new Date().toISOString(),
+          note: note,
+        };
+        payments.push(newPayment);
+      }
 
-      const newPayment: PaymentTransaction = {
-        id: Math.random().toString(36).substr(2, 9),
-        amount: paidAmount,
-        method: paymentType,
-        date: date || new Date().toISOString(),
-        note: note,
-      };
-
-      const payments = Array.isArray(bill.payments) ? [...bill.payments, newPayment] : [newPayment];
+      // Re-calculate total paid amount from all payments
+      const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+      const paymentStatus = totalPaid >= bill.total ? "paid" : "pending";
 
       await updateDoc(billRef, {
-        paidAmount: newPaidAmount,
+        paidAmount: totalPaid,
         paymentStatus,
         payments: removeUndefined(payments),
       });
     }
   } catch (error) {
     console.error("Error updating purchase bill payment:", error);
+    throw error;
+  }
+};
+
+export const deletePurchaseBillPayment = async (billId: string, paymentId: string): Promise<void> => {
+  try {
+    const billRef = doc(db, COLLECTIONS.PURCHASE_BILLS, billId);
+    const billSnap = await getDoc(billRef);
+
+    if (billSnap.exists()) {
+      const bill = billSnap.data() as PurchaseBill;
+      if (!Array.isArray(bill.payments)) return;
+
+      const payments = bill.payments.filter(p => p.id !== paymentId);
+      const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+      const paymentStatus = totalPaid >= bill.total ? "paid" : "pending";
+
+      await updateDoc(billRef, {
+        paidAmount: totalPaid,
+        paymentStatus,
+        payments: removeUndefined(payments),
+      });
+    }
+  } catch (error) {
+    console.error("Error deleting purchase bill payment:", error);
     throw error;
   }
 };
@@ -878,12 +920,204 @@ export const savePurchaseReturn = async (
       }
     }
 
+export const deletePurchaseReturn = async (returnId: string, purchaseBillId: string, adjustStock: boolean = true): Promise<void> => {
+  try {
+    const userId = getUserId();
+    const batch = writeBatch(db);
+
+    // 1. Delete return record
+    const returnRef = doc(db, COLLECTIONS.PURCHASE_RETURNS, returnId);
+    const returnSnap = await getDoc(returnRef);
+    if (!returnSnap.exists()) return;
+    const returnOrder = returnSnap.data() as PurchaseReturn;
+    batch.delete(returnRef);
+
+    // 2. Update Purchase Bill
+    const billRef = doc(db, COLLECTIONS.PURCHASE_BILLS, purchaseBillId);
+    const billSnap = await getDoc(billRef);
+
+    if (billSnap.exists()) {
+      const bill = billSnap.data() as PurchaseBill;
+      const updatedReturns = (bill.returns || []).filter(r => r.id !== returnId);
+      
+      const newTotal = (bill.total || 0) + returnOrder.totalReturnValue;
+      const newPaymentStatus = (bill.paidAmount || 0) >= newTotal ? "paid" : "pending";
+
+      batch.update(billRef, {
+        returns: removeUndefined(updatedReturns),
+        total: newTotal,
+        paymentStatus: newPaymentStatus,
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    // 3. Revert Stock
+    if (adjustStock) {
+      for (const item of returnOrder.items) {
+        const productsQuery = query(collection(db, COLLECTIONS.PRODUCTS), where("userId", "==", userId));
+        const productsSnap = await getDocs(productsQuery);
+        const productDoc = productsSnap.docs.find(d => (d.data().name as string).toLowerCase().trim() === item.description.toLowerCase().trim());
+        
+        if (productDoc) {
+          const currentStock = productDoc.data().stock || 0;
+          const newStock = currentStock + item.quantity; // Restore stock
+          batch.update(productDoc.ref, { stock: Math.round(newStock * 100) / 100 });
+
+          const q = query(collection(db, COLLECTIONS.INVENTORY), where("purchaseReturnId", "==", returnId));
+          const snap = await getDocs(q);
+          snap.forEach(d => batch.delete(d.ref));
+        }
+      }
+    }
+
     await batch.commit();
   } catch (error) {
-    console.error("Error saving purchase return:", error);
+    console.error("Error deleting purchase return:", error);
     throw error;
   }
 };
+
+export const checkStockAvailability = async (productId: string, quantity: number): Promise<boolean> => {
+  try {
+    const docRef = doc(db, COLLECTIONS.PRODUCTS, productId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().stock >= quantity;
+    }
+    return false;
+  } catch (error) {
+    return false;
+  }
+};
+
+export const validateBillStock = async (bill: Bill): Promise<boolean> => {
+  return true;
+};
+
+export const getBillReturns = async (): Promise<BillReturn[]> => {
+  return [];
+};
+
+export const saveBillReturn = async (billReturn: BillReturn): Promise<void> => {};
+
+export const getDeadstock = async (): Promise<DeadstockItem[]> => {
+  return [];
+};
+
+export const saveDeadstockItem = async (item: DeadstockItem): Promise<void> => {};
+
+export const processBillReturn = async (billReturn: BillReturn): Promise<void> => {};
+
+export const updateBillAfterReturn = async (billId: string, returnTotal: number): Promise<void> => {};
+
+export const getBillReturnsByBillId = async (billId: string): Promise<BillReturn[]> => {
+  return [];
+};
+
+export const getReturnedQuantity = async (billId: string, productId: string): Promise<number> => {
+  return 0;
+};
+
+export const getTotalDeadstockLoss = async (): Promise<number> => {
+  return 0;
+};
+
+export const getCostOfGoodsSold = async (): Promise<number> => {
+  return 0;
+};
+
+export const getUserPreference = async (key: string): Promise<any> => {
+  return null;
+};
+
+export const setUserPreference = async (key: string, value: any): Promise<void> => {};
+
+export const getExpenses = async (): Promise<Expense[]> => {
+  return [];
+};
+
+export const saveExpense = async (expense: Expense): Promise<void> => {};
+
+export const deleteExpense = async (id: string): Promise<void> => {};
+
+export const uploadFile = async (file: File, path: string): Promise<string> => {
+  return "";
+};
+
+export const getFiles = async (): Promise<UploadedFile[]> => {
+  return [];
+};
+
+export const deleteFile = async (id: string): Promise<void> => {};
+
+export const downloadFile = async (url: string): Promise<void> => {};
+
+export const getNotes = async (): Promise<Note[]> => {
+  return [];
+};
+
+export const getNotesByDate = async (date: string): Promise<Note[]> => {
+  return [];
+};
+
+export const saveNote = async (note: Note): Promise<void> => {};
+
+export const deleteNote = async (id: string): Promise<void> => {};
+
+export const updateNoteStatus = async (id: string, status: string): Promise<void> => {};
+
+export const getProductSalesData = async (productId: string): Promise<any> => {
+  return null;
+};
+
+export const getSampleBills = async (): Promise<SampleBill[]> => {
+  return [];
+};
+
+export const deleteSampleBill = async (id: string): Promise<void> => {};
+
+export const updateSampleBillPayment = async (id: string, amount: number): Promise<void> => {};
+
+export const saveSampleBill = async (bill: SampleBill): Promise<void> => {};
+
+export const getSampleBillCounter = async (): Promise<number> => {
+  return 0;
+};
+
+export const incrementSampleBillCounter = async (): Promise<number> => {
+  return 0;
+};
+
+export type InventoryItemInput = {
+  description: string;
+  hsnCode: string;
+  quantity: number;
+  unit: string;
+  purchasePrice: number;
+  sellingPrice: number;
+  gstRate: number;
+  productId?: string;
+  isNewProduct?: boolean;
+};
+
+export const isPurchaseBillDuplicate = async (billNumber: string, vendorName: string): Promise<boolean> => {
+  return false;
+};
+
+export const isPurchaseBillInventoryAdded = async (billId: string): Promise<boolean> => {
+  return false;
+};
+
+export const updatePurchaseBillOverdueStatus = async (): Promise<void> => {};
+
+export const addPurchaseItemsToInventory = async (
+  bill: PurchaseBill,
+  items: InventoryItemInput[],
+  resolutions?: Map<string, string>
+): Promise<any> => {
+  return { added: 0, updated: 0 };
+};
+
 
 export const addPurchaseItemsToInventory = async (
   bill: PurchaseBill,

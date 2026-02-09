@@ -6,6 +6,9 @@ import {
   savePurchaseBill,
   deletePurchaseBill,
   updatePurchaseBillPayment,
+  deletePurchaseBillPayment,
+  savePurchaseReturn,
+  deletePurchaseReturn,
   addPurchaseItemsToInventory,
   isPurchaseBillDuplicate,
   updatePurchaseBillOverdueStatus,
@@ -107,6 +110,8 @@ export default function PurchaseBills() {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBillForHistory, setSelectedBillForHistory] = useState<PurchaseBill | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [selectedBillForReturn, setSelectedBillForReturn] = useState<PurchaseBill | null>(null);
 
   const openHistoryDialog = (bill: PurchaseBill) => {
     setSelectedBillForHistory(bill);
@@ -156,8 +161,71 @@ export default function PurchaseBills() {
     return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
-  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
-  const [selectedBillForReturn, setSelectedBillForReturn] = useState<PurchaseBill | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [transactionAmount, setTransactionAmount] = useState<string>("");
+
+  const [editingReturn, setEditingReturn] = useState<any>(null);
+
+  const handleEditTransaction = (entry: any) => {
+    if (entry.type === 'payment') {
+      setEditingTransaction(entry);
+      setTransactionAmount(entry.amount.toString());
+    } else if (entry.type === 'return') {
+      const returnObj = selectedBillForHistory?.returns?.find(r => `return-${r.id}` === entry.id);
+      if (returnObj && selectedBillForHistory) {
+        setEditingReturn(returnObj);
+        setSelectedBillForReturn(selectedBillForHistory);
+        setReturnDialogOpen(true);
+      }
+    }
+  };
+
+  const saveEditedTransaction = async () => {
+    if (!editingTransaction || !selectedBillForHistory) return;
+    try {
+      const amount = parseFloat(transactionAmount);
+      if (isNaN(amount)) return;
+
+      const paymentId = editingTransaction.id.replace('payment-', '');
+      await updatePurchaseBillPayment(
+        selectedBillForHistory.id,
+        amount,
+        editingTransaction.method || 'Cash',
+        editingTransaction.note,
+        editingTransaction.date,
+        paymentId
+      );
+      
+      toast({ title: "Success", description: "Payment updated successfully" });
+      setEditingTransaction(null);
+      await loadBills();
+      // Update history dialog view
+      const updatedBill = bills.find(b => b.id === selectedBillForHistory.id);
+      if (updatedBill) setSelectedBillForHistory(updatedBill);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update payment", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteTransaction = async (entry: any) => {
+    if (!selectedBillForHistory) return;
+    try {
+      if (entry.type === 'payment') {
+        const paymentId = entry.id.replace('payment-', '');
+        await deletePurchaseBillPayment(selectedBillForHistory.id, paymentId);
+        toast({ title: "Deleted", description: "Payment removed" });
+      } else if (entry.type === 'return') {
+        const returnId = entry.id.replace('return-', '');
+        await deletePurchaseReturn(returnId, selectedBillForHistory.id);
+        toast({ title: "Deleted", description: "Return removed and stock reverted" });
+      }
+      await loadBills();
+      const updatedBill = bills.find(b => b.id === selectedBillForHistory.id);
+      if (updatedBill) setSelectedBillForHistory(updatedBill);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete transaction", variant: "destructive" });
+    }
+  };
   const [editedBill, setEditedBill] = useState<PurchaseBill | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedBillForPayment, setSelectedBillForPayment] = useState<PurchaseBill | null>(null);
@@ -2350,9 +2418,13 @@ export default function PurchaseBills() {
       )}
       <PurchaseReturnForm
         open={returnDialogOpen}
-        onOpenChange={setReturnDialogOpen}
+        onOpenChange={(open) => {
+          setReturnDialogOpen(open);
+          if (!open) setEditingReturn(null);
+        }}
         bill={selectedBillForReturn!}
         onSuccess={loadBills}
+        editReturn={editingReturn}
       />
       {/* Transaction History Dialog */}
       <Dialog
@@ -2413,7 +2485,7 @@ export default function PurchaseBills() {
                       </thead>
                       <tbody className="divide-y">
                         {getPurchaseHistory(selectedBillForHistory).map((entry: any) => (
-                          <tr key={entry.id}>
+                          <tr key={entry.id} className="group hover:bg-muted/50 transition-colors">
                             <td className="p-3">{formatDate(entry.date)}</td>
                             <td className="p-3">
                               <Badge variant="outline" className={
@@ -2424,9 +2496,53 @@ export default function PurchaseBills() {
                                 {entry.type.toUpperCase()}
                               </Badge>
                             </td>
-                            <td className="p-3">{entry.description}</td>
+                            <td className="p-3">
+                              {editingTransaction?.id === entry.id ? (
+                                <div className="flex gap-2 items-center">
+                                  <Input 
+                                    type="number" 
+                                    value={transactionAmount} 
+                                    onChange={(e) => setTransactionAmount(e.target.value)}
+                                    className="h-8 w-24"
+                                  />
+                                  <Button size="sm" onClick={saveEditedTransaction} className="h-8">Save</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => setEditingTransaction(null)} className="h-8">Cancel</Button>
+                                </div>
+                              ) : (
+                                <span>{entry.description}</span>
+                              )}
+                            </td>
                             <td className={`p-3 text-right font-bold ${entry.amount < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                               {formatCurrency(entry.amount)}
+                            </td>
+                            <td className="p-3 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                              {entry.type !== 'purchase' && (
+                                <div className="flex justify-end gap-1">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => handleEditTransaction(entry)}>
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will remove the {entry.type} record and update the bill balance accordingly.
+                                          {entry.type === 'return' && " Stock will be reverted to inventory."}
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteTransaction(entry)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))}

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PurchaseBill, PurchaseReturn, PurchaseReturnItem } from "@/types";
-import { getProducts, savePurchaseReturn, updateProductStock } from "@/lib/firebaseService";
+import { getProducts, savePurchaseReturn, updateProductStock, deletePurchaseReturn } from "@/lib/firebaseService";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -30,9 +30,10 @@ interface PurchaseReturnFormProps {
   onOpenChange: (open: boolean) => void;
   bill: PurchaseBill | null;
   onSuccess: () => void;
+  editReturn?: PurchaseReturn; // Added to support editing
 }
 
-export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess }: PurchaseReturnFormProps) {
+export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess, editReturn }: PurchaseReturnFormProps) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [returnItems, setReturnItems] = useState<ReturnItemState[]>([]);
@@ -40,19 +41,22 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess }: Purc
 
   useEffect(() => {
     if (open && bill) {
-      setReturnDate(new Date().toISOString().split("T")[0]);
-      const itemsState: ReturnItemState[] = bill.items.map(item => ({
-        selected: false,
-        returnQuantity: 0,
-        maxQuantity: item.quantity,
-        description: item.description,
-        rate: item.rate,
-        gstRate: item.gstRate || 0,
-        unit: item.unit,
-      }));
+      setReturnDate(editReturn?.returnDate || new Date().toISOString().split("T")[0]);
+      const itemsState: ReturnItemState[] = bill.items.map(item => {
+        const editedItem = editReturn?.items.find(ri => ri.description === item.description);
+        return {
+          selected: !!editedItem,
+          returnQuantity: editedItem?.quantity || 0,
+          maxQuantity: item.quantity,
+          description: item.description,
+          rate: item.rate,
+          gstRate: item.gstRate || 0,
+          unit: item.unit,
+        };
+      });
       setReturnItems(itemsState);
     }
-  }, [open, bill]);
+  }, [open, bill, editReturn]);
 
   if (!bill) {
     return null;
@@ -91,6 +95,11 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess }: Purc
 
     setSaving(true);
     try {
+      if (editReturn) {
+        // If editing, delete the old return first to revert stock and totals
+        await deletePurchaseReturn(editReturn.id, bill.id, true);
+      }
+
       const items: PurchaseReturnItem[] = selectedItems.map(item => {
         const amount = item.returnQuantity * item.rate;
         const gstAmount = (amount * item.gstRate) / 100;
@@ -107,19 +116,19 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess }: Purc
       const totalReturnValue = items.reduce((sum, item) => sum + item.amount + (item.gstAmount || 0), 0);
       
       const purchaseReturn: PurchaseReturn = {
-        id: crypto.randomUUID(),
+        id: editReturn?.id || crypto.randomUUID(),
         purchaseBillId: bill.id,
         vendorName: bill.vendorName,
         billNumber: bill.billNumber,
         items,
         totalReturnValue,
         returnDate,
-        createdAt: new Date().toISOString(),
+        createdAt: editReturn?.createdAt || new Date().toISOString(),
       };
 
       await savePurchaseReturn(purchaseReturn, true);
       
-      toast({ title: "Success", description: "Purchase return recorded and stock adjusted" });
+      toast({ title: "Success", description: editReturn ? "Return updated" : "Purchase return recorded" });
       onSuccess();
       onOpenChange(false);
     } catch (error) {
