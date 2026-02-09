@@ -1075,6 +1075,7 @@ export function ProductHistory({
                 totalAmount: -(qty * price),
                 billNumber: billReturn.billNumber,
                 addedToInventory: item.condition === "good",
+                isReturn: true, // Mark as return for UI coloring
               });
             }
           }
