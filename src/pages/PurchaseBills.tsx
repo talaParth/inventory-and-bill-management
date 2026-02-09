@@ -2,13 +2,18 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getPurchaseBills,
+  getProducts,
   savePurchaseBill,
   deletePurchaseBill,
   updatePurchaseBillPayment,
+  deletePurchaseBillPayment,
+  savePurchaseReturn,
+  deletePurchaseReturn,
   addPurchaseItemsToInventory,
   isPurchaseBillDuplicate,
   updatePurchaseBillOverdueStatus,
   isPurchaseBillInventoryAdded,
+  updatePurchaseBill,
   InventoryItemInput,
   getCompanyProfile,
 } from "@/lib/storage";
@@ -105,6 +110,8 @@ export default function PurchaseBills() {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBillForHistory, setSelectedBillForHistory] = useState<PurchaseBill | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [selectedBillForReturn, setSelectedBillForReturn] = useState<PurchaseBill | null>(null);
 
   const openHistoryDialog = (bill: PurchaseBill) => {
     setSelectedBillForHistory(bill);
@@ -139,11 +146,12 @@ export default function PurchaseBills() {
     // Add returns
     if (bill.returns && bill.returns.length > 0) {
       bill.returns.forEach(ret => {
+        const productNames = ret.items.map(item => item.description).join(", ");
         history.push({
           id: `return-${ret.id}`,
           date: ret.returnDate,
           type: 'return',
-          description: `Purchase Return${ret.notes ? ` - ${ret.notes}` : ''}`,
+          description: `Purchase Return (${productNames})${ret.notes ? ` - ${ret.notes}` : ''}`,
           amount: ret.totalReturnValue,
         });
       });
@@ -153,8 +161,71 @@ export default function PurchaseBills() {
     return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
-  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
-  const [selectedBillForReturn, setSelectedBillForReturn] = useState<PurchaseBill | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [transactionAmount, setTransactionAmount] = useState<string>("");
+
+  const [editingReturn, setEditingReturn] = useState<any>(null);
+
+  const handleEditTransaction = (entry: any) => {
+    if (entry.type === 'payment') {
+      setEditingTransaction(entry);
+      setTransactionAmount(entry.amount.toString());
+    } else if (entry.type === 'return') {
+      const returnObj = selectedBillForHistory?.returns?.find(r => `return-${r.id}` === entry.id);
+      if (returnObj && selectedBillForHistory) {
+        setEditingReturn(returnObj);
+        setSelectedBillForReturn(selectedBillForHistory);
+        setReturnDialogOpen(true);
+      }
+    }
+  };
+
+  const saveEditedTransaction = async () => {
+    if (!editingTransaction || !selectedBillForHistory) return;
+    try {
+      const amount = parseFloat(transactionAmount);
+      if (isNaN(amount)) return;
+
+      const paymentId = editingTransaction.id.replace('payment-', '');
+      await updatePurchaseBillPayment(
+        selectedBillForHistory.id,
+        amount,
+        editingTransaction.method || 'Cash',
+        editingTransaction.note,
+        editingTransaction.date,
+        paymentId
+      );
+      
+      toast({ title: "Success", description: "Payment updated successfully" });
+      setEditingTransaction(null);
+      await loadBills();
+      // Update history dialog view
+      const updatedBill = bills.find(b => b.id === selectedBillForHistory.id);
+      if (updatedBill) setSelectedBillForHistory(updatedBill);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update payment", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteTransaction = async (entry: any) => {
+    if (!selectedBillForHistory) return;
+    try {
+      if (entry.type === 'payment') {
+        const paymentId = entry.id.replace('payment-', '');
+        await deletePurchaseBillPayment(selectedBillForHistory.id, paymentId);
+        toast({ title: "Deleted", description: "Payment removed" });
+      } else if (entry.type === 'return') {
+        const returnId = entry.id.replace('return-', '');
+        await deletePurchaseReturn(returnId, selectedBillForHistory.id);
+        toast({ title: "Deleted", description: "Return removed and stock reverted" });
+      }
+      await loadBills();
+      const updatedBill = bills.find(b => b.id === selectedBillForHistory.id);
+      if (updatedBill) setSelectedBillForHistory(updatedBill);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete transaction", variant: "destructive" });
+    }
+  };
   const [editedBill, setEditedBill] = useState<PurchaseBill | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedBillForPayment, setSelectedBillForPayment] = useState<PurchaseBill | null>(null);
@@ -186,16 +257,26 @@ export default function PurchaseBills() {
       purchasePrice: number;
       sellingPrice: number;
       gstRate: number;
+      productId?: string;
+      isNewProduct?: boolean;
     }[]
   >([]);
   const [companyProfile, setCompanyProfile] = useState<any>(null);
+
+  const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
     // Update overdue status on load
     updatePurchaseBillOverdueStatus().catch(console.error);
     loadBills();
     loadCompanyProfile();
+    loadProducts();
   }, []);
+
+  const loadProducts = async () => {
+    const data = await getProducts();
+    setProducts(data);
+  };
 
   const formatErrorForUser = (error: unknown) => {
     try {
@@ -466,11 +547,11 @@ export default function PurchaseBills() {
     });
   };
 
-  const handlePaymentCollected = async (amount: number, type: any, note?: string) => {
+  const handlePaymentCollected = async (amount: number, type: any, note?: string, date?: string) => {
     if (selectedBillForPayment) {
       setLoadingPayment(selectedBillForPayment.id);
       try {
-        await updatePurchaseBillPayment(selectedBillForPayment.id, amount, type, note);
+        await updatePurchaseBillPayment(selectedBillForPayment.id, amount, type, note, date);
         await loadBills();
         toast({
           title: "Payment Collected",
@@ -515,20 +596,29 @@ export default function PurchaseBills() {
 
     // Open dialog to enter selling prices
     // Use commission settings from company profile to calculate default selling price
-    const items = bill.items.map((item) => ({
-      description: item.description,
-      hsnCode: item.hsnCode || "",
-      quantity: item.quantity,
-      unit: item.unit,
-      purchasePrice: item.rate,
-      sellingPrice: calculateSellingPriceFromCommission(
-        item.rate,
-        companyProfile?.commissionSettings
-      ),
-      gstRate: item.gstRate || 0,
-      whereToBuy: (item as any).whereToBuy || bill.vendorName || "",
-      weight: (item as any).weight || "",
-    }));
+    const products = await getProducts();
+    const items = bill.items.map((item) => {
+      const existingProduct = products.find(
+        (p) => p.name.toLowerCase() === item.description.toLowerCase() || p.hsnCode === item.hsnCode
+      );
+      
+      return {
+        description: item.description,
+        hsnCode: item.hsnCode || "",
+        quantity: item.quantity,
+        unit: item.unit,
+        purchasePrice: item.rate,
+        sellingPrice: calculateSellingPriceFromCommission(
+          item.rate,
+          companyProfile?.commissionSettings
+        ),
+        gstRate: item.gstRate || 0,
+        whereToBuy: (item as any).whereToBuy || bill.vendorName || "",
+        weight: (item as any).weight || "",
+        productId: existingProduct?.id,
+        isNewProduct: !existingProduct,
+      };
+    });
 
     setInventoryItems(items);
     setInventoryDialogBill(bill);
@@ -563,6 +653,8 @@ export default function PurchaseBills() {
         purchasePrice: item.purchasePrice,
         sellingPrice: item.sellingPrice,
         gstRate: item.gstRate,
+        productId: item.productId,
+        isNewProduct: item.isNewProduct,
       }));
 
       const result = await addPurchaseItemsToInventory(
@@ -748,9 +840,11 @@ export default function PurchaseBills() {
         updatedAt: new Date().toISOString(),
       };
 
-      await savePurchaseBill(updatedBill);
+      await updatePurchaseBill(updatedBill);
       await loadBills();
-      setSelectedBill(updatedBill);
+      if (selectedBill && selectedBill.id === updatedBill.id) {
+        setSelectedBill(updatedBill);
+      }
       setIsEditing(false);
       setEditedBill(null);
 
@@ -1083,7 +1177,7 @@ export default function PurchaseBills() {
                                 <div className="flex flex-col gap-1 items-end">
                                   {getPaymentStatusBadge(bill)}
                                   {bill.paymentStatus !== "paid" && (
-                                    <span className="text-[10px] text-muted-foreground">
+                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                                       Paid: {formatCurrency(bill.paidAmount || 0)}
                                     </span>
                                   )}
@@ -1103,39 +1197,46 @@ export default function PurchaseBills() {
                       </div>
                     </div>
 
-                    <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
-                      <span>{bill.items.length} item(s)</span>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <PackagePlus className="h-3.5 w-3.5" />
+                        <span>{bill.items.length} item(s)</span>
+                      </div>
                       {bill.vendorGstin && (
-                        <span>• GSTIN: {bill.vendorGstin}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium text-xs">GSTIN:</span>
+                          <span className="text-xs">{bill.vendorGstin}</span>
+                        </div>
                       )}
                       {bill.itemsAddedToInventory && (
                         <Badge
                           variant="outline"
-                          className="text-emerald-600 border-emerald-500"
+                          className="text-emerald-600 border-emerald-500 bg-emerald-50/50"
                         >
                           <PackagePlus className="h-3 w-3 mr-1" /> In Inventory
                         </Badge>
                       )}
                     </div>
 
-                    <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t pt-3">
+                    <div className="mt-3 flex flex-col md:flex-row md:items-center justify-between gap-4 border-t pt-3">
                       <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-lg font-bold text-foreground">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total:</span>
+                          <p className="text-xl font-bold text-foreground">
                             {formatCurrency(
                               bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)
                             )}
                           </p>
                         </div>
                         {bill.paidAmount > 0 && bill.payments && bill.payments.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-1">
+                          <div className="flex flex-wrap gap-1.5 mt-1">
                             {Object.entries(
                               bill.payments.reduce((acc, p) => {
                                 acc[p.method] = (acc[p.method] || 0) + p.amount;
                                 return acc;
                               }, {} as Record<string, number>)
                             ).map(([method, amount]) => (
-                              <Badge key={method} variant="outline" className="text-[10px] px-1.5 h-5 flex items-center gap-1 bg-muted/30">
+                              <Badge key={method} variant="outline" className="text-[10px] px-1.5 py-0 h-4 flex items-center gap-1 bg-muted/30 border-dashed">
                                 <span className="opacity-70">{method}:</span>
                                 <span className="font-bold">{formatCurrency(amount)}</span>
                               </Badge>
@@ -1143,24 +1244,24 @@ export default function PurchaseBills() {
                           </div>
                         )}
                       </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
+                            className="h-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedBillForReturn(bill);
                               setReturnDialogOpen(true);
                             }}
                           >
-                            <RotateCcw className="h-4 w-4 mr-2" />
+                            <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
                             Return
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="gap-1.5"
+                            className="h-8 gap-1.5"
                             onClick={(e) => {
                               e.stopPropagation();
                               openPaymentDialog(bill);
@@ -1176,41 +1277,44 @@ export default function PurchaseBills() {
                             size="sm"
                             onClick={() => handleAddToInventory(bill)}
                             disabled={loadingInventory === bill.id}
-                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-300"
+                            className="h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-300"
                           >
                             {loadingInventory === bill.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
-                              <PackagePlus className="h-4 w-4" />
+                              <PackagePlus className="h-3.5 w-3.5" />
                             )}
                           </Button>
                         )}
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-8"
                           onClick={() => setViewImageBill(bill)}
                         >
-                          <ImageIcon className="h-4 w-4" />
+                          <ImageIcon className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-8"
                           onClick={() => setSelectedBill(bill)}
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-8"
                           onClick={() => openHistoryDialog(bill)}
                           title="Transaction History"
                         >
-                          <Clock className="h-4 w-4 text-blue-600" />
+                          <Clock className="h-3.5 w-3.5 text-blue-600" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                            <Button variant="outline" size="sm" className="h-8">
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -2182,6 +2286,74 @@ export default function PurchaseBills() {
                       GST: {item.gstRate}%
                     </Badge>
                   </div>
+                  
+                          {/* Matching Option */}
+                          <div className="mt-2 p-2 bg-background/50 rounded-md border border-dashed">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-1">Inventory Action</p>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant={item.isNewProduct ? "default" : "outline"}
+                                size="sm"
+                                className="flex-1 h-8 text-xs py-0"
+                                onClick={() => {
+                                  const newItems = [...inventoryItems];
+                                  newItems[index].isNewProduct = true;
+                                  setInventoryItems(newItems);
+                                }}
+                              >
+                                Create New
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={!item.isNewProduct ? "default" : "outline"}
+                                size="sm"
+                                className="flex-1 h-8 text-xs py-0"
+                                onClick={() => {
+                                  const newItems = [...inventoryItems];
+                                  newItems[index].isNewProduct = false;
+                                  setInventoryItems(newItems);
+                                }}
+                              >
+                                Update Stock
+                              </Button>
+                            </div>
+                            
+                            {/* Product Selector for Update Stock */}
+                            {!item.isNewProduct && (
+                              <div className="mt-2 space-y-1">
+                                <Label className="text-[10px] px-1">Selected Product</Label>
+                                <Select 
+                                  value={item.productId || ""} 
+                                  onValueChange={(val) => {
+                                    const newItems = [...inventoryItems];
+                                    newItems[index].productId = val;
+                                    const selectedProduct = products.find(p => p.id === val);
+                                    if (selectedProduct) {
+                                      newItems[index].hsnCode = selectedProduct.hsnCode || "";
+                                    }
+                                    setInventoryItems(newItems);
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue placeholder="Select Product" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {products.map(p => (
+                                      <SelectItem key={p.id} value={p.id} className="text-xs">
+                                        {p.name} (₹{p.sellingPrice})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            {!item.productId && !item.isNewProduct && (
+                              <p className="text-[10px] text-amber-600 mt-1 px-1">No matching product found by name/HSN. Please select one manually.</p>
+                            )}
+                          </div>
+
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">
@@ -2256,92 +2428,221 @@ export default function PurchaseBills() {
       )}
       <PurchaseReturnForm
         open={returnDialogOpen}
-        onOpenChange={setReturnDialogOpen}
+        onOpenChange={(open) => {
+          setReturnDialogOpen(open);
+          if (!open) setEditingReturn(null);
+        }}
         bill={selectedBillForReturn!}
         onSuccess={loadBills}
+        editReturn={editingReturn}
       />
       {/* Transaction History Dialog */}
       <Dialog
         open={historyDialogOpen}
-        onOpenChange={(open) => !open && setHistoryDialogOpen(false)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setHistoryDialogOpen(false);
+            setEditingTransaction(null);
+          }
+        }}
       >
-        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 py-4 border-b">
-            <DialogTitle className="text-xl flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-600" />
-              Transaction History
-            </DialogTitle>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
+          <DialogHeader className="p-8 border-b shrink-0 bg-primary text-primary-foreground">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                  <div className="p-2 bg-background/20 rounded-lg backdrop-blur-sm">
+                    <Clock className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  Transaction History
+                </DialogTitle>
+                {selectedBillForHistory && (
+                  <p className="text-primary-foreground/80 font-medium">
+                    Bill #{selectedBillForHistory.billNumber || "N/A"} • {selectedBillForHistory.vendorName}
+                  </p>
+                )}
+              </div>
+              {selectedBillForHistory && (
+                <div className="text-right hidden sm:block">
+                  <p className="text-xs text-primary-foreground/70 uppercase font-bold tracking-widest opacity-80">Remaining Balance</p>
+                  <p className="text-2xl font-black text-primary-foreground">
+                    {formatCurrency(
+                      (selectedBillForHistory.total - (selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)) - selectedBillForHistory.paidAmount
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
           </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto p-6">
+
+          <div className="flex-1 overflow-y-auto bg-background">
             {selectedBillForHistory && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold">Vendor</p>
-                    <p className="font-bold">{selectedBillForHistory.vendorName}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold">Bill No</p>
-                    <p className="font-bold">#{selectedBillForHistory.billNumber || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold">Original Amount</p>
-                    <p className="font-bold text-lg">{formatCurrency(selectedBillForHistory.total)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold">Current Total (after returns)</p>
-                    <p className="font-bold text-lg text-blue-600">
+              <div className="p-6 space-y-6">
+                {/* Summary Info Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card className="p-4 border shadow-sm">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Total Bill</p>
+                    <p className="text-lg font-bold">{formatCurrency(selectedBillForHistory.total)}</p>
+                  </Card>
+                  <Card className="p-4 border shadow-sm">
+                    <p className="text-[10px] text-orange-600 dark:text-orange-400 uppercase font-bold mb-1">Returns</p>
+                    <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                      -{formatCurrency(selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)}
+                    </p>
+                  </Card>
+                  <Card className="p-4 border shadow-sm">
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold mb-1">Total Paid</p>
+                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(selectedBillForHistory.paidAmount)}</p>
+                  </Card>
+                  <Card className="p-4 border shadow-sm bg-accent/50 border-accent">
+                    <p className="text-[10px] text-accent-foreground uppercase font-bold mb-1">Net Payable</p>
+                    <p className="text-lg font-black text-accent-foreground">
                       {formatCurrency(selectedBillForHistory.total - (selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0))}
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold">Paid Amount</p>
-                    <p className="font-bold text-lg text-emerald-600">{formatCurrency(selectedBillForHistory.paidAmount)}</p>
-                  </div>
+                  </Card>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-sm uppercase text-muted-foreground flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Timeline
-                  </h4>
-                  
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted/50">
-                        <tr className="border-b">
-                          <th className="text-left p-3 font-semibold">Date</th>
-                          <th className="text-left p-3 font-semibold">Type</th>
-                          <th className="text-left p-3 font-semibold">Description</th>
-                          <th className="text-right p-3 font-semibold">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {getPurchaseHistory(selectedBillForHistory).map((entry: any) => (
-                          <tr key={entry.id}>
-                            <td className="p-3">{formatDate(entry.date)}</td>
-                            <td className="p-3">
-                              <Badge variant="outline" className={
-                                entry.type === 'purchase' ? 'bg-red-50 text-red-700 border-red-200' :
-                                entry.type === 'payment' ? 'bg-green-50 text-green-700 border-green-200' :
-                                'bg-blue-50 text-blue-700 border-blue-200'
-                              }>
-                                {entry.type.toUpperCase()}
-                              </Badge>
-                            </td>
-                            <td className="p-3">{entry.description}</td>
-                            <td className={`p-3 text-right font-bold ${entry.amount < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                {/* Timeline Table */}
+                <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                  <table className="w-full border-collapse">
+                    <thead className="bg-muted border-b border-border">
+                      <tr>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Date</th>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Type</th>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Details</th>
+                        <th className="text-right p-4 font-bold text-xs uppercase text-muted-foreground">Amount</th>
+                        <th className="p-4 font-bold text-xs uppercase text-muted-foreground text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {getPurchaseHistory(selectedBillForHistory).map((entry: any) => (
+                        <tr key={entry.id} className="hover:bg-muted/50 transition-colors group">
+                          <td className="p-4">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              {formatDate(entry.date)}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <Badge
+                              className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                entry.type === 'purchase' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800' :
+                                entry.type === 'payment' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' :
+                                'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800'
+                              }`}
+                            >
+                              {entry.type}
+                            </Badge>
+                          </td>
+                          <td className="p-4">
+                            <p className="text-sm font-medium text-foreground max-w-[250px] leading-relaxed">
+                              {entry.description}
+                            </p>
+                          </td>
+                          <td className="p-4 text-right">
+                            <span className={`font-black tabular-nums text-sm ${entry.amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                              {entry.amount >= 0 ? "+" : ""}
                               {formatCurrency(entry.amount)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            {entry.type !== 'purchase' && (
+                              <div className="flex items-center justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                                  onClick={() => handleEditTransaction(entry)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="rounded-2xl">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle className="text-xl font-bold">Delete Transaction?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently remove this {entry.type} entry and update the bill balance.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleDeleteTransaction(entry)}
+                                        className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete Forever
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Inline Edit Section */}
+          {editingTransaction && (
+            <div className="p-6 border-t bg-muted shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 max-w-2xl mx-auto">
+                <div className="space-y-2 flex-1">
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Update Amount</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">₹</span>
+                    <Input
+                      type="number"
+                      value={transactionAmount}
+                      onChange={(e) => setTransactionAmount(e.target.value)}
+                      className="pl-8 h-12 rounded-xl text-lg font-bold"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setEditingTransaction(null)}
+                    className="h-12 px-6 rounded-xl"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={saveEditedTransaction}
+                    className="h-12 px-8 rounded-xl font-bold"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="p-6 border-t bg-white shrink-0 flex justify-between items-center">
+            <div className="text-xs text-muted-foreground italic">
+              * Click edit icon to modify individual payments
+            </div>
+            <Button 
+              variant="secondary" 
+              onClick={() => setHistoryDialogOpen(false)}
+              className="px-8 rounded-xl font-bold"
+            >
+              Close History
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

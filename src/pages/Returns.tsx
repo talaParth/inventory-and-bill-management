@@ -545,9 +545,22 @@ export default function Returns() {
                           </span>
                         </div>
                       </div>
-                      <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-                        {formatDate(ret.returnDate)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                          {formatDate(ret.returnDate)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-blue-600"
+                          onClick={() => {
+                            // Add edit logic here
+                            toast({ title: "Edit feature", description: "Return edit is coming soon" });
+                          }}
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       {ret.items.map((item, idx) => (

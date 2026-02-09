@@ -241,8 +241,8 @@ export interface InventoryAddResult {
 
 export interface ProductConflict {
   item: InventoryItemInput;
-  existingProduct: Product;
-  conflictType: "name-mismatch";
+  existingProducts?: Product[]; // Multiple potential matches
+  conflictType: "name-mismatch" | "potential-duplicate" | "new-item";
 }
 
 
