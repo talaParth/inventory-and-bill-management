@@ -587,20 +587,23 @@ export default function Passbook() {
         ) : (
             /* 👇 SCROLL CONTAINER (MOBILE FIX) */
             <div className="w-full overflow-x-auto">
-                <table className="w-full min-w-[720px] border-collapse">
-                    <thead className="bg-muted/30">
+                <table className="w-full min-w-[850px] border-collapse">
+                    <thead className="bg-muted/50">
                         <tr className="border-b">
-                            <th className="text-left p-4 font-semibold text-sm">
+                            <th className="text-left p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
                                 Date
                             </th>
-                            <th className="text-left p-4 font-semibold text-sm">
+                            <th className="text-left p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
                                 Type
                             </th>
-                            <th className="text-left p-4 font-semibold text-sm">
+                            <th className="text-left p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
                                 Description
                             </th>
-                            <th className="text-right p-4 font-semibold text-sm">
+                            <th className="text-right p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
                                 Amount
+                            </th>
+                            <th className="text-right p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+                                Balance
                             </th>
                         </tr>
                     </thead>
@@ -609,24 +612,26 @@ export default function Passbook() {
                         {filteredEntries.map((entry) => (
                             <tr
                                 key={entry.id}
-                                className="hover:bg-muted/20 transition-colors"
+                                className="hover:bg-muted/30 transition-colors group"
                             >
-                                <td className="p-4">
+                                <td className="p-4 align-top">
                                     <div className="flex items-center gap-2">
-                                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm font-medium">
+                                        <Calendar className="h-4 w-4 text-primary/60" />
+                                        <span className="text-sm font-medium whitespace-nowrap">
                                             {formatDate(entry.date)}
                                         </span>
                                     </div>
                                 </td>
 
-                                <td className="p-4">
+                                <td className="p-4 align-top">
                                     <div className="flex items-center gap-2">
-                                        <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                                            entry.amount >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                        }`}>
                                             {getTypeIcon(entry.type)}
                                         </div>
                                         <Badge
-                                            className={`text-xs ${getTypeBadgeColor(
+                                            className={`text-[10px] font-bold uppercase tracking-tighter ${getTypeBadgeColor(
                                                 entry.type
                                             )}`}
                                         >
@@ -635,30 +640,50 @@ export default function Passbook() {
                                     </div>
                                 </td>
 
-                                <td className="p-4">
-                                    <p className="text-sm font-medium text-foreground">
+                                <td className="p-4 align-top max-w-[300px]">
+                                    <p className="text-sm font-semibold text-foreground leading-tight">
                                         {entry.description}
                                     </p>
-                                    {entry.category && (
-                                        <Badge
-                                            variant="outline"
-                                            className="text-xs mt-1"
-                                        >
-                                            {entry.category}
-                                        </Badge>
-                                    )}
+                                    <div className="flex flex-wrap gap-2 mt-1.5">
+                                        {entry.category && (
+                                            <Badge
+                                                variant="secondary"
+                                                className="text-[10px] py-0 h-4 px-1.5 font-normal bg-muted/50"
+                                            >
+                                                {entry.category}
+                                            </Badge>
+                                        )}
+                                        {entry.details?.billNumber && (
+                                            <span className="text-[10px] text-muted-foreground font-mono">
+                                                ID: {entry.details.billNumber}
+                                            </span>
+                                        )}
+                                    </div>
                                 </td>
 
-                                <td className="p-4 text-right">
-                                    <span
-                                        className={`font-bold text-base ${
-                                            entry.amount >= 0
-                                                ? "text-green-600"
-                                                : "text-red-600"
-                                        }`}
-                                    >
-                                        {entry.amount >= 0 ? "+" : ""}
-                                        {formatCurrency(entry.amount)}
+                                <td className="p-4 text-right align-top">
+                                    <div className="flex flex-col items-end">
+                                        <span
+                                            className={`font-bold text-base tabular-nums ${
+                                                entry.amount >= 0
+                                                    ? "text-green-600"
+                                                    : "text-red-600"
+                                            }`}
+                                        >
+                                            {entry.amount >= 0 ? "+" : ""}
+                                            {formatCurrency(entry.amount)}
+                                        </span>
+                                        {entry.details?.currentPayment?.method && (
+                                            <span className="text-[10px] text-muted-foreground opacity-70">
+                                                via {entry.details.currentPayment.method}
+                                            </span>
+                                        )}
+                                    </div>
+                                </td>
+
+                                <td className="p-4 text-right align-top">
+                                    <span className={`font-bold text-sm tabular-nums ${entry.balance >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                                        {formatCurrency(entry.balance)}
                                     </span>
                                 </td>
                             </tr>

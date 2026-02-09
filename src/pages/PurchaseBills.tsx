@@ -1177,7 +1177,7 @@ export default function PurchaseBills() {
                                 <div className="flex flex-col gap-1 items-end">
                                   {getPaymentStatusBadge(bill)}
                                   {bill.paymentStatus !== "paid" && (
-                                    <span className="text-[10px] text-muted-foreground">
+                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                                       Paid: {formatCurrency(bill.paidAmount || 0)}
                                     </span>
                                   )}
@@ -1197,39 +1197,46 @@ export default function PurchaseBills() {
                       </div>
                     </div>
 
-                    <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
-                      <span>{bill.items.length} item(s)</span>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <PackagePlus className="h-3.5 w-3.5" />
+                        <span>{bill.items.length} item(s)</span>
+                      </div>
                       {bill.vendorGstin && (
-                        <span>• GSTIN: {bill.vendorGstin}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium text-xs">GSTIN:</span>
+                          <span className="text-xs">{bill.vendorGstin}</span>
+                        </div>
                       )}
                       {bill.itemsAddedToInventory && (
                         <Badge
                           variant="outline"
-                          className="text-emerald-600 border-emerald-500"
+                          className="text-emerald-600 border-emerald-500 bg-emerald-50/50"
                         >
                           <PackagePlus className="h-3 w-3 mr-1" /> In Inventory
                         </Badge>
                       )}
                     </div>
 
-                    <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t pt-3">
+                    <div className="mt-3 flex flex-col md:flex-row md:items-center justify-between gap-4 border-t pt-3">
                       <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-lg font-bold text-foreground">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total:</span>
+                          <p className="text-xl font-bold text-foreground">
                             {formatCurrency(
                               bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)
                             )}
                           </p>
                         </div>
                         {bill.paidAmount > 0 && bill.payments && bill.payments.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-1">
+                          <div className="flex flex-wrap gap-1.5 mt-1">
                             {Object.entries(
                               bill.payments.reduce((acc, p) => {
                                 acc[p.method] = (acc[p.method] || 0) + p.amount;
                                 return acc;
                               }, {} as Record<string, number>)
                             ).map(([method, amount]) => (
-                              <Badge key={method} variant="outline" className="text-[10px] px-1.5 h-5 flex items-center gap-1 bg-muted/30">
+                              <Badge key={method} variant="outline" className="text-[10px] px-1.5 py-0 h-4 flex items-center gap-1 bg-muted/30 border-dashed">
                                 <span className="opacity-70">{method}:</span>
                                 <span className="font-bold">{formatCurrency(amount)}</span>
                               </Badge>
@@ -1237,24 +1244,24 @@ export default function PurchaseBills() {
                           </div>
                         )}
                       </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
+                            className="h-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedBillForReturn(bill);
                               setReturnDialogOpen(true);
                             }}
                           >
-                            <RotateCcw className="h-4 w-4 mr-2" />
+                            <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
                             Return
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="gap-1.5"
+                            className="h-8 gap-1.5"
                             onClick={(e) => {
                               e.stopPropagation();
                               openPaymentDialog(bill);
@@ -1270,41 +1277,44 @@ export default function PurchaseBills() {
                             size="sm"
                             onClick={() => handleAddToInventory(bill)}
                             disabled={loadingInventory === bill.id}
-                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-300"
+                            className="h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-300"
                           >
                             {loadingInventory === bill.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
-                              <PackagePlus className="h-4 w-4" />
+                              <PackagePlus className="h-3.5 w-3.5" />
                             )}
                           </Button>
                         )}
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-8"
                           onClick={() => setViewImageBill(bill)}
                         >
-                          <ImageIcon className="h-4 w-4" />
+                          <ImageIcon className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-8"
                           onClick={() => setSelectedBill(bill)}
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-8"
                           onClick={() => openHistoryDialog(bill)}
                           title="Transaction History"
                         >
-                          <Clock className="h-4 w-4 text-blue-600" />
+                          <Clock className="h-3.5 w-3.5 text-blue-600" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                            <Button variant="outline" size="sm" className="h-8">
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
