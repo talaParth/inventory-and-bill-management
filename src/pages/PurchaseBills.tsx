@@ -186,6 +186,8 @@ export default function PurchaseBills() {
       purchasePrice: number;
       sellingPrice: number;
       gstRate: number;
+      productId?: string;
+      isNewProduct?: boolean;
     }[]
   >([]);
   const [companyProfile, setCompanyProfile] = useState<any>(null);
@@ -515,20 +517,29 @@ export default function PurchaseBills() {
 
     // Open dialog to enter selling prices
     // Use commission settings from company profile to calculate default selling price
-    const items = bill.items.map((item) => ({
-      description: item.description,
-      hsnCode: item.hsnCode || "",
-      quantity: item.quantity,
-      unit: item.unit,
-      purchasePrice: item.rate,
-      sellingPrice: calculateSellingPriceFromCommission(
-        item.rate,
-        companyProfile?.commissionSettings
-      ),
-      gstRate: item.gstRate || 0,
-      whereToBuy: (item as any).whereToBuy || bill.vendorName || "",
-      weight: (item as any).weight || "",
-    }));
+    const products = await getProducts();
+    const items = bill.items.map((item) => {
+      const existingProduct = products.find(
+        (p) => p.name.toLowerCase() === item.description.toLowerCase() || p.hsnCode === item.hsnCode
+      );
+      
+      return {
+        description: item.description,
+        hsnCode: item.hsnCode || "",
+        quantity: item.quantity,
+        unit: item.unit,
+        purchasePrice: item.rate,
+        sellingPrice: calculateSellingPriceFromCommission(
+          item.rate,
+          companyProfile?.commissionSettings
+        ),
+        gstRate: item.gstRate || 0,
+        whereToBuy: (item as any).whereToBuy || bill.vendorName || "",
+        weight: (item as any).weight || "",
+        productId: existingProduct?.id,
+        isNewProduct: !existingProduct,
+      };
+    });
 
     setInventoryItems(items);
     setInventoryDialogBill(bill);
@@ -563,6 +574,7 @@ export default function PurchaseBills() {
         purchasePrice: item.purchasePrice,
         sellingPrice: item.sellingPrice,
         gstRate: item.gstRate,
+        productId: item.isNewProduct ? undefined : item.productId,
       }));
 
       const result = await addPurchaseItemsToInventory(
