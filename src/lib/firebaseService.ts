@@ -887,21 +887,41 @@ export const addPurchaseItemsToInventory = async (
     const conflicts: ProductConflict[] = [];
 
     for (const item of itemsWithSellingPrice) {
-      // Skip if no HSN code provided
-      if (!item.hsnCode) {
-        // Handle items without HSN code - match by name only
-        const existingProduct = products.find(
-          (p) => p.name.toLowerCase() === item.description.toLowerCase()
-        );
+      // 1. Check for manual product selection (isNewProduct = false)
+      if (item.isNewProduct === false && item.productId) {
+        const selectedProduct = products.find((p) => p.id === item.productId);
+        if (selectedProduct) {
+          await updateExistingProduct(selectedProduct, item, bill, batch, userId);
+          updated++;
+          continue;
+        }
+      }
 
+      // 2. Check for manual "Create New" (isNewProduct = true)
+      if (item.isNewProduct === true) {
+        await createNewProduct(item, bill, batch, userId);
+        added++;
+        continue;
+      }
+
+      // 3. Conflict resolution takes precedence if provided (legacy/fallback)
+      if (conflictResolutions && conflictResolutions.has(item.hsnCode || "")) {
+        const chosenName = conflictResolutions.get(item.hsnCode || "")!;
+        const productsWithSameHSN = products.filter(p => p.hsnCode === item.hsnCode);
+        const productToUpdate = productsWithSameHSN.find((p) => p.name === chosenName) || productsWithSameHSN[0];
+
+        if (productToUpdate) {
+          await updateExistingProductWithNameChange(productToUpdate, item, chosenName, bill, batch, userId);
+          updated++;
+          continue;
+        }
+      }
+
+      // 4. Default automated matching logic
+      if (!item.hsnCode) {
+        const existingProduct = products.find((p) => p.name.toLowerCase() === item.description.toLowerCase());
         if (existingProduct) {
-          await updateExistingProduct(
-            existingProduct,
-            item,
-            bill,
-            batch,
-            userId
-          );
+          await updateExistingProduct(existingProduct, item, bill, batch, userId);
           updated++;
         } else {
           await createNewProduct(item, bill, batch, userId);
@@ -910,55 +930,27 @@ export const addPurchaseItemsToInventory = async (
         continue;
       }
 
-      // Find products with same HSN code
-      const productsWithSameHSN = products.filter(
-        (p) => p.hsnCode && p.hsnCode === item.hsnCode
-      );
+      const productsWithSameHSN = products.filter((p) => p.hsnCode && p.hsnCode === item.hsnCode);
 
       if (productsWithSameHSN.length === 0) {
-        // No existing product with this HSN - create new
         await createNewProduct(item, bill, batch, userId);
         added++;
         continue;
       }
 
-      // Check for exact match (HSN + Name)
-      const exactMatch = productsWithSameHSN.find(
-        (p) => p.name.toLowerCase() === item.description.toLowerCase()
-      );
-
+      const exactMatch = productsWithSameHSN.find((p) => p.name.toLowerCase() === item.description.toLowerCase());
       if (exactMatch) {
-        // Perfect match - update stock
         await updateExistingProduct(exactMatch, item, bill, batch, userId);
         updated++;
         continue;
       }
 
-      // HSN exists but name is different - check if we have a resolution
-      if (conflictResolutions && conflictResolutions.has(item.hsnCode)) {
-        const chosenName = conflictResolutions.get(item.hsnCode)!;
-        const productToUpdate =
-          productsWithSameHSN.find((p) => p.name === chosenName) ||
-          productsWithSameHSN[0];
-
-        // Update the product with chosen name
-        await updateExistingProductWithNameChange(
-          productToUpdate,
-          item,
-          chosenName,
-          bill,
-          batch,
-          userId
-        );
-        updated++;
-      } else {
-        // Conflict detected - add to conflicts array
-        conflicts.push({
-          item,
-          existingProduct: productsWithSameHSN[0],
-          conflictType: "name-mismatch",
-        });
-      }
+      // Conflict detected
+      conflicts.push({
+        item,
+        existingProduct: productsWithSameHSN[0],
+        conflictType: "name-mismatch",
+      });
     }
 
     // Only commit if no conflicts or conflicts are resolved

@@ -2227,7 +2227,6 @@ export default function PurchaseBills() {
                                 variant={!item.isNewProduct ? "default" : "outline"}
                                 size="sm"
                                 className="flex-1 h-8 text-xs py-0"
-                                disabled={!item.productId}
                                 onClick={() => {
                                   const newItems = [...inventoryItems];
                                   newItems[index].isNewProduct = false;
@@ -2243,7 +2242,7 @@ export default function PurchaseBills() {
                               <div className="mt-2 space-y-1">
                                 <Label className="text-[10px] px-1">Selected Product</Label>
                                 <Select 
-                                  value={item.productId} 
+                                  value={item.productId || ""} 
                                   onValueChange={(val) => {
                                     const newItems = [...inventoryItems];
                                     newItems[index].productId = val;
@@ -2269,7 +2268,7 @@ export default function PurchaseBills() {
                             )}
 
                             {!item.productId && !item.isNewProduct && (
-                              <p className="text-[10px] text-amber-600 mt-1 px-1">No matching product found by name/HSN</p>
+                              <p className="text-[10px] text-amber-600 mt-1 px-1">No matching product found by name/HSN. Please select one manually.</p>
                             )}
                           </div>
 
