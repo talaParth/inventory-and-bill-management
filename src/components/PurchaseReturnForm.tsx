@@ -36,9 +36,11 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess }: Purc
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [returnItems, setReturnItems] = useState<ReturnItemState[]>([]);
+  const [returnDate, setReturnDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
     if (open && bill) {
+      setReturnDate(new Date().toISOString().split("T")[0]);
       const itemsState: ReturnItemState[] = bill.items.map(item => ({
         selected: false,
         returnQuantity: 0,
@@ -111,7 +113,7 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess }: Purc
         billNumber: bill.billNumber,
         items,
         totalReturnValue,
-        returnDate: new Date().toISOString().split("T")[0],
+        returnDate,
         createdAt: new Date().toISOString(),
       };
 
@@ -146,6 +148,18 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess }: Purc
           </p>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="returnDate">Return Date</Label>
+              <Input
+                id="returnDate"
+                type="date"
+                value={returnDate}
+                onChange={(e) => setReturnDate(e.target.value)}
+                required
+              />
+            </div>
+          </div>
           <div className="border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted">
