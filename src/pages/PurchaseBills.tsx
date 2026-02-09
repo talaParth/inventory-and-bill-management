@@ -709,28 +709,18 @@ export default function PurchaseBills() {
     setInventoryItems(items);
   };
 
-  const saveEditedBill = async () => {
-    if (!editedBill) return;
-    setSavingEditedBill(true);
-    try {
-      await updatePurchaseBill(editedBill);
-      await loadBills();
-      setIsEditing(false);
-      setEditedBill(null);
-      toast({
-        title: "Bill Updated",
-        description: "The purchase bill has been updated successfully.",
-      });
-    } catch (error) {
-      console.error("Error updating bill:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update the bill.",
-        variant: "destructive",
-      });
-    } finally {
-      setSavingEditedBill(false);
-    }
+  const startEditing = (bill: PurchaseBill) => {
+    const clone: PurchaseBill = JSON.parse(JSON.stringify(bill));
+    // Auto-fill item-level "Bought from" with Vendor Name if missing
+    clone.items = (clone.items || []).map((it) => ({
+      ...it,
+      whereToBuy:
+        (it as any).whereToBuy && String((it as any).whereToBuy).trim()
+          ? (it as any).whereToBuy
+          : clone.vendorName || "",
+    }));
+    setEditedBill(clone);
+    setIsEditing(true);
   };
 
   const addEditedItemRow = () => {
@@ -782,9 +772,11 @@ export default function PurchaseBills() {
         updatedAt: new Date().toISOString(),
       };
 
-      await savePurchaseBill(updatedBill);
+      await updatePurchaseBill(updatedBill);
       await loadBills();
-      setSelectedBill(updatedBill);
+      if (selectedBill && selectedBill.id === updatedBill.id) {
+        setSelectedBill(updatedBill);
+      }
       setIsEditing(false);
       setEditedBill(null);
 
