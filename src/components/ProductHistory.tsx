@@ -828,8 +828,9 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Product, Bill, PurchaseBill, BillReturn } from "@/types";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { Product, Bill, PurchaseBill, BillReturn, ProductTransaction } from "@/types";
 import {
   getBills,
   getPurchaseBills,
@@ -900,6 +901,9 @@ export function ProductHistory({
   const [salesHistory, setSalesHistory] = useState<SalesHistoryItem[]>([]);
   const [returnHistory, setReturnHistory] = useState<ReturnHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     if (open && product) {
@@ -1026,7 +1030,7 @@ export function ProductHistory({
       billReturns.forEach((billReturn) => {
         billReturn.items.forEach((item) => {
           if (item.productId === product.id) {
-            returns.push({
+            const returnItem: ReturnHistoryItem = {
               id: `${billReturn.id}-${item.productId}`,
               date: billReturn.returnDate || billReturn.createdAt,
               clientName: billReturn.clientName,
@@ -1036,6 +1040,20 @@ export function ProductHistory({
               returnReason: item.returnReason,
               billNumber: billReturn.billNumber,
               returnId: billReturn.id,
+            };
+            returns.push(returnItem);
+
+            // Also add to purchase history as a negative entry (return)
+            purchases.push({
+              id: `return-${billReturn.id}-${item.productId}`,
+              date: billReturn.returnDate || billReturn.createdAt,
+              vendorName: `Return: ${billReturn.clientName}`,
+              quantity: -item.quantity, // Negative quantity for return
+              unit: product.unit,
+              purchasePrice: item.ratePerUnit || 0,
+              totalAmount: -(item.quantity * (item.ratePerUnit || 0)),
+              billNumber: billReturn.billNumber,
+              addedToInventory: item.condition === "good",
             });
           }
         });
@@ -1169,13 +1187,49 @@ export function ProductHistory({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
+    const isNegative = amount < 0;
+    const absAmount = Math.abs(amount);
+    const formatted = new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(absAmount);
+    return isNegative ? `-${formatted}` : formatted;
   };
+
+  const filteredPurchases = purchaseHistory.filter((item) => {
+    const matchesSearch =
+      item.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.billNumber &&
+        item.billNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+    const itemDate = new Date(item.date);
+    const matchesStartDate = !startDate || itemDate >= new Date(startDate);
+    const matchesEndDate = !endDate || itemDate <= new Date(endDate);
+    return matchesSearch && matchesStartDate && matchesEndDate;
+  });
+
+  const filteredSales = salesHistory.filter((item) => {
+    const matchesSearch =
+      item.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.billNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const itemDate = new Date(item.date);
+    const matchesStartDate = !startDate || itemDate >= new Date(startDate);
+    const matchesEndDate = !endDate || itemDate <= new Date(endDate);
+    return matchesSearch && matchesStartDate && matchesEndDate;
+  });
+
+  const filteredReturns = returnHistory.filter((item) => {
+    const matchesSearch =
+      item.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.returnReason &&
+        item.returnReason.toLowerCase().includes(searchTerm.toLowerCase()));
+    const itemDate = new Date(item.date);
+    const matchesStartDate = !startDate || itemDate >= new Date(startDate);
+    const matchesEndDate = !endDate || itemDate <= new Date(endDate);
+    return matchesSearch && matchesStartDate && matchesEndDate;
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1402,35 +1456,63 @@ export function ProductHistory({
                 </CardContent>
               </Card>
 
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-3 bg-muted/20 p-3 rounded-lg border">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by vendor, client, bill no..."
+                    className="pl-9 h-9"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="date"
+                    className="h-9 w-auto text-xs"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                  <span className="text-muted-foreground text-xs">to</span>
+                  <Input
+                    type="date"
+                    className="h-9 w-auto text-xs"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
               {/* History Tabs */}
               <Tabs defaultValue="purchases" className="w-full">
                 <div className="overflow-x-auto scrollbar-hide pb-1">
                   <TabsList className="inline-flex h-9 w-full min-w-fit">
                     <TabsTrigger
                       value="purchases"
-                      className="text-xs px-4 py-2 flex-1 min-w-[120px]"
+                      className="text-xs px-4 py-2 flex-1 min-w-[150px]"
                     >
-                      Purchases ({purchaseHistory.length})
+                      Purchase Transaction ({filteredPurchases.length})
                     </TabsTrigger>
                     <TabsTrigger
                       value="sales"
                       className="text-xs px-4 py-2 flex-1 min-w-[100px]"
                     >
-                      Sales ({salesHistory.length})
+                      Sales ({filteredSales.length})
                     </TabsTrigger>
                     <TabsTrigger
                       value="returns"
                       className="text-xs px-4 py-2 flex-1 min-w-[100px]"
                     >
-                      Returns ({returnHistory.length})
+                      Returns ({filteredReturns.length})
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
                 <TabsContent value="purchases" className="mt-3">
-                  {purchaseHistory.length === 0 ? (
+                  {filteredPurchases.length === 0 ? (
                     <div className="border rounded-lg p-8 text-center text-muted-foreground text-sm">
-                      No purchase history found for this product
+                      No purchase transactions found matching the filters
                     </div>
                   ) : (
                     <div className="border rounded-lg overflow-hidden">
@@ -1445,7 +1527,7 @@ export function ProductHistory({
                                 Date
                               </th>
                               <th className="h-10 px-3 sm:px-4 text-left font-medium text-xs sm:text-sm">
-                                Vendor
+                                Vendor/Type
                               </th>
                               <th className="h-10 px-3 sm:px-4 text-left font-medium text-xs sm:text-sm">
                                 Bill No
@@ -1468,10 +1550,12 @@ export function ProductHistory({
                             </tr>
                           </thead>
                           <tbody>
-                            {purchaseHistory.map((item, index) => (
+                            {filteredPurchases.map((item, index) => (
                               <tr
                                 key={`${item.id}-${index}`}
-                                className="border-b hover:bg-muted/30"
+                                className={`border-b hover:bg-muted/30 ${
+                                  item.quantity < 0 ? "bg-red-50/30" : ""
+                                }`}
                               >
                                 <td className="p-3 sm:p-4 text-xs sm:text-sm">
                                   <div className="flex items-center gap-1 sm:gap-2">
@@ -1482,7 +1566,14 @@ export function ProductHistory({
                                   </div>
                                 </td>
                                 <td className="p-3 sm:p-4 text-xs sm:text-sm font-medium">
-                                  {item.vendorName}
+                                  <div className="flex flex-col">
+                                    <span>{item.vendorName}</span>
+                                    {item.quantity < 0 && (
+                                      <span className="text-[10px] text-red-500 font-normal">
+                                        Sales Return
+                                      </span>
+                                    )}
+                                  </div>
                                 </td>
                                 <td className="p-3 sm:p-4 text-xs sm:text-sm">
                                   {item.billNumber ? (
@@ -1499,13 +1590,21 @@ export function ProductHistory({
                                 <td className="p-3 sm:p-4 text-xs sm:text-sm text-right whitespace-nowrap">
                                   {item.weight || "-"}
                                 </td>
-                                <td className="p-3 sm:p-4 text-xs sm:text-sm text-right whitespace-nowrap">
+                                <td
+                                  className={`p-3 sm:p-4 text-xs sm:text-sm text-right whitespace-nowrap ${
+                                    item.quantity < 0 ? "text-red-600 font-bold" : ""
+                                  }`}
+                                >
                                   {item.quantity} {item.unit}
                                 </td>
                                 <td className="p-3 sm:p-4 text-xs sm:text-sm text-right whitespace-nowrap">
                                   {formatCurrency(item.purchasePrice)}
                                 </td>
-                                <td className="p-3 sm:p-4 text-xs sm:text-sm text-right font-semibold whitespace-nowrap">
+                                <td
+                                  className={`p-3 sm:p-4 text-xs sm:text-sm text-right font-semibold whitespace-nowrap ${
+                                    item.totalAmount < 0 ? "text-red-600" : ""
+                                  }`}
+                                >
                                   {formatCurrency(item.totalAmount)}
                                 </td>
                                 <td className="p-3 sm:p-4 text-xs sm:text-sm">
@@ -1515,10 +1614,16 @@ export function ProductHistory({
                                         ? "default"
                                         : "secondary"
                                     }
-                                    className="text-[10px] sm:text-xs bg-emerald-600"
+                                    className={`text-[10px] sm:text-xs ${
+                                      item.addedToInventory
+                                        ? "bg-emerald-600"
+                                        : ""
+                                    }`}
                                   >
                                     {item.addedToInventory
                                       ? "In Inventory"
+                                      : item.quantity < 0
+                                      ? "Rejected/Bad"
                                       : "Pending"}
                                   </Badge>
                                 </td>
@@ -1532,9 +1637,9 @@ export function ProductHistory({
                 </TabsContent>
 
                 <TabsContent value="sales" className="mt-3">
-                  {salesHistory.length === 0 ? (
+                  {filteredSales.length === 0 ? (
                     <div className="border rounded-lg p-8 text-center text-muted-foreground text-sm">
-                      No sales history found
+                      No sales history found matching the filters
                     </div>
                   ) : (
                     <div className="border rounded-lg overflow-hidden">
@@ -1566,7 +1671,7 @@ export function ProductHistory({
                             </tr>
                           </thead>
                           <tbody>
-                            {salesHistory.map((item, index) => (
+                            {filteredSales.map((item, index) => (
                               <tr
                                 key={`${item.id}-${index}`}
                                 className="border-b hover:bg-muted/30"
@@ -1609,9 +1714,9 @@ export function ProductHistory({
                 </TabsContent>
 
                 <TabsContent value="returns" className="mt-3">
-                  {returnHistory.length === 0 ? (
+                  {filteredReturns.length === 0 ? (
                     <div className="border rounded-lg p-8 text-center text-muted-foreground text-sm">
-                      No return history found
+                      No return history found matching the filters
                     </div>
                   ) : (
                     <>
@@ -1644,7 +1749,7 @@ export function ProductHistory({
                               </tr>
                             </thead>
                             <tbody>
-                              {returnHistory.map((item, index) => (
+                              {filteredReturns.map((item, index) => (
                                 <tr
                                   key={`${item.id}-${index}`}
                                   className="border-b hover:bg-muted/30"
@@ -1695,7 +1800,7 @@ export function ProductHistory({
                         </div>
                       </div>
 
-                      {returnHistory.length > 0 && (
+                      {filteredReturns.length > 0 && (
                         <Card className="border mt-3">
                           <CardHeader className="px-3 pt-3 pb-2">
                             <CardTitle className="text-xs sm:text-sm">
@@ -1709,7 +1814,7 @@ export function ProductHistory({
                                   Total
                                 </p>
                                 <p className="text-sm font-semibold text-orange-600">
-                                  {stats.totalReturned} {product.unit}
+                                  {filteredReturns.reduce((sum, r) => sum + r.quantity, 0)} {product.unit}
                                 </p>
                               </div>
                               <div>
@@ -1717,7 +1822,7 @@ export function ProductHistory({
                                   Good
                                 </p>
                                 <p className="text-sm font-semibold text-emerald-600">
-                                  {stats.totalReturnedGood} {product.unit}
+                                  {filteredReturns.filter(r => r.condition === "good").reduce((sum, r) => sum + r.quantity, 0)} {product.unit}
                                 </p>
                               </div>
                               <div>
@@ -1725,7 +1830,7 @@ export function ProductHistory({
                                   Bad
                                 </p>
                                 <p className="text-sm font-semibold text-red-600">
-                                  {stats.totalReturnedBad} {product.unit}
+                                  {filteredReturns.filter(r => r.condition === "bad").reduce((sum, r) => sum + r.quantity, 0)} {product.unit}
                                 </p>
                               </div>
                             </div>
