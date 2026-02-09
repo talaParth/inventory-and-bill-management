@@ -82,35 +82,42 @@ export default function AIAgent() {
             totalExpenses: expenses.reduce((sum, b) => sum + b.amount, 0),
             stockValue: products.reduce((sum, p) => sum + (p.stock * p.purchasePrice), 0),
             itemCount: products.length,
-            clientCount: clients.length
+            clientCount: clients.length,
+            totalReturns: billReturns.length,
+            returnAmount: billReturns.reduce((sum, r) => sum + r.totalReturnValue, 0)
           },
-          topSales: bills
-            .sort((a, b) => b.total - a.total)
-            .slice(0, 10)
-            .map(b => ({
-              date: b.date,
-              client: b.client?.name || (b as any).clientName,
-              total: b.total,
-              status: b.paymentStatus
-            })),
+          allBillDetails: bills.map(b => ({
+            id: b.billNumber,
+            date: b.date,
+            client: b.client?.name || (b as any).clientName,
+            total: b.total,
+            items: b.items.map(i => ({ name: i.productName, qty: i.quantity, rate: i.ratePerUnit })),
+            status: b.paymentStatus
+          })),
+          clientWiseAnalysis: clients.map(c => {
+            const clientBills = bills.filter(b => (b.client?.id === c.id) || ((b as any).clientName === c.name));
+            const clientReturns = billReturns.filter(r => r.clientName === c.name);
+            return {
+              name: c.name,
+              totalSales: clientBills.reduce((sum, b) => sum + b.total, 0),
+              totalReturns: clientReturns.reduce((sum, r) => sum + r.totalReturnValue, 0),
+              pendingAmount: clientBills.reduce((sum, b) => sum + (b.total - (b.paidAmount || 0)), 0)
+            };
+          }),
+          purchaseExpenses: purchaseBills.map(p => ({
+            vendor: p.vendorName,
+            total: p.total,
+            items: p.items.map(i => ({ name: i.description, qty: i.quantity, rate: i.rate })),
+            date: p.billDate || p.createdAt
+          })),
           inventoryStatus: products
-            .filter(p => p.stock < 10 || p.stock > 100)
-            .slice(0, 15)
             .map(p => ({
               name: p.name,
               stock: p.stock,
-              price: p.sellingPrice
+              price: p.sellingPrice,
+              purchase: p.purchasePrice
             })),
-          recentExpenses: expenses
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .slice(0, 10)
-            .map(e => ({
-              cat: e.category,
-              amt: e.amount,
-              date: e.date
-            })),
-          deadstockCount: deadstock.length,
-          recentNotes: notes.slice(-5).map(n => n.content)
+          recentNotes: notes.slice(-10).map(n => n.content)
         };
 
         const initialMessage: Message = {

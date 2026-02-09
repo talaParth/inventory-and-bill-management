@@ -29,6 +29,7 @@ export {
   isPurchaseBillDuplicate,
   isPurchaseBillInventoryAdded,
   updatePurchaseBillOverdueStatus,
+  updatePurchaseBill,
   checkStockAvailability,
   validateBillStock,
   getBillReturns,

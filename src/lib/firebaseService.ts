@@ -732,6 +732,17 @@ export const getPurchaseBills = async (): Promise<PurchaseBill[]> => {
   }
 };
 
+export const updatePurchaseBill = async (bill: PurchaseBill): Promise<void> => {
+  try {
+    const docRef = doc(db, COLLECTIONS.PURCHASE_BILLS, bill.id);
+    const cleanedData = removeUndefined(bill);
+    await updateDoc(docRef, cleanedData);
+  } catch (error) {
+    console.error("Error updating purchase bill:", error);
+    throw error;
+  }
+};
+
 export const savePurchaseBill = async (bill: PurchaseBill): Promise<void> => {
   try {
     const userId = getUserId();

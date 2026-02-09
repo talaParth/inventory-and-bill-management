@@ -10,6 +10,7 @@ import {
   isPurchaseBillDuplicate,
   updatePurchaseBillOverdueStatus,
   isPurchaseBillInventoryAdded,
+  updatePurchaseBill,
   InventoryItemInput,
   getCompanyProfile,
 } from "@/lib/storage";
@@ -708,18 +709,28 @@ export default function PurchaseBills() {
     setInventoryItems(items);
   };
 
-  const startEditing = (bill: PurchaseBill) => {
-    const clone: PurchaseBill = JSON.parse(JSON.stringify(bill));
-    // Auto-fill item-level "Bought from" with Vendor Name if missing
-    clone.items = (clone.items || []).map((it) => ({
-      ...it,
-      whereToBuy:
-        (it as any).whereToBuy && String((it as any).whereToBuy).trim()
-          ? (it as any).whereToBuy
-          : clone.vendorName || "",
-    }));
-    setEditedBill(clone);
-    setIsEditing(true);
+  const saveEditedBill = async () => {
+    if (!editedBill) return;
+    setSavingEditedBill(true);
+    try {
+      await updatePurchaseBill(editedBill);
+      await loadBills();
+      setIsEditing(false);
+      setEditedBill(null);
+      toast({
+        title: "Bill Updated",
+        description: "The purchase bill has been updated successfully.",
+      });
+    } catch (error) {
+      console.error("Error updating bill:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update the bill.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingEditedBill(false);
+    }
   };
 
   const addEditedItemRow = () => {
