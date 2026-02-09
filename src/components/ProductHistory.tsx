@@ -829,13 +829,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search } from "lucide-react";
-import {
-  Product,
-  Bill,
-  PurchaseBill,
-  BillReturn,
-} from "@/types";
+import { Product, Bill, PurchaseBill, BillReturn } from "@/types";
 import {
   getBills,
   getPurchaseBills,
@@ -1036,8 +1030,10 @@ export function ProductHistory({
       billReturns.forEach((billReturn) => {
         const items = (billReturn as any).items || [];
         items.forEach((item: any) => {
-          // Robust ID matching
-          const isMatch = String(item.productId) === String(product.id);
+          // Robust ID matching - handle both string and potential number types
+          const itemProductId = String(item.productId || "");
+          const currentProductId = String(product.id || "");
+          const isMatch = itemProductId === currentProductId && itemProductId !== "";
           
           if (isMatch) {
             const returnItem: ReturnHistoryItem = {
@@ -1056,10 +1052,19 @@ export function ProductHistory({
             // Also add to purchase history as a negative entry (return)
             // Use price from the return item or fallback to product selling/purchase price
             const itemAny = item as any;
-            const price = Number(itemAny.ratePerUnit || itemAny.rate || itemAny.sellingPrice || product.sellingPrice || product.purchasePrice || 0);
+            const price = Number(
+              itemAny.ratePerUnit ||
+                itemAny.rate ||
+                itemAny.sellingPrice ||
+                itemAny.costPrice || // Check for costPrice as well
+                product.sellingPrice ||
+                product.purchasePrice ||
+                0,
+            );
             const qty = Number(itemAny.quantity || 0);
-            
+
             if (qty > 0) {
+              console.log(`Adding return for product ${product.id}: qty=${qty}, price=${price}`);
               purchases.push({
                 id: `return-${billReturn.id}-${item.productId}`,
                 date: billReturn.returnDate || billReturn.createdAt,
@@ -1217,11 +1222,13 @@ export function ProductHistory({
 
   const filteredPurchases = purchaseHistory.filter((item) => {
     const searchStr = searchTerm.toLowerCase();
-    const vendorMatch = (item.vendorName || "").toLowerCase().includes(searchStr);
+    const vendorMatch = (item.vendorName || "")
+      .toLowerCase()
+      .includes(searchStr);
     const billMatch = (item.billNumber || "").toLowerCase().includes(searchStr);
-    
+
     const matchesSearch = vendorMatch || billMatch;
-    
+
     const itemDate = new Date(item.date);
     const matchesStartDate = !startDate || itemDate >= new Date(startDate);
     const matchesEndDate = !endDate || itemDate <= new Date(endDate);
@@ -1230,11 +1237,13 @@ export function ProductHistory({
 
   const filteredSales = salesHistory.filter((item) => {
     const searchStr = searchTerm.toLowerCase();
-    const clientMatch = (item.clientName || "").toLowerCase().includes(searchStr);
+    const clientMatch = (item.clientName || "")
+      .toLowerCase()
+      .includes(searchStr);
     const billMatch = (item.billNumber || "").toLowerCase().includes(searchStr);
-    
+
     const matchesSearch = clientMatch || billMatch;
-    
+
     const itemDate = new Date(item.date);
     const matchesStartDate = !startDate || itemDate >= new Date(startDate);
     const matchesEndDate = !endDate || itemDate <= new Date(endDate);
@@ -1243,12 +1252,16 @@ export function ProductHistory({
 
   const filteredReturns = returnHistory.filter((item) => {
     const searchStr = searchTerm.toLowerCase();
-    const clientMatch = (item.clientName || "").toLowerCase().includes(searchStr);
+    const clientMatch = (item.clientName || "")
+      .toLowerCase()
+      .includes(searchStr);
     const billMatch = (item.billNumber || "").toLowerCase().includes(searchStr);
-    const reasonMatch = (item.returnReason || "").toLowerCase().includes(searchStr);
-    
+    const reasonMatch = (item.returnReason || "")
+      .toLowerCase()
+      .includes(searchStr);
+
     const matchesSearch = clientMatch || billMatch || reasonMatch;
-    
+
     const itemDate = new Date(item.date);
     const matchesStartDate = !startDate || itemDate >= new Date(startDate);
     const matchesEndDate = !endDate || itemDate <= new Date(endDate);
