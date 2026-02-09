@@ -2439,129 +2439,210 @@ export default function PurchaseBills() {
       {/* Transaction History Dialog */}
       <Dialog
         open={historyDialogOpen}
-        onOpenChange={(open) => !open && setHistoryDialogOpen(false)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setHistoryDialogOpen(false);
+            setEditingTransaction(null);
+          }
+        }}
       >
-        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 py-4 border-b">
-            <DialogTitle className="text-xl flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-600" />
-              Transaction History
-            </DialogTitle>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
+          <DialogHeader className="p-8 border-b shrink-0 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <Clock className="h-6 w-6 text-white" />
+                  </div>
+                  Transaction History
+                </DialogTitle>
+                {selectedBillForHistory && (
+                  <p className="text-blue-100 font-medium">
+                    Bill #{selectedBillForHistory.billNumber || "N/A"} • {selectedBillForHistory.vendorName}
+                  </p>
+                )}
+              </div>
+              {selectedBillForHistory && (
+                <div className="text-right hidden sm:block">
+                  <p className="text-xs text-blue-200 uppercase font-bold tracking-widest opacity-80">Remaining Balance</p>
+                  <p className="text-2xl font-black text-white">
+                    {formatCurrency(
+                      (selectedBillForHistory.total - (selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)) - selectedBillForHistory.paidAmount
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
           </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto p-6">
+
+          <div className="flex-1 overflow-y-auto bg-slate-50/50">
             {selectedBillForHistory && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold">Vendor</p>
-                    <p className="font-bold">{selectedBillForHistory.vendorName}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold">Bill No</p>
-                    <p className="font-bold">#{selectedBillForHistory.billNumber || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold">Original Amount</p>
-                    <p className="font-bold text-lg">{formatCurrency(selectedBillForHistory.total)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold">Current Total (after returns)</p>
-                    <p className="font-bold text-lg text-blue-600">
+              <div className="p-6 space-y-6">
+                {/* Summary Info Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card className="p-4 border-none shadow-sm bg-white">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Total Bill</p>
+                    <p className="text-lg font-bold">{formatCurrency(selectedBillForHistory.total)}</p>
+                  </Card>
+                  <Card className="p-4 border-none shadow-sm bg-white">
+                    <p className="text-[10px] text-orange-600 uppercase font-bold mb-1">Returns</p>
+                    <p className="text-lg font-bold text-orange-600">
+                      -{formatCurrency(selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)}
+                    </p>
+                  </Card>
+                  <Card className="p-4 border-none shadow-sm bg-white">
+                    <p className="text-[10px] text-emerald-600 uppercase font-bold mb-1">Total Paid</p>
+                    <p className="text-lg font-bold text-emerald-600">{formatCurrency(selectedBillForHistory.paidAmount)}</p>
+                  </Card>
+                  <Card className="p-4 border-none shadow-sm bg-indigo-50 border border-indigo-100">
+                    <p className="text-[10px] text-indigo-700 uppercase font-bold mb-1">Net Payable</p>
+                    <p className="text-lg font-black text-indigo-700">
                       {formatCurrency(selectedBillForHistory.total - (selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0))}
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold">Paid Amount</p>
-                    <p className="font-bold text-lg text-emerald-600">{formatCurrency(selectedBillForHistory.paidAmount)}</p>
-                  </div>
+                  </Card>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-sm uppercase text-muted-foreground flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Timeline
-                  </h4>
-                  
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted/50">
-                        <tr className="border-b">
-                          <th className="text-left p-3 font-semibold">Date</th>
-                          <th className="text-left p-3 font-semibold">Type</th>
-                          <th className="text-left p-3 font-semibold">Description</th>
-                          <th className="text-right p-3 font-semibold">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {getPurchaseHistory(selectedBillForHistory).map((entry: any) => (
-                          <tr key={entry.id} className="group hover:bg-muted/50 transition-colors">
-                            <td className="p-3">{formatDate(entry.date)}</td>
-                            <td className="p-3">
-                              <Badge variant="outline" className={
-                                entry.type === 'purchase' ? 'bg-red-50 text-red-700 border-red-200' :
-                                entry.type === 'payment' ? 'bg-green-50 text-green-700 border-green-200' :
-                                'bg-blue-50 text-blue-700 border-blue-200'
-                              }>
-                                {entry.type.toUpperCase()}
-                              </Badge>
-                            </td>
-                            <td className="p-3">
-                              {editingTransaction?.id === entry.id ? (
-                                <div className="flex gap-2 items-center">
-                                  <Input 
-                                    type="number" 
-                                    value={transactionAmount} 
-                                    onChange={(e) => setTransactionAmount(e.target.value)}
-                                    className="h-8 w-24"
-                                  />
-                                  <Button size="sm" onClick={saveEditedTransaction} className="h-8">Save</Button>
-                                  <Button size="sm" variant="ghost" onClick={() => setEditingTransaction(null)} className="h-8">Cancel</Button>
-                                </div>
-                              ) : (
-                                <span>{entry.description}</span>
-                              )}
-                            </td>
-                            <td className={`p-3 text-right font-bold ${entry.amount < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                {/* Timeline Table */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                  <table className="w-full border-collapse">
+                    <thead className="bg-slate-50 border-b border-slate-200">
+                      <tr>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-slate-500">Date</th>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-slate-500">Type</th>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-slate-500">Details</th>
+                        <th className="text-right p-4 font-bold text-xs uppercase text-slate-500">Amount</th>
+                        <th className="p-4 font-bold text-xs uppercase text-slate-500 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {getPurchaseHistory(selectedBillForHistory).map((entry: any) => (
+                        <tr key={entry.id} className="hover:bg-indigo-50/30 transition-colors group">
+                          <td className="p-4">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                              <Calendar className="h-4 w-4 text-slate-400" />
+                              {formatDate(entry.date)}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <Badge
+                              className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                entry.type === 'purchase' ? 'bg-rose-100 text-rose-700 border-rose-200' :
+                                entry.type === 'payment' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                'bg-sky-100 text-sky-700 border-sky-200'
+                              }`}
+                            >
+                              {entry.type}
+                            </Badge>
+                          </td>
+                          <td className="p-4">
+                            <p className="text-sm font-medium text-slate-600 max-w-[250px] leading-relaxed">
+                              {entry.description}
+                            </p>
+                          </td>
+                          <td className="p-4 text-right">
+                            <span className={`font-black tabular-nums text-sm ${entry.amount >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                              {entry.amount >= 0 ? "+" : ""}
                               {formatCurrency(entry.amount)}
-                            </td>
-                            <td className="p-3 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                              {entry.type !== 'purchase' && (
-                                <div className="flex justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => handleEditTransaction(entry)}>
-                                    <Edit2 className="h-4 w-4" />
-                                  </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will remove the {entry.type} record and update the bill balance accordingly.
-                                          {entry.type === 'return' && " Stock will be reverted to inventory."}
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteTransaction(entry)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            {entry.type !== 'purchase' && (
+                              <div className="flex items-center justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                  onClick={() => handleEditTransaction(entry)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="rounded-2xl border-none shadow-2xl">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle className="text-xl font-bold">Delete Transaction?</AlertDialogTitle>
+                                      <AlertDialogDescription className="text-slate-600">
+                                        This will permanently remove this {entry.type} entry and update the bill balance.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="rounded-xl border-slate-200">Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleDeleteTransaction(entry)}
+                                        className="rounded-xl bg-rose-600 hover:bg-rose-700"
+                                      >
+                                        Delete Forever
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Inline Edit Section */}
+          {editingTransaction && (
+            <div className="p-6 border-t bg-indigo-50/50 shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 max-w-2xl mx-auto">
+                <div className="space-y-2 flex-1">
+                  <Label className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Update Amount</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                    <Input
+                      type="number"
+                      value={transactionAmount}
+                      onChange={(e) => setTransactionAmount(e.target.value)}
+                      className="pl-8 h-12 rounded-xl border-indigo-200 focus:ring-indigo-500 text-lg font-bold"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setEditingTransaction(null)}
+                    className="h-12 px-6 rounded-xl border-slate-200"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={saveEditedTransaction}
+                    className="h-12 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="p-6 border-t bg-white shrink-0 flex justify-between items-center">
+            <div className="text-xs text-muted-foreground italic">
+              * Click edit icon to modify individual payments
+            </div>
+            <Button 
+              variant="secondary" 
+              onClick={() => setHistoryDialogOpen(false)}
+              className="px-8 rounded-xl font-bold"
+            >
+              Close History
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
