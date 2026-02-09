@@ -477,11 +477,11 @@ export default function PurchaseBills() {
     });
   };
 
-  const handlePaymentCollected = async (amount: number, type: any, note?: string) => {
+  const handlePaymentCollected = async (amount: number, type: any, note?: string, date?: string) => {
     if (selectedBillForPayment) {
       setLoadingPayment(selectedBillForPayment.id);
       try {
-        await updatePurchaseBillPayment(selectedBillForPayment.id, amount, type, note);
+        await updatePurchaseBillPayment(selectedBillForPayment.id, amount, type, note, date);
         await loadBills();
         toast({
           title: "Payment Collected",

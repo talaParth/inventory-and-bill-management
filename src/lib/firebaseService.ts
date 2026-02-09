@@ -569,7 +569,8 @@ export const updateBillPayment = async (
   billId: string,
   paidAmount: number,
   paymentType: PaymentMethod,
-  note?: string
+  note?: string,
+  date?: string
 ): Promise<void> => {
   try {
     const billRef = doc(db, COLLECTIONS.BILLS, billId);
@@ -585,7 +586,7 @@ export const updateBillPayment = async (
         id: Math.random().toString(36).substr(2, 9),
         amount: paidAmount,
         method: paymentType,
-        date: new Date().toISOString(),
+        date: date || new Date().toISOString(),
         note: note,
       };
 
@@ -757,7 +758,8 @@ export const updatePurchaseBillPayment = async (
   billId: string,
   paidAmount: number,
   paymentType: PaymentMethod,
-  note?: string
+  note?: string,
+  date?: string
 ): Promise<void> => {
   try {
     const billRef = doc(db, COLLECTIONS.PURCHASE_BILLS, billId);
@@ -773,7 +775,7 @@ export const updatePurchaseBillPayment = async (
         id: Math.random().toString(36).substr(2, 9),
         amount: paidAmount,
         method: paymentType,
-        date: new Date().toISOString(),
+        date: date || new Date().toISOString(),
         note: note,
       };
 
