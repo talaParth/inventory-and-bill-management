@@ -116,12 +116,21 @@ export function Layout({ children }: LayoutProps) {
       : allNavItems.filter(item => permissions.includes(item.path));
     
     if (savedOrder) {
-      const order = JSON.parse(savedOrder);
-      const orderedItems = order.map((path: string) => items.find(i => i.path === path)).filter(Boolean);
-      // Add any new items that weren't in the saved order
-      const newItems = items.filter(i => !order.includes(i.path));
-      setNavItems([...orderedItems, ...newItems]);
-    } else {
+      try {
+        const order = JSON.parse(savedOrder);
+        const orderedItems = order.map((path: string) => items.find(i => i.path === path)).filter(Boolean);
+        // Add any new items that weren't in the saved order
+        const newItems = items.filter(i => !order.includes(i.path));
+        
+        const finalItems = [...orderedItems, ...newItems];
+        // Only update if the items have actually changed
+        if (JSON.stringify(navItems.map(i => i.path)) !== JSON.stringify(finalItems.map(i => i.path))) {
+          setNavItems(finalItems);
+        }
+      } catch (e) {
+        setNavItems(items);
+      }
+    } else if (JSON.stringify(navItems.map(i => i.path)) !== JSON.stringify(items.map(i => i.path))) {
       setNavItems(items);
     }
   }, [user.role, permissions]);
