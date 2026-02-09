@@ -307,7 +307,6 @@ export default function Returns() {
       setShowReturnDialog(false);
       setSelectedBill(null);
       await loadData();
-      window.location.reload();
     } catch (error) {
       toast({
         title: "Error",

@@ -153,9 +153,7 @@ export default function Passbook() {
                 });
             });
 
-            // Add sales returns (positive amounts if stock returned, but usually we refund money so negative)
-            // The user wants returns to be properly calculated. 
-            // In Passbook, "return" usually means a refund to customer (negative).
+            // Add sales returns
             returns.forEach(returnItem => {
                 allEntries.push({
                     id: `return-${returnItem.id}`,
@@ -168,7 +166,7 @@ export default function Passbook() {
                 });
             });
 
-            // Add purchase returns (positive amounts for money received back or credit)
+            // Add purchase returns
             purchaseBills.forEach(purchase => {
                 if (purchase.returns && purchase.returns.length > 0) {
                     purchase.returns.forEach(ret => {

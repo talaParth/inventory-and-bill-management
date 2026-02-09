@@ -131,7 +131,6 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess, editRe
       toast({ title: "Success", description: editReturn ? "Return updated" : "Purchase return recorded" });
       onSuccess();
       onOpenChange(false);
-      window.location.reload();
     } catch (error) {
       console.error("Error saving return:", error);
       toast({ title: "Error", description: "Failed to save return", variant: "destructive" });
