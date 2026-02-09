@@ -113,15 +113,30 @@ export default function Passbook() {
 
             // Add purchases (negative amounts for money spent)
             purchaseBills.forEach(purchase => {
-                allEntries.push({
-                    id: `purchase-${purchase.id}`,
-                    date: purchase.createdAt || purchase.billDate || purchase.id,
-                    type: 'purchase',
-                    description: `Purchase - ${purchase.vendorName || 'Vendor'} - Bill #${purchase.billNumber || 'N/A'}`,
-                    amount: -purchase.total,
-                    balance: 0,
-                    details: purchase,
-                });
+                // Main purchase payment (if any)
+                if (purchase.payments && purchase.payments.length > 0) {
+                    purchase.payments.forEach(payment => {
+                        allEntries.push({
+                            id: `purchase-payment-${payment.id}`,
+                            date: payment.date,
+                            type: 'purchase',
+                            description: `Purchase Payment - ${purchase.vendorName || 'Vendor'} - Bill #${purchase.billNumber || 'N/A'} (${payment.method})`,
+                            amount: -payment.amount,
+                            balance: 0,
+                            details: { ...purchase, currentPayment: payment },
+                        });
+                    });
+                } else if (purchase.paidAmount && purchase.paidAmount > 0) {
+                    allEntries.push({
+                        id: `purchase-${purchase.id}`,
+                        date: purchase.billDate || purchase.createdAt || purchase.id,
+                        type: 'purchase',
+                        description: `Purchase - ${purchase.vendorName || 'Vendor'} - Bill #${purchase.billNumber || 'N/A'}`,
+                        amount: -purchase.paidAmount,
+                        balance: 0,
+                        details: purchase,
+                    });
+                }
             });
 
             // Add expenses (negative amounts for money spent)
@@ -138,7 +153,9 @@ export default function Passbook() {
                 });
             });
 
-            // Add returns (negative amounts for refunds given)
+            // Add sales returns (positive amounts if stock returned, but usually we refund money so negative)
+            // The user wants returns to be properly calculated. 
+            // In Passbook, "return" usually means a refund to customer (negative).
             returns.forEach(returnItem => {
                 allEntries.push({
                     id: `return-${returnItem.id}`,
@@ -149,6 +166,23 @@ export default function Passbook() {
                     balance: 0,
                     details: returnItem,
                 });
+            });
+
+            // Add purchase returns (positive amounts for money received back or credit)
+            purchaseBills.forEach(purchase => {
+                if (purchase.returns && purchase.returns.length > 0) {
+                    purchase.returns.forEach(ret => {
+                        allEntries.push({
+                            id: `purchase-return-${ret.id}`,
+                            date: ret.returnDate,
+                            type: 'return',
+                            description: `Purchase Return - ${purchase.vendorName} - Bill #${purchase.billNumber}`,
+                            amount: ret.totalReturnValue, // Positive as it's money back or credit
+                            balance: 0,
+                            details: ret,
+                        });
+                    });
+                }
             });
 
             // Sort by date and calculate running balance
@@ -257,7 +291,10 @@ export default function Passbook() {
     };
 
     const totalIncome = entries.filter(e => e.amount > 0).reduce((sum, e) => sum + e.amount, 0);
-    const totalExpenses = Math.abs(entries.filter(e => e.amount < 0).reduce((sum, e) => sum + e.amount, 0));
+    const totalPurchases = Math.abs(entries.filter(e => e.type === 'purchase').reduce((sum, e) => sum + e.amount, 0));
+    const totalExpensesOnly = Math.abs(entries.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0));
+    const totalReturns = entries.filter(e => e.type === 'return').reduce((sum, e) => sum + e.amount, 0);
+    const totalOutflow = Math.abs(entries.filter(e => e.amount < 0).reduce((sum, e) => sum + e.amount, 0));
     const netBalance = entries.length > 0 ? entries[entries.length - 1].balance : 0;
 
     const paymentMethodTotals = entries
@@ -333,15 +370,15 @@ export default function Passbook() {
 
                 <Card className="border-2 border-red-200 bg-gradient-to-br from-red-50 to-white shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-semibold text-red-700">Total Expenses</CardTitle>
+                        <CardTitle className="text-sm font-semibold text-red-700">Total Outflow</CardTitle>
                         <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
                             <TrendingDown className="h-5 w-5 text-red-600" />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl md:text-3xl font-bold text-red-600 mb-1">{formatCurrency(totalExpenses)}</div>
+                        <div className="text-2xl md:text-3xl font-bold text-red-600 mb-1">{formatCurrency(totalOutflow)}</div>
                         <p className="text-xs text-muted-foreground">
-                            Money spent on purchases & expenses
+                            Purchases: {formatCurrency(totalPurchases)} | Expenses: {formatCurrency(totalExpensesOnly)}
                         </p>
                     </CardContent>
                 </Card>
