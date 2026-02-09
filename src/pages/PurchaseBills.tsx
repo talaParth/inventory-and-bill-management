@@ -140,11 +140,12 @@ export default function PurchaseBills() {
     // Add returns
     if (bill.returns && bill.returns.length > 0) {
       bill.returns.forEach(ret => {
+        const productNames = ret.items.map(item => item.description).join(", ");
         history.push({
           id: `return-${ret.id}`,
           date: ret.returnDate,
           type: 'return',
-          description: `Purchase Return${ret.notes ? ` - ${ret.notes}` : ''}`,
+          description: `Purchase Return (${productNames})${ret.notes ? ` - ${ret.notes}` : ''}`,
           amount: ret.totalReturnValue,
         });
       });
