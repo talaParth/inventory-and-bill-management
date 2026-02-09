@@ -2194,6 +2194,44 @@ export default function PurchaseBills() {
                       GST: {item.gstRate}%
                     </Badge>
                   </div>
+                  
+                  {/* Matching Option */}
+                  <div className="mt-2 p-2 bg-background/50 rounded-md border border-dashed">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-1">Inventory Action</p>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={item.isNewProduct ? "default" : "outline"}
+                        size="sm"
+                        className="flex-1 h-8 text-xs py-0"
+                        onClick={() => {
+                          const newItems = [...inventoryItems];
+                          newItems[index].isNewProduct = true;
+                          setInventoryItems(newItems);
+                        }}
+                      >
+                        Create New
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={!item.isNewProduct ? "default" : "outline"}
+                        size="sm"
+                        className="flex-1 h-8 text-xs py-0"
+                        disabled={!item.productId}
+                        onClick={() => {
+                          const newItems = [...inventoryItems];
+                          newItems[index].isNewProduct = false;
+                          setInventoryItems(newItems);
+                        }}
+                      >
+                        Update Stock
+                      </Button>
+                    </div>
+                    {!item.productId && (
+                      <p className="text-[10px] text-amber-600 mt-1 px-1">No matching product found by name/HSN</p>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">
