@@ -270,11 +270,13 @@ export interface AIExtractionError {
 
 export interface PurchaseReturnItem {
   description: string;
+  productName: string; // Ensure this is present
   quantity: number;
   rate: number;
   amount: number;
   gstRate?: number;
   gstAmount?: number;
+  condition: "good" | "bad"; // Ensure this is present
 }
 
 export interface PurchaseReturn {

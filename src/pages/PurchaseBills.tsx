@@ -1228,6 +1228,11 @@ export default function PurchaseBills() {
                             )}
                           </p>
                         </div>
+                        {bill.returns && bill.returns.length > 0 && (
+                          <p className="text-[10px] text-orange-600 font-medium -mt-1">
+                            Returned: {formatCurrency(bill.returns.reduce((sum, r) => sum + r.totalReturnValue, 0))}
+                          </p>
+                        )}
                         {bill.paidAmount > 0 && bill.payments && bill.payments.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mt-1">
                             {Object.entries(
