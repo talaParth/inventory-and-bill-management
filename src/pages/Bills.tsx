@@ -158,9 +158,9 @@ export default function Bills() {
     toast.success('Bill deleted successfully');
   };
 
-  const handlePaymentCollected = async (amount: number, type: PaymentMethod, note?: string) => {
+  const handlePaymentCollected = async (amount: number, type: PaymentMethod, note?: string, date?: string) => {
     if (selectedBill) {
-      await updateBillPayment(selectedBill.id, amount, type, note);
+      await updateBillPayment(selectedBill.id, amount, type, note, date);
       await loadBills();
       toast.success(`Payment of ${formatCurrency(amount)} via ${type} collected successfully`);
     }

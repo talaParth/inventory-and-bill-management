@@ -113,15 +113,30 @@ export default function Passbook() {
 
             // Add purchases (negative amounts for money spent)
             purchaseBills.forEach(purchase => {
-                allEntries.push({
-                    id: `purchase-${purchase.id}`,
-                    date: purchase.createdAt || purchase.billDate || purchase.id,
-                    type: 'purchase',
-                    description: `Purchase - ${purchase.vendorName || 'Vendor'} - Bill #${purchase.billNumber || 'N/A'}`,
-                    amount: -purchase.total,
-                    balance: 0,
-                    details: purchase,
-                });
+                // Main purchase payment (if any)
+                if (purchase.payments && purchase.payments.length > 0) {
+                    purchase.payments.forEach(payment => {
+                        allEntries.push({
+                            id: `purchase-payment-${payment.id}`,
+                            date: payment.date,
+                            type: 'purchase',
+                            description: `Purchase Payment - ${purchase.vendorName || 'Vendor'} - Bill #${purchase.billNumber || 'N/A'} (${payment.method})`,
+                            amount: -payment.amount,
+                            balance: 0,
+                            details: { ...purchase, currentPayment: payment },
+                        });
+                    });
+                } else if (purchase.paidAmount && purchase.paidAmount > 0) {
+                    allEntries.push({
+                        id: `purchase-${purchase.id}`,
+                        date: purchase.billDate || purchase.createdAt || purchase.id,
+                        type: 'purchase',
+                        description: `Purchase - ${purchase.vendorName || 'Vendor'} - Bill #${purchase.billNumber || 'N/A'}`,
+                        amount: -purchase.paidAmount,
+                        balance: 0,
+                        details: purchase,
+                    });
+                }
             });
 
             // Add expenses (negative amounts for money spent)
@@ -138,7 +153,9 @@ export default function Passbook() {
                 });
             });
 
-            // Add returns (negative amounts for refunds given)
+            // Add sales returns (positive amounts if stock returned, but usually we refund money so negative)
+            // The user wants returns to be properly calculated. 
+            // In Passbook, "return" usually means a refund to customer (negative).
             returns.forEach(returnItem => {
                 allEntries.push({
                     id: `return-${returnItem.id}`,
@@ -149,6 +166,23 @@ export default function Passbook() {
                     balance: 0,
                     details: returnItem,
                 });
+            });
+
+            // Add purchase returns (positive amounts for money received back or credit)
+            purchaseBills.forEach(purchase => {
+                if (purchase.returns && purchase.returns.length > 0) {
+                    purchase.returns.forEach(ret => {
+                        allEntries.push({
+                            id: `purchase-return-${ret.id}`,
+                            date: ret.returnDate,
+                            type: 'return',
+                            description: `Purchase Return - ${purchase.vendorName} - Bill #${purchase.billNumber}`,
+                            amount: ret.totalReturnValue, // Positive as it's money back or credit
+                            balance: 0,
+                            details: ret,
+                        });
+                    });
+                }
             });
 
             // Sort by date and calculate running balance
@@ -256,8 +290,11 @@ export default function Passbook() {
         }
     };
 
-    const totalIncome = entries.filter(e => e.amount > 0).reduce((sum, e) => sum + e.amount, 0);
-    const totalExpenses = Math.abs(entries.filter(e => e.amount < 0).reduce((sum, e) => sum + e.amount, 0));
+    const totalIncome = entries.filter(e => e.amount > 0 && e.type !== 'return').reduce((sum, e) => sum + e.amount, 0);
+    const totalPurchases = Math.abs(entries.filter(e => e.type === 'purchase').reduce((sum, e) => sum + e.amount, 0));
+    const totalExpensesOnly = Math.abs(entries.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0));
+    const totalReturnsValue = entries.filter(e => e.type === 'return').reduce((sum, e) => sum + e.amount, 0);
+    const totalOutflow = Math.abs(entries.filter(e => e.amount < 0 && e.type !== 'return').reduce((sum, e) => sum + e.amount, 0));
     const netBalance = entries.length > 0 ? entries[entries.length - 1].balance : 0;
 
     const paymentMethodTotals = entries
@@ -315,63 +352,80 @@ export default function Passbook() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-white shadow-md hover:shadow-lg transition-shadow">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <Card className="border shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-semibold text-green-700">Total Income</CardTitle>
-                        <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                            <TrendingUp className="h-5 w-5 text-green-600" />
+                        <CardTitle className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Total Income</CardTitle>
+                        <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl md:text-3xl font-bold text-green-600 mb-1">{formatCurrency(totalIncome)}</div>
+                        <div className="text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">{formatCurrency(totalIncome)}</div>
                         <p className="text-xs text-muted-foreground">
                             Money received from sales
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="border-2 border-red-200 bg-gradient-to-br from-red-50 to-white shadow-md hover:shadow-lg transition-shadow">
+                <Card className="border shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-semibold text-red-700">Total Expenses</CardTitle>
-                        <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
-                            <TrendingDown className="h-5 w-5 text-red-600" />
+                        <CardTitle className="text-sm font-semibold text-rose-600 dark:text-rose-400">Total Outflow</CardTitle>
+                        <div className="h-10 w-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                            <TrendingDown className="h-5 w-5 text-rose-600 dark:text-rose-400" />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl md:text-3xl font-bold text-red-600 mb-1">{formatCurrency(totalExpenses)}</div>
+                        <div className="text-2xl md:text-3xl font-bold text-rose-600 dark:text-rose-400 mb-1">{formatCurrency(totalOutflow)}</div>
                         <p className="text-xs text-muted-foreground">
-                            Money spent on purchases & expenses
+                            Purchases: {formatCurrency(totalPurchases)} | Expenses: {formatCurrency(totalExpensesOnly)}
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-md hover:shadow-lg transition-shadow">
+                <Card className="border shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-semibold text-amber-700">Total Inventory</CardTitle>
-                        <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-                            <BookOpen className="h-5 w-5 text-amber-600" />
+                        <CardTitle className="text-sm font-semibold text-blue-600 dark:text-blue-400">Returns</CardTitle>
+                        <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <ArrowUpDown className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl md:text-3xl font-bold text-amber-600 mb-1">{formatCurrency(inventoryValue)}</div>
+                        <div className={`text-2xl md:text-3xl font-bold mb-1 ${totalReturnsValue >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            {formatCurrency(totalReturnsValue)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Net value of all returns
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="border shadow-md hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                        <CardTitle className="text-sm font-semibold text-amber-600 dark:text-amber-400">Total Inventory</CardTitle>
+                        <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                            <BookOpen className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl md:text-3xl font-bold text-amber-600 dark:text-amber-400 mb-1">{formatCurrency(inventoryValue)}</div>
                         <p className="text-xs text-muted-foreground">
                             Total value of stock in hand
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className={`border-2 shadow-md hover:shadow-lg transition-shadow ${netBalance >= 0 ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-white' : 'border-red-200 bg-gradient-to-br from-red-50 to-white'}`}>
+                <Card className={`border shadow-md hover:shadow-lg transition-shadow ${netBalance >= 0 ? 'border-primary/20 bg-primary/5' : 'border-destructive/20 bg-destructive/5'}`}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className={`text-sm font-semibold ${netBalance >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+                        <CardTitle className={`text-sm font-semibold ${netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
                             Net Balance
                         </CardTitle>
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${netBalance >= 0 ? 'bg-blue-100' : 'bg-red-100'}`}>
-                            <BookOpen className={`h-5 w-5 ${netBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`} />
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${netBalance >= 0 ? 'bg-primary/10' : 'bg-destructive/10'}`}>
+                            <BookOpen className={`h-5 w-5 ${netBalance >= 0 ? 'text-primary' : 'text-destructive'}`} />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl md:text-3xl font-bold mb-1 ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <div className={`text-2xl md:text-3xl font-bold mb-1 ${netBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                             {formatCurrency(netBalance)}
                         </div>
                         <p className="text-xs text-muted-foreground">
@@ -383,13 +437,13 @@ export default function Passbook() {
 
             {/* Collection by Payment Mode */}
             <div>
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-foreground">
+                    <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                     Collections by Payment Mode
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                     {['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Other'].map((method) => (
-                        <Card key={method} className="border border-border shadow-sm hover:shadow-md transition-shadow">
+                        <Card key={method} className="border shadow-sm hover:shadow-md transition-shadow">
                             <CardHeader className="p-3 pb-1">
                                 <CardTitle className="text-xs font-medium text-muted-foreground uppercase">{method}</CardTitle>
                             </CardHeader>
@@ -405,8 +459,8 @@ export default function Passbook() {
 
             {/* Filters */}
             <Card className="border shadow-sm">
-                <CardHeader className="bg-gradient-to-r from-blue-500/5 to-purple-500/5 border-b">
-                    <CardTitle className="flex items-center gap-2 text-xl">
+                <CardHeader className="bg-muted border-b">
+                    <CardTitle className="flex items-center gap-2 text-xl text-foreground">
                         <Filter className="h-5 w-5 text-primary" />
                         Filters & Search
                     </CardTitle>
@@ -533,20 +587,23 @@ export default function Passbook() {
         ) : (
             /* 👇 SCROLL CONTAINER (MOBILE FIX) */
             <div className="w-full overflow-x-auto">
-                <table className="w-full min-w-[720px] border-collapse">
-                    <thead className="bg-muted/30">
+                <table className="w-full min-w-[850px] border-collapse">
+                    <thead className="bg-muted/50">
                         <tr className="border-b">
-                            <th className="text-left p-4 font-semibold text-sm">
+                            <th className="text-left p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
                                 Date
                             </th>
-                            <th className="text-left p-4 font-semibold text-sm">
+                            <th className="text-left p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
                                 Type
                             </th>
-                            <th className="text-left p-4 font-semibold text-sm">
+                            <th className="text-left p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
                                 Description
                             </th>
-                            <th className="text-right p-4 font-semibold text-sm">
+                            <th className="text-right p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
                                 Amount
+                            </th>
+                            <th className="text-right p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+                                Balance
                             </th>
                         </tr>
                     </thead>
@@ -555,24 +612,26 @@ export default function Passbook() {
                         {filteredEntries.map((entry) => (
                             <tr
                                 key={entry.id}
-                                className="hover:bg-muted/20 transition-colors"
+                                className="hover:bg-muted/30 transition-colors group"
                             >
-                                <td className="p-4">
+                                <td className="p-4 align-top">
                                     <div className="flex items-center gap-2">
-                                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm font-medium">
+                                        <Calendar className="h-4 w-4 text-primary/60" />
+                                        <span className="text-sm font-medium whitespace-nowrap">
                                             {formatDate(entry.date)}
                                         </span>
                                     </div>
                                 </td>
 
-                                <td className="p-4">
+                                <td className="p-4 align-top">
                                     <div className="flex items-center gap-2">
-                                        <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                                            entry.amount >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                        }`}>
                                             {getTypeIcon(entry.type)}
                                         </div>
                                         <Badge
-                                            className={`text-xs ${getTypeBadgeColor(
+                                            className={`text-[10px] font-bold uppercase tracking-tighter ${getTypeBadgeColor(
                                                 entry.type
                                             )}`}
                                         >
@@ -581,30 +640,50 @@ export default function Passbook() {
                                     </div>
                                 </td>
 
-                                <td className="p-4">
-                                    <p className="text-sm font-medium text-foreground">
+                                <td className="p-4 align-top max-w-[300px]">
+                                    <p className="text-sm font-semibold text-foreground leading-tight">
                                         {entry.description}
                                     </p>
-                                    {entry.category && (
-                                        <Badge
-                                            variant="outline"
-                                            className="text-xs mt-1"
-                                        >
-                                            {entry.category}
-                                        </Badge>
-                                    )}
+                                    <div className="flex flex-wrap gap-2 mt-1.5">
+                                        {entry.category && (
+                                            <Badge
+                                                variant="secondary"
+                                                className="text-[10px] py-0 h-4 px-1.5 font-normal bg-muted/50"
+                                            >
+                                                {entry.category}
+                                            </Badge>
+                                        )}
+                                        {entry.details?.billNumber && (
+                                            <span className="text-[10px] text-muted-foreground font-mono">
+                                                ID: {entry.details.billNumber}
+                                            </span>
+                                        )}
+                                    </div>
                                 </td>
 
-                                <td className="p-4 text-right">
-                                    <span
-                                        className={`font-bold text-base ${
-                                            entry.amount >= 0
-                                                ? "text-green-600"
-                                                : "text-red-600"
-                                        }`}
-                                    >
-                                        {entry.amount >= 0 ? "+" : ""}
-                                        {formatCurrency(entry.amount)}
+                                <td className="p-4 text-right align-top">
+                                    <div className="flex flex-col items-end">
+                                        <span
+                                            className={`font-bold text-base tabular-nums ${
+                                                entry.amount >= 0
+                                                    ? "text-green-600"
+                                                    : "text-red-600"
+                                            }`}
+                                        >
+                                            {entry.amount >= 0 ? "+" : ""}
+                                            {formatCurrency(entry.amount)}
+                                        </span>
+                                        {entry.details?.currentPayment?.method && (
+                                            <span className="text-[10px] text-muted-foreground opacity-70">
+                                                via {entry.details.currentPayment.method}
+                                            </span>
+                                        )}
+                                    </div>
+                                </td>
+
+                                <td className="p-4 text-right align-top">
+                                    <span className={`font-bold text-sm tabular-nums ${entry.balance >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                                        {formatCurrency(entry.balance)}
                                     </span>
                                 </td>
                             </tr>

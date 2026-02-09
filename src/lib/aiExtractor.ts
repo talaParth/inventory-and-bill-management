@@ -136,6 +136,10 @@ Return ONLY the JSON object, no other text.`;
           model: "openai",
           messages: [
             {
+              role: "system",
+              content: "You are a professional invoice data extractor. Extract data accurately into JSON format.",
+            },
+            {
               role: "user",
               content: [
                 {

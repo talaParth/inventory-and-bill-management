@@ -569,7 +569,8 @@ export const updateBillPayment = async (
   billId: string,
   paidAmount: number,
   paymentType: PaymentMethod,
-  note?: string
+  note?: string,
+  date?: string
 ): Promise<void> => {
   try {
     const billRef = doc(db, COLLECTIONS.BILLS, billId);
@@ -585,7 +586,7 @@ export const updateBillPayment = async (
         id: Math.random().toString(36).substr(2, 9),
         amount: paidAmount,
         method: paymentType,
-        date: new Date().toISOString(),
+        date: date || new Date().toISOString(),
         note: note,
       };
 
@@ -731,6 +732,17 @@ export const getPurchaseBills = async (): Promise<PurchaseBill[]> => {
   }
 };
 
+export const updatePurchaseBill = async (bill: PurchaseBill): Promise<void> => {
+  try {
+    const docRef = doc(db, COLLECTIONS.PURCHASE_BILLS, bill.id);
+    const cleanedData = removeUndefined(bill);
+    await updateDoc(docRef, cleanedData);
+  } catch (error) {
+    console.error("Error updating purchase bill:", error);
+    throw error;
+  }
+};
+
 export const savePurchaseBill = async (bill: PurchaseBill): Promise<void> => {
   try {
     const userId = getUserId();
@@ -757,7 +769,9 @@ export const updatePurchaseBillPayment = async (
   billId: string,
   paidAmount: number,
   paymentType: PaymentMethod,
-  note?: string
+  note?: string,
+  date?: string,
+  paymentId?: string // Optional ID to edit existing payment
 ): Promise<void> => {
   try {
     const billRef = doc(db, COLLECTIONS.PURCHASE_BILLS, billId);
@@ -765,28 +779,69 @@ export const updatePurchaseBillPayment = async (
 
     if (billSnap.exists()) {
       const bill = billSnap.data() as PurchaseBill;
-      const newPaidAmount = (bill.paidAmount || 0) + paidAmount;
-      const paymentStatus =
-        newPaidAmount >= bill.total ? "paid" : bill.paymentStatus;
+      let payments = Array.isArray(bill.payments) ? [...bill.payments] : [];
+      
+      if (paymentId) {
+        // EDIT existing payment
+        const index = payments.findIndex(p => p.id === paymentId);
+        if (index !== -1) {
+          payments[index] = {
+            ...payments[index],
+            amount: paidAmount,
+            method: paymentType,
+            date: date || payments[index].date,
+            note: note !== undefined ? note : payments[index].note,
+          };
+        }
+      } else {
+        // ADD new payment
+        const newPayment: PaymentTransaction = {
+          id: Math.random().toString(36).substr(2, 9),
+          amount: paidAmount,
+          method: paymentType,
+          date: date || new Date().toISOString(),
+          note: note,
+        };
+        payments.push(newPayment);
+      }
 
-      const newPayment: PaymentTransaction = {
-        id: Math.random().toString(36).substr(2, 9),
-        amount: paidAmount,
-        method: paymentType,
-        date: new Date().toISOString(),
-        note: note,
-      };
-
-      const payments = Array.isArray(bill.payments) ? [...bill.payments, newPayment] : [newPayment];
+      // Re-calculate total paid amount from all payments
+      const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+      const paymentStatus = totalPaid >= bill.total ? "paid" : "pending";
 
       await updateDoc(billRef, {
-        paidAmount: newPaidAmount,
+        paidAmount: totalPaid,
         paymentStatus,
         payments: removeUndefined(payments),
       });
     }
   } catch (error) {
     console.error("Error updating purchase bill payment:", error);
+    throw error;
+  }
+};
+
+export const deletePurchaseBillPayment = async (billId: string, paymentId: string): Promise<void> => {
+  try {
+    const billRef = doc(db, COLLECTIONS.PURCHASE_BILLS, billId);
+    const billSnap = await getDoc(billRef);
+
+    if (billSnap.exists()) {
+      const bill = billSnap.data() as PurchaseBill;
+      if (!Array.isArray(bill.payments)) return;
+
+      const payments = bill.payments.filter(p => p.id !== paymentId);
+      const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+      const paymentStatus = totalPaid >= bill.total ? "paid" : "pending";
+
+      await updateDoc(billRef, {
+        paidAmount: totalPaid,
+        paymentStatus,
+        payments: removeUndefined(payments),
+      });
+    }
+  } catch (error) {
+    console.error("Error deleting purchase bill payment:", error);
     throw error;
   }
 };
@@ -872,6 +927,63 @@ export const savePurchaseReturn = async (
   }
 };
 
+export const deletePurchaseReturn = async (returnId: string, purchaseBillId: string, adjustStock: boolean = true): Promise<void> => {
+  try {
+    const userId = getUserId();
+    const batch = writeBatch(db);
+
+    // 1. Delete return record
+    const returnRef = doc(db, COLLECTIONS.PURCHASE_RETURNS, returnId);
+    const returnSnap = await getDoc(returnRef);
+    if (!returnSnap.exists()) return;
+    const returnOrder = returnSnap.data() as PurchaseReturn;
+    batch.delete(returnRef);
+
+    // 2. Update Purchase Bill
+    const billRef = doc(db, COLLECTIONS.PURCHASE_BILLS, purchaseBillId);
+    const billSnap = await getDoc(billRef);
+
+    if (billSnap.exists()) {
+      const bill = billSnap.data() as PurchaseBill;
+      const updatedReturns = (bill.returns || []).filter(r => r.id !== returnId);
+      
+      const newTotal = (bill.total || 0) + returnOrder.totalReturnValue;
+      const newPaymentStatus = (bill.paidAmount || 0) >= newTotal ? "paid" : "pending";
+
+      batch.update(billRef, {
+        returns: removeUndefined(updatedReturns),
+        total: newTotal,
+        paymentStatus: newPaymentStatus,
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    // 3. Revert Stock
+    if (adjustStock) {
+      for (const item of returnOrder.items) {
+        const productsQuery = query(collection(db, COLLECTIONS.PRODUCTS), where("userId", "==", userId));
+        const productsSnap = await getDocs(productsQuery);
+        const productDoc = productsSnap.docs.find(d => (d.data().name as string).toLowerCase().trim() === item.description.toLowerCase().trim());
+        
+        if (productDoc) {
+          const currentStock = productDoc.data().stock || 0;
+          const newStock = currentStock + item.quantity; // Restore stock
+          batch.update(productDoc.ref, { stock: Math.round(newStock * 100) / 100 });
+
+          const q = query(collection(db, COLLECTIONS.INVENTORY), where("purchaseReturnId", "==", returnId));
+          const snap = await getDocs(q);
+          snap.forEach(d => batch.delete(d.ref));
+        }
+      }
+    }
+
+    await batch.commit();
+  } catch (error) {
+    console.error("Error deleting purchase return:", error);
+    throw error;
+  }
+};
+
 export const addPurchaseItemsToInventory = async (
   bill: PurchaseBill,
   itemsWithSellingPrice: InventoryItemInput[],
@@ -887,21 +999,41 @@ export const addPurchaseItemsToInventory = async (
     const conflicts: ProductConflict[] = [];
 
     for (const item of itemsWithSellingPrice) {
-      // Skip if no HSN code provided
-      if (!item.hsnCode) {
-        // Handle items without HSN code - match by name only
-        const existingProduct = products.find(
-          (p) => p.name.toLowerCase() === item.description.toLowerCase()
-        );
+      // 1. Check for manual product selection (isNewProduct = false)
+      if (item.isNewProduct === false && item.productId) {
+        const selectedProduct = products.find((p) => p.id === item.productId);
+        if (selectedProduct) {
+          await updateExistingProduct(selectedProduct, item, bill, batch, userId);
+          updated++;
+          continue;
+        }
+      }
 
+      // 2. Check for manual "Create New" (isNewProduct = true)
+      if (item.isNewProduct === true) {
+        await createNewProduct(item, bill, batch, userId);
+        added++;
+        continue;
+      }
+
+      // 3. Conflict resolution takes precedence if provided (legacy/fallback)
+      if (conflictResolutions && conflictResolutions.has(item.hsnCode || "")) {
+        const chosenName = conflictResolutions.get(item.hsnCode || "")!;
+        const productsWithSameHSN = products.filter(p => p.hsnCode === item.hsnCode);
+        const productToUpdate = productsWithSameHSN.find((p) => p.name === chosenName) || productsWithSameHSN[0];
+
+        if (productToUpdate) {
+          await updateExistingProductWithNameChange(productToUpdate, item, chosenName, bill, batch, userId);
+          updated++;
+          continue;
+        }
+      }
+
+      // 4. Default automated matching logic
+      if (!item.hsnCode) {
+        const existingProduct = products.find((p) => p.name.toLowerCase() === item.description.toLowerCase());
         if (existingProduct) {
-          await updateExistingProduct(
-            existingProduct,
-            item,
-            bill,
-            batch,
-            userId
-          );
+          await updateExistingProduct(existingProduct, item, bill, batch, userId);
           updated++;
         } else {
           await createNewProduct(item, bill, batch, userId);
@@ -910,55 +1042,27 @@ export const addPurchaseItemsToInventory = async (
         continue;
       }
 
-      // Find products with same HSN code
-      const productsWithSameHSN = products.filter(
-        (p) => p.hsnCode && p.hsnCode === item.hsnCode
-      );
+      const productsWithSameHSN = products.filter((p) => p.hsnCode && p.hsnCode === item.hsnCode);
 
       if (productsWithSameHSN.length === 0) {
-        // No existing product with this HSN - create new
         await createNewProduct(item, bill, batch, userId);
         added++;
         continue;
       }
 
-      // Check for exact match (HSN + Name)
-      const exactMatch = productsWithSameHSN.find(
-        (p) => p.name.toLowerCase() === item.description.toLowerCase()
-      );
-
+      const exactMatch = productsWithSameHSN.find((p) => p.name.toLowerCase() === item.description.toLowerCase());
       if (exactMatch) {
-        // Perfect match - update stock
         await updateExistingProduct(exactMatch, item, bill, batch, userId);
         updated++;
         continue;
       }
 
-      // HSN exists but name is different - check if we have a resolution
-      if (conflictResolutions && conflictResolutions.has(item.hsnCode)) {
-        const chosenName = conflictResolutions.get(item.hsnCode)!;
-        const productToUpdate =
-          productsWithSameHSN.find((p) => p.name === chosenName) ||
-          productsWithSameHSN[0];
-
-        // Update the product with chosen name
-        await updateExistingProductWithNameChange(
-          productToUpdate,
-          item,
-          chosenName,
-          bill,
-          batch,
-          userId
-        );
-        updated++;
-      } else {
-        // Conflict detected - add to conflicts array
-        conflicts.push({
-          item,
-          existingProduct: productsWithSameHSN[0],
-          conflictType: "name-mismatch",
-        });
-      }
+      // Conflict detected
+      conflicts.push({
+        item,
+        existingProducts: [productsWithSameHSN[0]],
+        conflictType: "name-mismatch",
+      });
     }
 
     // Only commit if no conflicts or conflicts are resolved
@@ -988,6 +1092,8 @@ export interface InventoryItemInput {
   purchasePrice: number;
   sellingPrice: number;
   gstRate?: number;
+  productId?: string;
+  isNewProduct?: boolean;
 }
 
 const updateExistingProduct = async (
@@ -1033,7 +1139,7 @@ const updateExistingProduct = async (
     billId: bill.id,
     type: "purchase" as const,
     quantity: item.quantity,
-    date: bill.createdAt,
+    date: bill.billDate || bill.createdAt,
     purchasePrice: item.purchasePrice,
     userId,
   };
@@ -1087,7 +1193,7 @@ const updateExistingProductWithNameChange = async (
     billId: bill.id,
     type: "purchase" as const,
     quantity: item.quantity,
-    date: bill.createdAt,
+    date: bill.billDate || bill.createdAt,
     purchasePrice: item.purchasePrice,
     userId,
   };
@@ -1128,7 +1234,7 @@ const createNewProduct = async (
     billId: bill.id,
     type: "purchase" as const,
     quantity: item.quantity,
-    date: bill.createdAt,
+    date: bill.billDate || bill.createdAt,
     purchasePrice: item.purchasePrice,
     userId,
   };

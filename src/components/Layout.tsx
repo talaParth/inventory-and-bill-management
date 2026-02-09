@@ -107,9 +107,54 @@ export function Layout({ children }: LayoutProps) {
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
 
-  const navItems = user.role === 'admin' 
-    ? allNavItems 
-    : allNavItems.filter(item => permissions.includes(item.path));
+  const [navItems, setNavItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    const savedOrder = localStorage.getItem('navItemOrder');
+    const items = user.role === 'admin' 
+      ? allNavItems 
+      : allNavItems.filter(item => permissions.includes(item.path));
+    
+    if (savedOrder) {
+      try {
+        const order = JSON.parse(savedOrder);
+        const orderedItems = order.map((path: string) => items.find(i => i.path === path)).filter(Boolean);
+        // Add any new items that weren't in the saved order
+        const newItems = items.filter(i => !order.includes(i.path));
+        
+        const finalItems = [...orderedItems, ...newItems];
+        // Only update if the items have actually changed
+        const currentPaths = navItems.map(i => i.path).join(',');
+        const finalPaths = finalItems.map(i => i.path).join(',');
+        if (currentPaths !== finalPaths) {
+          setNavItems(finalItems);
+        }
+      } catch (e) {
+        const currentPaths = navItems.map(i => i.path).join(',');
+        const itemsPaths = items.map(i => i.path).join(',');
+        if (currentPaths !== itemsPaths) {
+          setNavItems(items);
+        }
+      }
+    } else {
+      const currentPaths = navItems.map(i => i.path).join(',');
+      const itemsPaths = items.map(i => i.path).join(',');
+      if (currentPaths !== itemsPaths) {
+        setNavItems(items);
+      }
+    }
+  }, [user.role, permissions]);
+
+  const moveItem = (index: number, direction: 'left' | 'right') => {
+    const newItems = [...navItems];
+    const newIndex = direction === 'left' ? index - 1 : index + 1;
+    if (newIndex >= 0 && newIndex < newItems.length) {
+      [newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]];
+      setNavItems(newItems);
+      localStorage.setItem('navItemOrder', JSON.stringify(newItems.map(i => i.path)));
+      toast.success("Navigation reordered");
+    }
+  };
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -195,31 +240,43 @@ export function Layout({ children }: LayoutProps) {
               const Icon = item.icon;
               const active = isActive(item.path);
               return (
-                <Link
+                <div
                   key={item.path}
-                  to={item.path}
-                  className={`
-                      flex flex-col items-center justify-center
-                      min-w-[72px] sm:min-w-[84px] px-2 sm:px-3 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl
-                      snap-center flex-shrink-0 transition-all duration-300 ease-out
-                      shadow-sm backdrop-blur-sm
-                      ${
-                        active
-                          ? "bg-primary text-primary-foreground shadow-lg scale-105 ring-2 ring-primary/30"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:scale-105 hover:shadow-md"
-                      }
-                    `}
+                  className="relative group snap-center flex-shrink-0"
                   style={{ scrollSnapAlign: "center" }}
                 >
-                  <Icon
-                    className={`h-5 w-5 sm:h-6 sm:w-6 mb-0.5 sm:mb-1 ${
-                      active ? "drop-shadow-sm" : ""
-                    }`}
-                  />
-                  <span className="text-[10px] sm:text-xs font-semibold leading-tight text-center px-0.5 sm:px-1">
-                    {item.label}
-                  </span>
-                </Link>
+                  <Link
+                    to={item.path}
+                    className={`
+                        flex flex-col items-center justify-center
+                        min-w-[72px] sm:min-w-[84px] px-2 sm:px-3 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl
+                        transition-all duration-300 ease-out
+                        shadow-sm backdrop-blur-sm
+                        ${
+                          active
+                            ? "bg-primary text-primary-foreground shadow-lg scale-105 ring-2 ring-primary/30"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:scale-105 hover:shadow-md"
+                        }
+                      `}
+                  >
+                    <Icon
+                      className={`h-5 w-5 sm:h-6 sm:w-6 mb-0.5 sm:mb-1 ${
+                        active ? "drop-shadow-sm" : ""
+                      }`}
+                    />
+                    <span className="text-[10px] sm:text-xs font-semibold leading-tight text-center px-0.5 sm:px-1">
+                      {item.label}
+                    </span>
+                  </Link>
+                  <div className="absolute -top-2 left-0 right-0 flex justify-between px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => moveItem(navItems.indexOf(item), 'left')} className="bg-background/80 rounded-full p-0.5 shadow-sm border border-border">
+                      <LayoutDashboard className="h-3 w-3 rotate-180" />
+                    </button>
+                    <button onClick={() => moveItem(navItems.indexOf(item), 'right')} className="bg-background/80 rounded-full p-0.5 shadow-sm border border-border">
+                      <LayoutDashboard className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
               );
             })}
           </div>

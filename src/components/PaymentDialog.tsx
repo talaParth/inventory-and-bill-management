@@ -25,7 +25,7 @@ interface PaymentDialogProps {
   bill: Bill | PurchaseBill;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPaymentCollected: (amount: number, type: PaymentMethod, note?: string) => void;
+  onPaymentCollected: (amount: number, type: PaymentMethod, note?: string, date?: string) => void;
 }
 
 export function PaymentDialog({ bill, open, onOpenChange, onPaymentCollected }: PaymentDialogProps) {
@@ -34,6 +34,7 @@ export function PaymentDialog({ bill, open, onOpenChange, onPaymentCollected }: 
   const pendingAmount = bill.total - (bill.paidAmount || 0);
   const [paymentAmount, setPaymentAmount] = useState(pendingAmount.toString());
   const [paymentType, setPaymentType] = useState<PaymentMethod>("Cash");
+  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [paymentNote, setPaymentNote] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +46,7 @@ export function PaymentDialog({ bill, open, onOpenChange, onPaymentCollected }: 
     await new Promise(resolve => setTimeout(resolve, 800));
 
     const amount = parseFloat(paymentAmount);
-    onPaymentCollected(amount, paymentType, paymentNote);
+    onPaymentCollected(amount, paymentType, paymentNote, paymentDate);
     setLoading(false);
     onOpenChange(false);
     setPaymentNote("");
@@ -110,6 +111,19 @@ export function PaymentDialog({ bill, open, onOpenChange, onPaymentCollected }: 
                 Full Payment
               </Button>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="payment-date" className="text-sm">Payment Date</Label>
+            <Input
+              id="payment-date"
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+              required
+              disabled={loading}
+              className="text-sm sm:text-base"
+            />
           </div>
 
           <div className="space-y-2">
