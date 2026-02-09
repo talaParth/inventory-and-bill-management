@@ -948,7 +948,7 @@ export const addPurchaseItemsToInventory = async (
       // Conflict detected
       conflicts.push({
         item,
-        existingProduct: productsWithSameHSN[0],
+        existingProducts: [productsWithSameHSN[0]],
         conflictType: "name-mismatch",
       });
     }
