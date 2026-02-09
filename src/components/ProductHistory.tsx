@@ -863,6 +863,7 @@ interface PurchaseHistoryItem {
   totalAmount: number;
   billNumber?: string;
   addedToInventory?: boolean;
+  weight?: string;
 }
 
 interface SalesHistoryItem {
@@ -926,6 +927,14 @@ export function ProductHistory({
           // Find the corresponding purchase bill
           const bill = purchaseBills.find((b) => b.id === transaction.billId);
           if (bill) {
+            const billItem = bill.items.find(
+              (item) =>
+                item.description.toLowerCase().trim() ===
+                  product.name.toLowerCase().trim() ||
+                (item.hsnCode &&
+                  product.hsnCode &&
+                  item.hsnCode.trim() === product.hsnCode.trim())
+            );
             purchases.push({
               id: transaction.id,
               date: transaction.date,
@@ -936,6 +945,7 @@ export function ProductHistory({
               totalAmount: transaction.quantity * transaction.purchasePrice,
               billNumber: bill.billNumber,
               addedToInventory: bill.itemsAddedToInventory || false,
+              weight: (billItem as any)?.weight || "",
             });
           }
         }
@@ -985,6 +995,7 @@ export function ProductHistory({
                 totalAmount: item.amount,
                 billNumber: bill.billNumber,
                 addedToInventory: bill.itemsAddedToInventory || false,
+                weight: (item as any).weight || "",
               });
             }
           });
@@ -1440,6 +1451,9 @@ export function ProductHistory({
                                 Bill No
                               </th>
                               <th className="h-10 px-3 sm:px-4 text-right font-medium text-xs sm:text-sm">
+                                Weight
+                              </th>
+                              <th className="h-10 px-3 sm:px-4 text-right font-medium text-xs sm:text-sm">
                                 Qty
                               </th>
                               <th className="h-10 px-3 sm:px-4 text-right font-medium text-xs sm:text-sm">
@@ -1481,6 +1495,9 @@ export function ProductHistory({
                                   ) : (
                                     "-"
                                   )}
+                                </td>
+                                <td className="p-3 sm:p-4 text-xs sm:text-sm text-right whitespace-nowrap">
+                                  {item.weight || "-"}
                                 </td>
                                 <td className="p-3 sm:p-4 text-xs sm:text-sm text-right whitespace-nowrap">
                                   {item.quantity} {item.unit}

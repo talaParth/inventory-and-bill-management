@@ -76,8 +76,9 @@ import {
   roundToTwoDecimals,
 } from "@/lib/billUtils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { InventoryPDF } from "@/components/InventoryPDF";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+import { format } from 'date-fns';
+import { ProductsPDF } from '@/components/ProductsPDF';
 
 export default function Products() {
   const [loading, setLoading] = useState(true);
@@ -561,24 +562,67 @@ export default function Products() {
   const stats = calculateStatistics();
 
   const handleDownloadExcel = () => {
-    const data = products.map((p) => ({
-      Name: p.name,
-      "HSN Code": p.hsnCode,
-      "GST Rate (%)": p.gstRate,
-      Unit: p.unit,
-      "Purchase Price": currentAveragePrices[p.id] || p.purchasePrice || 0,
-      "Selling Price": p.sellingPrice || p.price || 0,
-      Stock: p.stock,
-      "Stock Value": stockValues[p.id] || 0,
-      "Where to Buy": p.whereToBuy || "",
-      Weight: p.weight || "",
-    }));
+    const formatCurr = (amount: number) => `₹${amount.toFixed(2)}`;
+    const workbook = XLSX.utils.book_new();
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
-    XLSX.writeFile(wb, "Inventory.xlsx");
-    toast.success("Excel downloaded successfully");
+    // SHEET 1: Summary
+    const summaryData = [
+      ['INVENTORY SUMMARY'],
+      ['Company:', companyProfile?.name || 'Company Name'],
+      ['Generated:', format(new Date(), 'dd-MM-yyyy HH:mm:ss')],
+      [],
+      ['Total Products', stats.totalProducts],
+      ['Total Stock', stats.totalStock.toFixed(2)],
+      ['Inventory Value', formatCurr(stats.totalInventoryValue)],
+      ['Profit Potential', formatCurr(stats.totalProfitPotential)],
+      ['Average Margin %', `${stats.averageMarginPercent.toFixed(2)}%`],
+    ];
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    summarySheet['!cols'] = [{ wch: 30 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
+
+    // SHEET 2: All Products
+    const productsData = [
+      ['Product Name', 'HSN', 'GST%', 'Unit', 'Stock', 'Purchase Price', 'Selling Price', 'Stock Value', 'Margin %'],
+    ];
+    products.forEach((p) => {
+      const currentAvg = currentAveragePrices[p.id] || p.purchasePrice || 0;
+      const selling = p.sellingPrice || p.price || 0;
+      const margin = currentAvg > 0 ? ((selling - currentAvg) / currentAvg) * 100 : 0;
+      productsData.push([
+        p.name,
+        p.hsnCode,
+        p.gstRate,
+        p.unit,
+        p.stock,
+        currentAvg,
+        selling,
+        stockValues[p.id] || 0,
+        margin.toFixed(2)
+      ]);
+    });
+    const productsSheet = XLSX.utils.aoa_to_sheet(productsData);
+    productsSheet['!cols'] = [
+      { wch: 30 }, { wch: 12 }, { wch: 8 }, { wch: 8 },
+      { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, productsSheet, "All Products");
+
+    // SHEET 3: Top by Value
+    const topValueData = [['Rank', 'Product', 'Stock', 'Value']];
+    [...products]
+      .sort((a, b) => (stockValues[b.id] || 0) - (stockValues[a.id] || 0))
+      .slice(0, 20)
+      .forEach((p, i) => {
+        topValueData.push([i + 1, p.name, p.stock, stockValues[p.id] || 0]);
+      });
+    const topValueSheet = XLSX.utils.aoa_to_sheet(topValueData);
+    topValueSheet['!cols'] = [{ wch: 8 }, { wch: 30 }, { wch: 12 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(workbook, topValueSheet, "Top by Value");
+
+    // Write file
+    XLSX.writeFile(workbook, `Inventory_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
+    toast.success('Excel downloaded successfully');
   };
 
   const unitOptions: string[] = Array.from(
@@ -625,21 +669,25 @@ export default function Products() {
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Excel
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem>
                 <PDFDownloadLink
                   document={
-                    <InventoryPDF
+                    <ProductsPDF
                       products={products}
-                      companyProfile={companyProfile}
+                      stats={stats}
+                      averagePrices={averagePrices}
                       currentAveragePrices={currentAveragePrices}
                       stockValues={stockValues}
+                      companyProfile={companyProfile}
                     />
                   }
                   fileName={`Inventory_Report_${new Date().toISOString().split('T')[0]}.pdf`}
                   className="w-full"
                 >
                   {({ loading }: { loading: boolean }) => (
-                    <div className="flex items-center px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm w-full">
+                    <div 
+                    className="flex items-center text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm w-full"
+                    >
                       <FilePdf className="h-4 w-4 mr-2" />
                       {loading ? "Preparing PDF..." : "PDF"}
                     </div>
@@ -1359,8 +1407,8 @@ export default function Products() {
                       </span>
                       <span
                         className={`text-lg font-bold ${product.stock < 10
-                            ? "text-orange-600"
-                            : "text-emerald-600"
+                          ? "text-orange-600"
+                          : "text-emerald-600"
                           }`}
                       >
                         {product.stock % 1 === 0

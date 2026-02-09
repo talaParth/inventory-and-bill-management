@@ -22,6 +22,7 @@ import {
   FileStack,
   UserCheck,
   LogOut,
+  Sparkles,
 } from "lucide-react";
 import { getCompanyProfile } from "@/lib/storage";
 
@@ -101,6 +102,7 @@ export function Layout({ children }: LayoutProps) {
     { path: "/clients", icon: Users, label: "Clients" },
     { path: "/files", icon: FolderOpen, label: "Files" },
     { path: "/notes", icon: StickyNote, label: "Notes" },
+    { path: "/ai-agent", icon: Sparkles, label: "AI-Agent" },
     { path: "/bill-creators", icon: UserCheck, label: "Creators" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
