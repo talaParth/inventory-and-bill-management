@@ -89,6 +89,152 @@ const removeUndefined = (obj: any): any => {
   return obj;
 };
 
+// Purchase Returns
+export const savePurchaseReturn = async (
+  returnOrder: PurchaseReturn,
+  purchaseBillId: string
+): Promise<void> => {
+  try {
+    const userId = getUserId();
+    const batch = writeBatch(db);
+
+    // 1. Save the return record
+    const returnRef = doc(db, COLLECTIONS.PURCHASE_RETURNS, returnOrder.id);
+    batch.set(returnRef, removeUndefined({ ...returnOrder, userId }));
+
+    // 2. Update the Purchase Bill
+    const purchaseBillRef = doc(db, COLLECTIONS.PURCHASE_BILLS, purchaseBillId);
+    const purchaseBillSnap = await getDoc(purchaseBillRef);
+    if (purchaseBillSnap.exists()) {
+      const bill = purchaseBillSnap.data() as PurchaseBill;
+      const returns = bill.returns || [];
+      const updatedReturns = [...returns, returnOrder];
+      
+      // Update payment status if needed
+      const totalReturnValue = returnOrder.totalReturnValue;
+      const newTotal = bill.total - totalReturnValue;
+      const newPaidAmount = bill.paidAmount;
+      const newPaymentStatus = newPaidAmount >= newTotal ? "paid" : bill.paymentStatus;
+
+      batch.update(purchaseBillRef, {
+        returns: removeUndefined(updatedReturns),
+        paymentStatus: newPaymentStatus,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    // 3. Update stock for returned items
+    for (const item of returnOrder.items) {
+      if (item.condition === "good") {
+        // Find the product by name
+        const q = query(
+          collection(db, COLLECTIONS.PRODUCTS),
+          where("userId", "==", userId),
+          where("name", "==", item.productName)
+        );
+        const productSnap = await getDocs(q);
+        if (!productSnap.empty) {
+          const productDoc = productSnap.docs[0];
+          const product = productDoc.data() as Product;
+          const newStock = Math.round((product.stock - item.quantity) * 100) / 100;
+          batch.update(productDoc.ref, { stock: Math.max(0, newStock) });
+
+          // Record inventory transaction
+          const invRef = doc(collection(db, COLLECTIONS.INVENTORY));
+          batch.set(invRef, removeUndefined({
+            id: invRef.id,
+            productId: product.id,
+            purchaseBillId: purchaseBillId,
+            type: "return",
+            quantity: -item.quantity,
+            date: returnOrder.returnDate,
+            userId,
+          }));
+        }
+      }
+    }
+
+    await batch.commit();
+  } catch (error) {
+    console.error("Error saving purchase return:", error);
+    throw error;
+  }
+};
+
+export const deletePurchaseReturn = async (
+  returnId: string,
+  purchaseBillId: string
+): Promise<void> => {
+  try {
+    const userId = getUserId();
+    const batch = writeBatch(db);
+
+    // 1. Get the return
+    const returnRef = doc(db, COLLECTIONS.PURCHASE_RETURNS, returnId);
+    const returnSnap = await getDoc(returnRef);
+    if (!returnSnap.exists()) return;
+
+    const returnData = returnSnap.data() as PurchaseReturn;
+
+    // 2. Delete the return document
+    batch.delete(returnRef);
+
+    // 3. Update the Purchase Bill
+    const purchaseBillRef = doc(db, COLLECTIONS.PURCHASE_BILLS, purchaseBillId);
+    const purchaseBillSnap = await getDoc(purchaseBillRef);
+    if (purchaseBillSnap.exists()) {
+      const bill = purchaseBillSnap.data() as PurchaseBill;
+      const updatedReturns = (bill.returns || []).filter(r => r.id !== returnId);
+      
+      // Recalculate payment status
+      const totalReturned = updatedReturns.reduce((sum, r) => sum + r.totalReturnValue, 0);
+      const newTotal = bill.total - totalReturned;
+      const newPaymentStatus = bill.paidAmount >= newTotal ? "paid" : "pending";
+
+      batch.update(purchaseBillRef, {
+        returns: removeUndefined(updatedReturns),
+        paymentStatus: newPaymentStatus,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    // 4. Revert stock for returned items
+    for (const item of returnData.items) {
+      if (item.condition === "good") {
+        const q = query(
+          collection(db, COLLECTIONS.PRODUCTS),
+          where("userId", "==", userId),
+          where("name", "==", item.productName)
+        );
+        const productSnap = await getDocs(q);
+        if (!productSnap.empty) {
+          const productDoc = productSnap.docs[0];
+          const product = productDoc.data() as Product;
+          const newStock = Math.round((product.stock + item.quantity) * 100) / 100;
+          batch.update(productDoc.ref, { stock: newStock });
+
+          // Record inventory transaction to revert
+          const invRef = doc(collection(db, COLLECTIONS.INVENTORY));
+          batch.set(invRef, removeUndefined({
+            id: invRef.id,
+            productId: product.id,
+            purchaseBillId: purchaseBillId,
+            type: "purchase",
+            quantity: item.quantity,
+            date: new Date().toISOString(),
+            userId,
+          }));
+        }
+      }
+    }
+
+    await batch.commit();
+  } catch (error) {
+    console.error("Error deleting purchase return:", error);
+    throw error;
+  }
+};
+
 // Creators
 export const getCreators = async (): Promise<any[]> => {
   try {
