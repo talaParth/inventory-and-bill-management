@@ -1027,7 +1027,7 @@ const updateExistingProduct = async (
     billId: bill.id,
     type: "purchase" as const,
     quantity: item.quantity,
-    date: bill.createdAt,
+    date: bill.billDate || bill.createdAt,
     purchasePrice: item.purchasePrice,
     userId,
   };
@@ -1081,7 +1081,7 @@ const updateExistingProductWithNameChange = async (
     billId: bill.id,
     type: "purchase" as const,
     quantity: item.quantity,
-    date: bill.createdAt,
+    date: bill.billDate || bill.createdAt,
     purchasePrice: item.purchasePrice,
     userId,
   };
@@ -1122,7 +1122,7 @@ const createNewProduct = async (
     billId: bill.id,
     type: "purchase" as const,
     quantity: item.quantity,
-    date: bill.createdAt,
+    date: bill.billDate || bill.createdAt,
     purchasePrice: item.purchasePrice,
     userId,
   };
