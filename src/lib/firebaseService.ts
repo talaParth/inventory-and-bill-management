@@ -989,6 +989,7 @@ export interface InventoryItemInput {
   sellingPrice: number;
   gstRate?: number;
   productId?: string;
+  isNewProduct?: boolean;
 }
 
 const updateExistingProduct = async (

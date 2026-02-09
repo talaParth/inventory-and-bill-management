@@ -193,12 +193,20 @@ export default function PurchaseBills() {
   >([]);
   const [companyProfile, setCompanyProfile] = useState<any>(null);
 
+  const [products, setProducts] = useState<any[]>([]);
+
   useEffect(() => {
     // Update overdue status on load
     updatePurchaseBillOverdueStatus().catch(console.error);
     loadBills();
     loadCompanyProfile();
+    loadProducts();
   }, []);
+
+  const loadProducts = async () => {
+    const data = await getProducts();
+    setProducts(data);
+  };
 
   const formatErrorForUser = (error: unknown) => {
     try {
@@ -575,7 +583,8 @@ export default function PurchaseBills() {
         purchasePrice: item.purchasePrice,
         sellingPrice: item.sellingPrice,
         gstRate: item.gstRate,
-        productId: item.isNewProduct ? undefined : item.productId,
+        productId: item.productId,
+        isNewProduct: item.isNewProduct,
       }));
 
       const result = await addPurchaseItemsToInventory(
@@ -2196,42 +2205,73 @@ export default function PurchaseBills() {
                     </Badge>
                   </div>
                   
-                  {/* Matching Option */}
-                  <div className="mt-2 p-2 bg-background/50 rounded-md border border-dashed">
-                    <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-1">Inventory Action</p>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant={item.isNewProduct ? "default" : "outline"}
-                        size="sm"
-                        className="flex-1 h-8 text-xs py-0"
-                        onClick={() => {
-                          const newItems = [...inventoryItems];
-                          newItems[index].isNewProduct = true;
-                          setInventoryItems(newItems);
-                        }}
-                      >
-                        Create New
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={!item.isNewProduct ? "default" : "outline"}
-                        size="sm"
-                        className="flex-1 h-8 text-xs py-0"
-                        disabled={!item.productId}
-                        onClick={() => {
-                          const newItems = [...inventoryItems];
-                          newItems[index].isNewProduct = false;
-                          setInventoryItems(newItems);
-                        }}
-                      >
-                        Update Stock
-                      </Button>
-                    </div>
-                    {!item.productId && (
-                      <p className="text-[10px] text-amber-600 mt-1 px-1">No matching product found by name/HSN</p>
-                    )}
-                  </div>
+                          {/* Matching Option */}
+                          <div className="mt-2 p-2 bg-background/50 rounded-md border border-dashed">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-1">Inventory Action</p>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant={item.isNewProduct ? "default" : "outline"}
+                                size="sm"
+                                className="flex-1 h-8 text-xs py-0"
+                                onClick={() => {
+                                  const newItems = [...inventoryItems];
+                                  newItems[index].isNewProduct = true;
+                                  setInventoryItems(newItems);
+                                }}
+                              >
+                                Create New
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={!item.isNewProduct ? "default" : "outline"}
+                                size="sm"
+                                className="flex-1 h-8 text-xs py-0"
+                                disabled={!item.productId}
+                                onClick={() => {
+                                  const newItems = [...inventoryItems];
+                                  newItems[index].isNewProduct = false;
+                                  setInventoryItems(newItems);
+                                }}
+                              >
+                                Update Stock
+                              </Button>
+                            </div>
+                            
+                            {/* Product Selector for Update Stock */}
+                            {!item.isNewProduct && (
+                              <div className="mt-2 space-y-1">
+                                <Label className="text-[10px] px-1">Selected Product</Label>
+                                <Select 
+                                  value={item.productId} 
+                                  onValueChange={(val) => {
+                                    const newItems = [...inventoryItems];
+                                    newItems[index].productId = val;
+                                    const selectedProduct = products.find(p => p.id === val);
+                                    if (selectedProduct) {
+                                      newItems[index].hsnCode = selectedProduct.hsnCode || "";
+                                    }
+                                    setInventoryItems(newItems);
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue placeholder="Select Product" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {products.map(p => (
+                                      <SelectItem key={p.id} value={p.id} className="text-xs">
+                                        {p.name} (₹{p.sellingPrice})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            {!item.productId && !item.isNewProduct && (
+                              <p className="text-[10px] text-amber-600 mt-1 px-1">No matching product found by name/HSN</p>
+                            )}
+                          </div>
 
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     <div className="space-y-1">
