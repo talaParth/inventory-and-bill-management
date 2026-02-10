@@ -660,12 +660,12 @@ export default function Products() {
   }
 
   return (
-    <div className="space-y-6 p-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Products</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your product inventory
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">Products</h1>
+          <p className="text-lg text-muted-foreground mt-2">
+            Manage your product inventory and track stock value.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
