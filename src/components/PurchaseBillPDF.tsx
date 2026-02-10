@@ -178,18 +178,23 @@ export const PurchaseBillPDF: React.FC<PurchaseBillPDFProps> = ({ bill }) => {
               <Text style={styles.col1}>Product / Reason</Text>
               <Text style={styles.col2}>Qty</Text>
               <Text style={styles.col3}>Date</Text>
-              <Text style={styles.col5}>Value</Text>
+              <Text style={styles.col5}>Value (incl. GST)</Text>
             </View>
             {bill.returns.map((ret, index) => (
               <React.Fragment key={index}>
-                {ret.items.map((item, iIdx) => (
-                  <View key={`${index}-${iIdx}`} style={styles.tableRow}>
-                    <Text style={styles.col1}>{item.description}</Text>
-                    <Text style={styles.col2}>{item.quantity}</Text>
-                    <Text style={styles.col3}>{formatDate(ret.returnDate)}</Text>
-                    <Text style={styles.col5}>-{formatPDFCurrency(item.quantity * item.rate)}</Text>
-                  </View>
-                ))}
+                {ret.items.map((item, iIdx) => {
+                  const itemValue = item.quantity * item.rate;
+                  const itemGst = itemValue * (item.gstRate / 100);
+                  const totalWithGst = itemValue + itemGst;
+                  return (
+                    <View key={`${index}-${iIdx}`} style={styles.tableRow}>
+                      <Text style={styles.col1}>{item.description}</Text>
+                      <Text style={styles.col2}>{item.quantity}</Text>
+                      <Text style={styles.col3}>{formatDate(ret.returnDate)}</Text>
+                      <Text style={styles.col5}>-{formatPDFCurrency(totalWithGst)}</Text>
+                    </View>
+                  );
+                })}
               </React.Fragment>
             ))}
           </View>
@@ -211,7 +216,7 @@ export const PurchaseBillPDF: React.FC<PurchaseBillPDFProps> = ({ bill }) => {
             </View>
             {totalReturnAmount > 0 && (
               <View style={styles.summaryRow}>
-                <Text style={{ color: '#f97316' }}>Returned:</Text>
+                <Text style={{ color: '#f97316' }}>Returned (incl. GST):</Text>
                 <Text style={{ color: '#f97316' }}>-{formatPDFCurrency(totalReturnAmount)}</Text>
               </View>
             )}

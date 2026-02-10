@@ -2146,7 +2146,7 @@ export default function PurchaseBills() {
                                     {formatDate(ret.returnDate)}
                                   </td>
                                   <td className="px-6 py-4 text-right font-bold text-orange-600">
-                                    -{formatCurrency(item.quantity * item.rate)}
+                                    -{formatCurrency(item.quantity * item.rate * (1 + (item.gstRate || 0) / 100))}
                                   </td>
                                 </tr>
                               ))
