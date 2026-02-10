@@ -1,96 +1,167 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
-import { PurchaseBill, PurchaseReturn } from '@/types';
-import { formatCurrency, formatDate } from '@/lib/billUtils';
+import { PurchaseBill } from '@/types';
+import { formatDate } from '@/lib/billUtils';
 
-// Register fonts if needed, or use standard ones
+// Register a font that supports the Rupee symbol
+Font.register({
+  family: 'Inter',
+  src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Bg-4.ttf',
+});
+
 const styles = StyleSheet.create({
   page: {
-    padding: 30,
+    padding: 40,
     fontSize: 10,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Inter',
+    color: '#333',
   },
   header: {
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 30,
+    borderBottomWidth: 2,
+    borderBottomColor: '#3b82f6',
+    paddingBottom: 15,
   },
   title: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 5,
+    color: '#1e40af',
   },
-  section: {
-    marginBottom: 15,
+  headerDetails: {
+    textAlign: 'right',
+  },
+  vendorSection: {
+    marginBottom: 25,
+    backgroundColor: '#eff6ff',
+    padding: 15,
+    borderRadius: 5,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 5,
-    backgroundColor: '#f9f9f9',
-    padding: 3,
+    marginBottom: 10,
+    color: '#1e40af',
+    borderBottomWidth: 1,
+    borderBottomColor: '#d1d5db',
+    paddingBottom: 3,
   },
-  row: {
-    flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#eee',
-    paddingVertical: 5,
+  table: {
+    marginBottom: 20,
   },
   tableHeader: {
-    backgroundColor: '#f0f0f0',
+    flexDirection: 'row',
+    backgroundColor: '#3b82f6',
+    color: '#fff',
+    padding: 8,
     fontWeight: 'bold',
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    padding: 8,
   },
   col1: { width: '40%' },
   col2: { width: '15%', textAlign: 'center' },
   col3: { width: '15%', textAlign: 'right' },
   col4: { width: '15%', textAlign: 'right' },
   col5: { width: '15%', textAlign: 'right' },
-  summary: {
-    marginTop: 20,
-    alignSelf: 'flex-end',
+  summaryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  summaryBox: {
     width: '40%',
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 2,
+    paddingVertical: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#f3f4f6',
   },
-  total: {
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 2,
+    borderTopColor: '#1e40af',
     fontWeight: 'bold',
-    fontSize: 12,
-    marginTop: 5,
-    borderTopWidth: 1,
-    borderTopColor: '#000',
-    paddingTop: 5,
+    fontSize: 14,
+    color: '#1e40af',
   },
-  badge: {
+  paymentSection: {
+    marginTop: 30,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e5e7eb',
+    fontSize: 9,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
     fontSize: 8,
-    padding: 2,
-    borderRadius: 3,
-    backgroundColor: '#eee',
-    marginLeft: 5,
-  }
+    color: '#9ca3af',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 10,
+  },
 });
+
+const formatPDFCurrency = (amount: number) => {
+  return `₹${amount.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 
 interface PurchaseBillPDFProps {
   bill: PurchaseBill;
 }
 
 export const PurchaseBillPDF: React.FC<PurchaseBillPDFProps> = ({ bill }) => {
+  const totalReturnAmount = bill.returns?.reduce((s, r) => s + r.totalReturnValue, 0) || 0;
+  const originalTotal = bill.total + totalReturnAmount;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>Purchase Bill Details</Text>
-          <Text>Vendor: {bill.vendorName}</Text>
-          <Text>Bill #: {bill.billNumber || 'N/A'}</Text>
-          <Text>Date: {formatDate(bill.billDate || bill.createdAt)}</Text>
+          <View>
+            <Text style={styles.title}>PURCHASE INVOICE</Text>
+            <Text style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
+              Status: {bill.paymentStatus?.toUpperCase() || 'PENDING'}
+            </Text>
+          </View>
+          <View style={styles.headerDetails}>
+            <Text style={{ fontWeight: 'bold' }}>Bill #: {bill.billNumber || 'N/A'}</Text>
+            <Text>Date: {formatDate(bill.billDate || bill.createdAt)}</Text>
+            {bill.dueDate && <Text>Due: {formatDate(bill.dueDate)}</Text>}
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Bill Items</Text>
-          <View style={[styles.row, styles.tableHeader]}>
+        <View style={styles.vendorSection}>
+          <Text style={{ fontWeight: 'bold', fontSize: 12, marginBottom: 5 }}>VENDOR DETAILS</Text>
+          <Text style={{ fontSize: 14, fontWeight: 'bold' }}>{bill.vendorName}</Text>
+          {bill.vendorGstin && <Text style={{ marginTop: 2 }}>GSTIN: {bill.vendorGstin}</Text>}
+        </View>
+
+        <View style={styles.table}>
+          <Text style={styles.sectionTitle}>BILL ITEMS</Text>
+          <View style={styles.tableHeader}>
             <Text style={styles.col1}>Description</Text>
             <Text style={styles.col2}>Qty</Text>
             <Text style={styles.col3}>Rate</Text>
@@ -98,20 +169,20 @@ export const PurchaseBillPDF: React.FC<PurchaseBillPDFProps> = ({ bill }) => {
             <Text style={styles.col5}>Total</Text>
           </View>
           {bill.items.map((item, index) => (
-            <View key={index} style={styles.row}>
+            <View key={index} style={styles.tableRow}>
               <Text style={styles.col1}>{item.description}</Text>
               <Text style={styles.col2}>{item.quantity} {item.unit}</Text>
-              <Text style={styles.col3}>{formatCurrency(item.rate)}</Text>
+              <Text style={styles.col3}>{formatPDFCurrency(item.rate)}</Text>
               <Text style={styles.col4}>{item.gstRate}%</Text>
-              <Text style={styles.col5}>{formatCurrency(item.amount)}</Text>
+              <Text style={styles.col5}>{formatPDFCurrency(item.amount)}</Text>
             </View>
           ))}
         </View>
 
         {bill.returns && bill.returns.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Purchase Returns</Text>
-            <View style={[styles.row, styles.tableHeader]}>
+          <View style={styles.table}>
+            <Text style={styles.sectionTitle}>RETURNS</Text>
+            <View style={[styles.tableHeader, { backgroundColor: '#f97316' }]}>
               <Text style={styles.col1}>Product / Reason</Text>
               <Text style={styles.col2}>Qty</Text>
               <Text style={styles.col3}>Date</Text>
@@ -120,11 +191,11 @@ export const PurchaseBillPDF: React.FC<PurchaseBillPDFProps> = ({ bill }) => {
             {bill.returns.map((ret, index) => (
               <React.Fragment key={index}>
                 {ret.items.map((item, iIdx) => (
-                  <View key={`${index}-${iIdx}`} style={styles.row}>
+                  <View key={`${index}-${iIdx}`} style={styles.tableRow}>
                     <Text style={styles.col1}>{item.description}</Text>
                     <Text style={styles.col2}>{item.quantity}</Text>
                     <Text style={styles.col3}>{formatDate(ret.returnDate)}</Text>
-                    <Text style={styles.col5}>{formatCurrency(item.quantity * item.rate)}</Text>
+                    <Text style={styles.col5}>-{formatPDFCurrency(item.quantity * item.rate)}</Text>
                   </View>
                 ))}
               </React.Fragment>
@@ -132,38 +203,67 @@ export const PurchaseBillPDF: React.FC<PurchaseBillPDFProps> = ({ bill }) => {
           </View>
         )}
 
-        <View style={styles.summary}>
-          <View style={styles.summaryRow}>
-            <Text>Subtotal:</Text>
-            <Text>{formatCurrency(bill.subtotal)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text>Tax:</Text>
-            <Text>{formatCurrency(bill.totalTax)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text>Original Total:</Text>
-            <Text>{formatCurrency(bill.total + (bill.returns?.reduce((s, r) => s + r.totalReturnValue, 0) || 0))}</Text>
-          </View>
-          {bill.returns && bill.returns.length > 0 && (
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryBox}>
             <View style={styles.summaryRow}>
-              <Text>Total Returned:</Text>
-              <Text>- {formatCurrency(bill.returns.reduce((s, r) => s + r.totalReturnValue, 0))}</Text>
+              <Text>Subtotal:</Text>
+              <Text>{formatPDFCurrency(bill.subtotal)}</Text>
             </View>
-          )}
-          <View style={[styles.summaryRow, styles.total]}>
-            <Text>Net Amount:</Text>
-            <Text>{formatCurrency(bill.total)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text>Paid Amount:</Text>
-            <Text>{formatCurrency(bill.paidAmount)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text>Balance Due:</Text>
-            <Text>{formatCurrency(bill.total - bill.paidAmount)}</Text>
+            <View style={styles.summaryRow}>
+              <Text>Total Tax:</Text>
+              <Text>{formatPDFCurrency(bill.totalTax)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text>Bill Total:</Text>
+              <Text>{formatPDFCurrency(originalTotal)}</Text>
+            </View>
+            {totalReturnAmount > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={{ color: '#f97316' }}>Returned:</Text>
+                <Text style={{ color: '#f97316' }}>-{formatPDFCurrency(totalReturnAmount)}</Text>
+              </View>
+            )}
+            <View style={styles.totalRow}>
+              <Text>Net Amount:</Text>
+              <Text>{formatPDFCurrency(bill.total)}</Text>
+            </View>
+            <View style={[styles.summaryRow, { marginTop: 10 }]}>
+              <Text>Paid Amount:</Text>
+              <Text style={{ color: '#059669', fontWeight: 'bold' }}>{formatPDFCurrency(bill.paidAmount)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text>Balance Due:</Text>
+              <Text style={{ color: bill.total - bill.paidAmount > 0 ? '#dc2626' : '#059669', fontWeight: 'bold' }}>
+                {formatPDFCurrency(bill.total - bill.paidAmount)}
+              </Text>
+            </View>
           </View>
         </View>
+
+        {bill.payments && bill.payments.length > 0 && (
+          <View style={styles.paymentSection}>
+            <Text style={styles.sectionTitle}>PAYMENT HISTORY</Text>
+            <View style={[styles.tableHeader, { backgroundColor: '#64748b' }]}>
+              <Text style={{ width: '30%' }}>Date</Text>
+              <Text style={{ width: '30%' }}>Method</Text>
+              <Text style={{ width: '40%', textAlign: 'right' }}>Amount</Text>
+            </View>
+            {bill.payments.map((payment, index) => (
+              <View key={index} style={styles.paymentRow}>
+                <Text style={{ width: '30%' }}>{formatDate(payment.date)}</Text>
+                <Text style={{ width: '30%' }}>{payment.method}</Text>
+                <Text style={{ width: '40%', textAlign: 'right', fontWeight: 'bold' }}>
+                  {formatPDFCurrency(payment.amount)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <Text style={styles.footer}>
+          Shree Rudra Jewels - 9R NFC Invoice Management System
+          {"\n"}This is a computer generated document.
+        </Text>
       </Page>
     </Document>
   );
