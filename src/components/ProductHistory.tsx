@@ -866,6 +866,7 @@ interface PurchaseHistoryItem {
   billNumber?: string;
   addedToInventory?: boolean;
   weight?: string;
+  isReturn?: boolean;
 }
 
 interface SalesHistoryItem {
@@ -1066,7 +1067,7 @@ export function ProductHistory({
               date: pReturn.returnDate || pReturn.createdAt,
               vendorName: `Purchase Return: ${pReturn.vendorName}`,
               quantity: -item.quantity, // Negative quantity for return
-              unit: item.unit || product.unit,
+              unit: (item as any).unit || product.unit,
               purchasePrice: item.rate,
               totalAmount: -(item.quantity * item.rate),
               billNumber: pReturn.billNumber,
@@ -1560,7 +1561,7 @@ export function ProductHistory({
                                 Date
                               </th>
                               <th className="h-10 px-3 sm:px-4 text-left font-medium text-xs sm:text-sm">
-                                Vendor/Type
+                                Vendor
                               </th>
                               <th className="h-10 px-3 sm:px-4 text-left font-medium text-xs sm:text-sm">
                                 Bill No
@@ -1603,7 +1604,7 @@ export function ProductHistory({
                                     <span>{item.vendorName}</span>
                                     {item.quantity < 0 && (
                                       <span className="text-[10px] text-red-500 font-normal">
-                                        Sales Return
+                                        Purchase Return
                                       </span>
                                     )}
                                   </div>
