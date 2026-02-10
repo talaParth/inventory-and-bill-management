@@ -39,6 +39,7 @@ export {
   validateBillStock,
   getBillReturns,
   saveBillReturn,
+  getPurchaseReturns,
   getDeadstock,
   saveDeadstockItem,
   processBillReturn,

@@ -1400,6 +1400,29 @@ export const getBillReturns = async (): Promise<BillReturn[]> => {
   }
 };
 
+export const getPurchaseReturns = async (): Promise<PurchaseReturn[]> => {
+  try {
+    const userId = getUserId();
+    const q = query(
+      collection(db, COLLECTIONS.PURCHASE_RETURNS),
+      where("userId", "==", userId)
+    );
+    const querySnapshot = await getDocs(q);
+
+    const returns = querySnapshot.docs.map((doc) => doc.data() as PurchaseReturn);
+
+    // Sort by createdAt descending in JavaScript (avoids index requirement)
+    return returns.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+  } catch (error) {
+    console.error("Error getting purchase returns:", error);
+    return [];
+  }
+};
+
 export const saveBillReturn = async (billReturn: BillReturn): Promise<void> => {
   try {
     const userId = getUserId();

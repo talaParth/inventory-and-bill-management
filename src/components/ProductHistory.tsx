@@ -834,6 +834,7 @@ import {
   getBills,
   getPurchaseBills,
   getBillReturns,
+  getPurchaseReturns,
   getProductTransactions,
 } from "@/lib/storage";
 import {
@@ -914,11 +915,12 @@ export function ProductHistory({
   const loadHistory = async () => {
     setLoading(true);
     try {
-      const [bills, purchaseBills, billReturns, transactions] =
+      const [bills, purchaseBills, billReturns, purchaseReturns, transactions] =
         await Promise.all([
           getBills(),
           getPurchaseBills(),
           getBillReturns(),
+          getPurchaseReturns(),
           getProductTransactions(product.id),
         ]);
 
@@ -1048,36 +1050,29 @@ export function ProductHistory({
               returnId: billReturn.id,
             };
             returns.push(returnItem);
+          }
+        });
+      });
 
-            // Also add to purchase history as a negative entry (return)
-            // Use price from the return item or fallback to product selling/purchase price
-            const itemAny = item as any;
-            const price = Number(
-              itemAny.ratePerUnit ||
-                itemAny.rate ||
-                itemAny.sellingPrice ||
-                itemAny.costPrice || // Check for costPrice as well
-                product.sellingPrice ||
-                product.purchasePrice ||
-                0,
-            );
-            const qty = Number(itemAny.quantity || 0);
-
-            if (qty > 0) {
-              console.log(`Adding return for product ${product.id}: qty=${qty}, price=${price}`);
-              purchases.push({
-                id: `return-${billReturn.id}-${item.productId}`,
-                date: billReturn.returnDate || billReturn.createdAt,
-                vendorName: `Sales Return: ${billReturn.clientName}`,
-                quantity: -qty, // Negative quantity for return
-                unit: product.unit,
-                purchasePrice: price,
-                totalAmount: -(qty * price),
-                billNumber: billReturn.billNumber,
-                addedToInventory: item.condition === "good",
-                isReturn: true, // Mark as return for UI coloring
-              });
-            }
+      // Find purchase return history - match by productId and add to purchase history
+      purchaseReturns.forEach((pReturn) => {
+        pReturn.items.forEach((item) => {
+          // Match by description since purchase returns might not have productId
+          const isMatch = item.description.toLowerCase().trim() === product.name.toLowerCase().trim();
+          
+          if (isMatch) {
+            purchases.push({
+              id: `p-return-${pReturn.id}-${item.description}`,
+              date: pReturn.returnDate || pReturn.createdAt,
+              vendorName: `Purchase Return: ${pReturn.vendorName}`,
+              quantity: -item.quantity, // Negative quantity for return
+              unit: item.unit || product.unit,
+              purchasePrice: item.rate,
+              totalAmount: -(item.quantity * item.rate),
+              billNumber: pReturn.billNumber,
+              addedToInventory: true,
+              isReturn: true,
+            });
           }
         });
       });
