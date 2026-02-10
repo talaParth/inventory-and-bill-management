@@ -367,7 +367,13 @@ export default function PurchaseBills() {
 
     // Status filter
     if (statusFilter !== "all") {
-      filtered = filtered.filter((bill) => bill.paymentStatus === statusFilter);
+      filtered = filtered.filter((bill) => {
+        if (statusFilter === "overpaid") {
+          const netTotal = bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0);
+          return (netTotal - (bill.paidAmount || 0)) < 0;
+        }
+        return bill.paymentStatus === statusFilter;
+      });
     }
 
     // GST filter
@@ -940,7 +946,18 @@ export default function PurchaseBills() {
     const netTotal = bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0);
     const remaining = netTotal - paidAmount;
 
-    if (remaining <= 0) {
+    if (remaining < 0) {
+      return (
+        <Badge
+          variant="default"
+          className="bg-orange-600 hover:bg-orange-700"
+        >
+          <IndianRupee className="h-3 w-3 mr-1" /> Overpaid
+        </Badge>
+      );
+    }
+
+    if (remaining === 0) {
       return (
         <Badge
           variant="default"
@@ -1074,6 +1091,7 @@ export default function PurchaseBills() {
             <SelectItem value="paid">Paid</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="overdue">Overdue</SelectItem>
+            <SelectItem value="overpaid">Overpaid</SelectItem>
           </SelectContent>
         </Select>
         <Select value={gstFilter} onValueChange={setGstFilter}>
