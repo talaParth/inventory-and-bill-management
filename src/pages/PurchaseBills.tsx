@@ -1857,7 +1857,7 @@ export default function PurchaseBills() {
                         <span className="text-lg font-normal text-muted-foreground">
                           {
                             (isEditing ? editedBill?.items : selectedBill?.items)
-                              .length
+                              ?.length
                           }{" "}
                           item(s)
                         </span>
@@ -2102,6 +2102,61 @@ export default function PurchaseBills() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Purchase Returns Section */}
+                {selectedBill?.returns && selectedBill.returns.length > 0 && (
+                  <Card className="overflow-hidden shadow-sm border-2 border-orange-200 bg-orange-50/5">
+                    <CardHeader className="bg-orange-100/30 px-6 py-5">
+                      <CardTitle className="text-2xl lg:text-3xl flex items-center gap-3 text-orange-600">
+                        <RotateCcw className="h-7 w-7" />
+                        Purchase Returns
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm lg:text-lg">
+                          <thead className="bg-orange-100/50">
+                            <tr>
+                              <th className="text-left px-6 py-4 font-semibold">Item / Reason</th>
+                              <th className="text-center px-6 py-4 font-semibold">Qty</th>
+                              <th className="text-right px-6 py-4 font-semibold">Date</th>
+                              <th className="text-right px-6 py-4 font-semibold">Value</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-orange-100">
+                            {selectedBill.returns.map((ret) => (
+                              ret.items.map((item, idx) => (
+                                <tr key={`${ret.id}-${idx}`} className="hover:bg-orange-100/10">
+                                  <td className="px-6 py-4">
+                                    <div className="space-y-1">
+                                      <p className="font-bold text-foreground">{item.description}</p>
+                                      {ret.notes && (
+                                        <p className="text-sm text-muted-foreground italic flex items-center gap-1">
+                                          <BookOpen className="h-3 w-3" /> {ret.notes}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 text-center">
+                                    <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-100/50 font-bold">
+                                      -{item.quantity}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-6 py-4 text-right text-muted-foreground">
+                                    {formatDate(ret.returnDate)}
+                                  </td>
+                                  <td className="px-6 py-4 text-right font-bold text-orange-600">
+                                    -{formatCurrency(item.quantity * item.rate)}
+                                  </td>
+                                </tr>
+                              ))
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Totals Summary */}
                 <Card className="shadow-sm">
