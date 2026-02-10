@@ -1646,17 +1646,23 @@ export function ProductHistory({
                                 <td className="p-3 sm:p-4 text-xs sm:text-sm">
                                   <Badge
                                     variant={
-                                      item.addedToInventory
+                                      item.isReturn
+                                        ? "outline"
+                                        : item.addedToInventory
                                         ? "default"
                                         : "secondary"
                                     }
                                     className={`text-[10px] sm:text-xs ${
-                                      item.addedToInventory
+                                      item.isReturn
+                                        ? "text-red-600 border-red-200 bg-red-50"
+                                        : item.addedToInventory
                                         ? "bg-emerald-600"
                                         : ""
                                     }`}
                                   >
-                                    {item.addedToInventory
+                                    {item.isReturn
+                                      ? "Returned to Vendor"
+                                      : item.addedToInventory
                                       ? "In Inventory"
                                       : item.quantity < 0
                                         ? "Rejected/Bad"
