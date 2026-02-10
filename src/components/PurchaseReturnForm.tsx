@@ -19,6 +19,7 @@ interface ReturnItemState {
   selected: boolean;
   returnQuantity: number;
   maxQuantity: number;
+  currentStock: number; // Added to track current inventory
   description: string;
   rate: number;
   gstRate: number;
@@ -41,20 +42,29 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess, editRe
 
   useEffect(() => {
     if (open && bill) {
-      setReturnDate(editReturn?.returnDate || new Date().toISOString().split("T")[0]);
-      const itemsState: ReturnItemState[] = bill.items.map(item => {
-        const editedItem = editReturn?.items.find(ri => ri.description === item.description);
-        return {
-          selected: !!editedItem,
-          returnQuantity: editedItem?.quantity || 0,
-          maxQuantity: item.quantity,
-          description: item.description,
-          rate: item.rate,
-          gstRate: item.gstRate || 0,
-          unit: item.unit,
-        };
-      });
-      setReturnItems(itemsState);
+      const loadData = async () => {
+        const products = await getProducts();
+        setReturnDate(editReturn?.returnDate || new Date().toISOString().split("T")[0]);
+        const itemsState: ReturnItemState[] = bill.items.map(item => {
+          const editedItem = editReturn?.items.find(ri => ri.description === item.description);
+          const product = products.find(p => 
+            p.name.toLowerCase().trim() === item.description.toLowerCase().trim() || 
+            (item.hsnCode && p.hsnCode === item.hsnCode)
+          );
+          return {
+            selected: !!editedItem,
+            returnQuantity: editedItem?.quantity || 0,
+            maxQuantity: item.quantity,
+            currentStock: product?.stock || 0,
+            description: item.description,
+            rate: item.rate,
+            gstRate: item.gstRate || 0,
+            unit: item.unit,
+          };
+        });
+        setReturnItems(itemsState);
+      };
+      loadData();
     }
   }, [open, bill, editReturn]);
 
@@ -76,8 +86,13 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess, editRe
 
   const updateQuantity = (index: number, quantity: number) => {
     const newItems = [...returnItems];
-    const maxQty = newItems[index].maxQuantity;
-    const validQty = Math.min(Math.max(0, quantity), maxQty);
+    const billQty = newItems[index].maxQuantity;
+    const stockQty = newItems[index].currentStock;
+    
+    // Max returnable is the lesser of bill quantity and current stock
+    const maxReturnable = Math.min(billQty, stockQty);
+    
+    const validQty = Math.min(Math.max(0, quantity), maxReturnable);
     newItems[index].returnQuantity = validQty;
     newItems[index].selected = validQty > 0;
     setReturnItems(newItems);
@@ -152,9 +167,10 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess, editRe
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Return Items - Bill #{bill.billNumber}</DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            Select items from this bill to return. Quantity cannot exceed original purchase.
-          </p>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p>Select items from this bill to return.</p>
+            <p className="text-orange-600 font-medium">Note: Return quantity cannot exceed original purchase OR current available stock.</p>
+          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -175,6 +191,7 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess, editRe
                 <tr>
                   <th className="p-2 text-left w-10">Return</th>
                   <th className="p-2 text-left">Item Description</th>
+                  <th className="p-2 text-right w-20">Stock</th>
                   <th className="p-2 text-right w-24">Purchased</th>
                   <th className="p-2 text-right w-28">Return Qty</th>
                   <th className="p-2 text-right w-20">Rate</th>
@@ -197,6 +214,9 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess, editRe
                         />
                       </td>
                       <td className="p-2 font-medium">{item.description}</td>
+                      <td className={`p-2 text-right ${item.currentStock <= 0 ? 'text-red-500 font-bold' : 'text-emerald-600'}`}>
+                        {item.currentStock}
+                      </td>
                       <td className="p-2 text-right text-muted-foreground">
                         {item.maxQuantity} {item.unit}
                       </td>
@@ -204,11 +224,11 @@ export function PurchaseReturnForm({ open, onOpenChange, bill, onSuccess, editRe
                         <Input
                           type="number"
                           min={0}
-                          max={item.maxQuantity}
+                          max={Math.min(item.maxQuantity, item.currentStock)}
                           value={item.returnQuantity}
                           onChange={(e) => updateQuantity(index, parseFloat(e.target.value) || 0)}
                           className="w-20 text-right ml-auto"
-                          disabled={!item.selected && item.returnQuantity === 0}
+                          disabled={(!item.selected && item.returnQuantity === 0) || item.currentStock <= 0}
                         />
                       </td>
                       <td className="p-2 text-right">{item.rate.toFixed(2)}</td>
