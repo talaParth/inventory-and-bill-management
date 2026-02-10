@@ -3,17 +3,11 @@ import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/rendere
 import { PurchaseBill } from '@/types';
 import { formatDate } from '@/lib/billUtils';
 
-// Register a font that supports the Rupee symbol
-Font.register({
-  family: 'Inter',
-  src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Bg-4.ttf',
-});
-
 const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontSize: 10,
-    fontFamily: 'Inter',
+    fontFamily: 'Helvetica',
     color: '#333',
   },
   header: {
@@ -55,7 +49,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#3b82f6',
     color: '#fff',
     padding: 8,
-    fontWeight: 'bold',
     borderTopLeftRadius: 4,
     borderTopRightRadius: 4,
   },
@@ -92,7 +85,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 2,
     borderTopColor: '#1e40af',
-    fontWeight: 'bold',
     fontSize: 14,
     color: '#1e40af',
   },
@@ -122,7 +114,7 @@ const styles = StyleSheet.create({
 });
 
 const formatPDFCurrency = (amount: number) => {
-  return `₹${amount.toLocaleString('en-IN', {
+  return `Rs. ${amount.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -224,8 +216,8 @@ export const PurchaseBillPDF: React.FC<PurchaseBillPDFProps> = ({ bill }) => {
               </View>
             )}
             <View style={styles.totalRow}>
-              <Text>Net Amount:</Text>
-              <Text>{formatPDFCurrency(bill.total)}</Text>
+              <Text style={{ fontWeight: 'bold' }}>Net Amount:</Text>
+              <Text style={{ fontWeight: 'bold' }}>{formatPDFCurrency(bill.total)}</Text>
             </View>
             <View style={[styles.summaryRow, { marginTop: 10 }]}>
               <Text>Paid Amount:</Text>
