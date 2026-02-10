@@ -85,6 +85,24 @@ export default function Passbook() {
 
             // Add sales (positive amounts for received payments)
             bills.forEach(bill => {
+                // Add the bill itself as a sale entry if it's not already covered by payments
+                // This ensures "Unpaid" or "Partially Paid" sales are still visible in the passbook
+                // as revenue generated, even if cash hasn't fully arrived.
+                // However, the user specifically mentioned "passbook" which usually tracks cash flow.
+                // But they also said "sales entries are not coming", implying they want to see the sales.
+                
+                // Let's ensure the bill itself is tracked as a 'sale' entry
+                allEntries.push({
+                    id: `bill-${bill.id}`,
+                    date: bill.date,
+                    type: 'sale',
+                    description: `Sale - Bill #${bill.billNumber} to ${bill.client?.name || 'Customer'}`,
+                    amount: bill.total,
+                    balance: 0,
+                    details: bill,
+                });
+
+                // Add payments separately as 'payment' entries
                 if (bill.payments && bill.payments.length > 0) {
                     bill.payments.forEach(payment => {
                         allEntries.push({
@@ -96,17 +114,6 @@ export default function Passbook() {
                             balance: 0,
                             details: { ...bill, currentPayment: payment },
                         });
-                    });
-                } else if (bill.paymentStatus === 'paid' || (bill.paidAmount && bill.paidAmount > 0)) {
-                    // Fallback for bills without explicit payments array (legacy data)
-                    allEntries.push({
-                        id: `sale-${bill.id}`,
-                        date: bill.date,
-                        type: 'sale',
-                        description: `Sale - Bill #${bill.billNumber} to ${bill.client.name}`,
-                        amount: bill.paidAmount || bill.total,
-                        balance: 0,
-                        details: bill,
                     });
                 }
             });
@@ -184,11 +191,14 @@ export default function Passbook() {
             });
 
             // Sort by date and calculate running balance
+            // Note: For running balance, we only consider actual cash movements (payments, purchases, expenses, returns)
             const sortedEntries = allEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
             let runningBalance = 0;
             const entriesWithBalance = sortedEntries.map(entry => {
-                runningBalance += entry.amount;
+                if (entry.type !== 'sale') {
+                    runningBalance += entry.amount;
+                }
                 return {
                     ...entry,
                     balance: runningBalance,
@@ -246,7 +256,9 @@ export default function Passbook() {
         // Recalculate running balance for filtered entries
         let runningBalance = 0;
         const filteredWithBalance = filtered.map(entry => {
-            runningBalance += entry.amount;
+            if (entry.type !== 'sale') {
+                runningBalance += entry.amount;
+            }
             return {
                 ...entry,
                 balance: runningBalance,
@@ -288,12 +300,18 @@ export default function Passbook() {
         }
     };
 
-    const totalIncome = entries.filter(e => e.amount > 0 && e.type !== 'return').reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = entries.filter(e => e.amount > 0 && e.type === 'payment').reduce((sum, e) => sum + e.amount, 0);
+    const totalSalesValue = entries.filter(e => e.type === 'sale').reduce((sum, e) => sum + e.amount, 0);
     const totalPurchases = Math.abs(entries.filter(e => e.type === 'purchase').reduce((sum, e) => sum + e.amount, 0));
     const totalExpensesOnly = Math.abs(entries.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0));
     const totalReturnsValue = entries.filter(e => e.type === 'return').reduce((sum, e) => sum + e.amount, 0);
     const totalOutflow = Math.abs(entries.filter(e => e.amount < 0 && e.type !== 'return').reduce((sum, e) => sum + e.amount, 0));
-    const netBalance = entries.length > 0 ? entries[entries.length - 1].balance : 0;
+    
+    // Budget/Net Balance calculation: 
+    // Usually Passbook is Cash Flow. So it should be (Payments Received) - (Purchases) - (Expenses) + (Returns)
+    const cashIn = entries.filter(e => e.type === 'payment' || (e.type === 'return' && e.amount > 0)).reduce((sum, e) => sum + e.amount, 0);
+    const cashOut = Math.abs(entries.filter(e => e.type === 'purchase' || e.type === 'expense' || (e.type === 'return' && e.amount < 0)).reduce((sum, e) => sum + e.amount, 0));
+    const netBalance = cashIn - cashOut;
 
     const paymentMethodTotals = entries
         .filter(e => e.type === 'payment' || (e.type === 'sale' && e.amount > 0))
@@ -350,18 +368,33 @@ export default function Passbook() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                 <Card className="border shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Total Income</CardTitle>
+                        <CardTitle className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Total Sales</CardTitle>
                         <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
                             <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
                     </CardHeader>
                     <CardContent>
+                        <div className="text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">{formatCurrency(totalSalesValue)}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Total value of all sales
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="border shadow-md hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                        <CardTitle className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Total Income</CardTitle>
+                        <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                            <Plus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
                         <div className="text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">{formatCurrency(totalIncome)}</div>
                         <p className="text-xs text-muted-foreground">
-                            Money received from sales
+                            Actual cash received
                         </p>
                     </CardContent>
                 </Card>
