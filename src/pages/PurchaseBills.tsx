@@ -1450,45 +1450,64 @@ export default function PurchaseBills() {
               <span className="text-2xl lg:text-4xl font-bold">
                 Extracted Bill Details
               </span>
-              {selectedBill && !isEditing && (
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => startEditing(selectedBill)}
-                >
-                  <Edit2 className="h-5 w-5 mr-2" /> Edit
-                </Button>
-              )}
-              {isEditing && (
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={() => {
-                      setIsEditing(false);
-                      setEditedBill(null);
-                    }}
-                  >
-                    <X className="h-5 w-5 mr-2" /> Cancel
-                  </Button>
-                  <Button
-                    size="lg"
-                    onClick={saveEditedBill}
-                    disabled={savingEditedBill}
-                  >
-                    {savingEditedBill ? (
-                      <>
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />{" "}
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-5 w-5 mr-2" /> Save
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {selectedBill && !isEditing && (
+                  <>
+                    <PDFDownloadLink
+                      document={<PurchaseBillPDF bill={selectedBill} />}
+                      fileName={`Bill_${selectedBill.billNumber || selectedBill.id}.pdf`}
+                    >
+                      {({ loading }) => (
+                        <Button variant="outline" size="lg" disabled={loading}>
+                          {loading ? (
+                            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          ) : (
+                            <Download className="h-5 w-5 mr-2" />
+                          )}
+                          Download PDF
+                        </Button>
+                      )}
+                    </PDFDownloadLink>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => startEditing(selectedBill)}
+                    >
+                      <Edit2 className="h-5 w-5 mr-2" /> Edit
+                    </Button>
+                  </>
+                )}
+                {isEditing && (
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => {
+                        setIsEditing(false);
+                        setEditedBill(null);
+                      }}
+                    >
+                      <X className="h-5 w-5 mr-2" /> Cancel
+                    </Button>
+                    <Button
+                      size="lg"
+                      onClick={saveEditedBill}
+                      disabled={savingEditedBill}
+                    >
+                      {savingEditedBill ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />{" "}
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-5 w-5 mr-2" /> Save
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </DialogTitle>
           </DialogHeader>
 

@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
   summaryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-space-between',
+    justifyContent: 'space-between',
     paddingVertical: 2,
   },
   total: {
@@ -124,7 +124,7 @@ export const PurchaseBillPDF: React.FC<PurchaseBillPDFProps> = ({ bill }) => {
                     <Text style={styles.col1}>{item.description}</Text>
                     <Text style={styles.col2}>{item.quantity}</Text>
                     <Text style={styles.col3}>{formatDate(ret.returnDate)}</Text>
-                    <Text style={styles.col5}>{formatCurrency(item.totalValue)}</Text>
+                    <Text style={styles.col5}>{formatCurrency(item.quantity * item.rate)}</Text>
                   </View>
                 ))}
               </React.Fragment>
