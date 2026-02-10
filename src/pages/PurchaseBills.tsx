@@ -83,7 +83,10 @@ import {
   IndianRupee,
   Calendar,
   BookOpen,
+  Download,
 } from "lucide-react";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { PurchaseBillPDF } from "@/components/PurchaseBillPDF";
 import { Textarea } from "@/components/ui/textarea";
 import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
