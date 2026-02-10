@@ -937,8 +937,10 @@ export default function PurchaseBills() {
     const isOverdueVal = isOverdue(bill);
     const status = bill.paymentStatus;
     const paidAmount = bill.paidAmount || 0;
+    const netTotal = bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0);
+    const remaining = netTotal - paidAmount;
 
-    if (status === "paid") {
+    if (remaining <= 0) {
       return (
         <Badge
           variant="default"
@@ -1247,6 +1249,18 @@ export default function PurchaseBills() {
                           <p className="text-xl font-bold text-foreground">
                             {formatCurrency(
                               bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Remaining:</span>
+                          <p className={`text-sm font-bold ${
+                            (bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0) - (bill.paidAmount || 0)) < 0 
+                              ? "text-red-600" 
+                              : "text-foreground"
+                          }`}>
+                            {formatCurrency(
+                              bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0) - (bill.paidAmount || 0)
                             )}
                           </p>
                         </div>
