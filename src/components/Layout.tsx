@@ -144,6 +144,20 @@ export function Layout({ children }: LayoutProps) {
 
   const [showReorder, setShowReorder] = useState<string | null>(null);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showReorder) {
+        const nav = document.querySelector('nav');
+        if (nav && !nav.contains(event.target as Node)) {
+          setShowReorder(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showReorder]);
+
   const moveItem = (index: number, direction: 'left' | 'right') => {
     const newItems = [...navItems];
     const newIndex = direction === 'left' ? index - 1 : index + 1;
