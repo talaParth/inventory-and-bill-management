@@ -1,41 +1,31 @@
-# Shree Rudra Jewels - 9R NFC Invoice Management System
+# Zaiko Enterprise - Invoice Management System
 
 ## Overview
-A GST billing software with invoice management capabilities, built with React, Vite, and Firebase. This is a Progressive Web App (PWA) for managing invoices and inventory.
-
-## Project Architecture
-- **Frontend**: React 18 with TypeScript
-- **Build Tool**: Vite 5
-- **Styling**: Tailwind CSS with Shadcn/UI components
-- **State Management**: TanStack React Query
-- **Routing**: React Router DOM v6
-- **Backend**: Firebase (Firestore, Auth, Storage)
-- **PDF Generation**: @react-pdf/renderer, jspdf
-- **QR Codes**: qrcode.react
-
-## Project Structure
-```
-src/
-  ├── App.tsx          # Main application component with routing
-  ├── main.tsx         # Application entry point
-  ├── components/      # Reusable UI components
-  ├── pages/           # Page components
-  ├── contexts/        # React contexts
-  ├── hooks/           # Custom React hooks
-  ├── lib/             # Utility functions
-  ├── types/           # TypeScript type definitions
-  └── assets/          # Static assets
-```
-
-## Running the Project
-The application runs on port 5000 via the "Start application" workflow using `npm run dev`.
-
-## Demo Credentials
-- Username: admin
-- Password: 123
+A GST billing and invoice management system built with React, TypeScript, and Vite. Features include billing, inventory management, client management, expense tracking, and AI-powered features via OpenAI integration. Uses Firebase for backend services.
 
 ## Recent Changes
-- 2026-01-29: Migrated from Lovable to Replit environment
-  - Updated Vite config to use port 5000 with allowedHosts: true
-  - Installed npm dependencies
-  - Configured deployment settings
+- 2026-02-11: Initial import to Replit environment completed. Dependencies installed, workflow configured.
+
+## Project Architecture
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite 5
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **Backend**: Firebase (authentication, Firestore, storage)
+- **AI**: OpenAI integration for AI agent features
+- **PWA**: Service worker via vite-plugin-pwa
+- **Routing**: React Router v6
+
+### Directory Structure
+- `src/pages/` - Page components (Dashboard, Bills, Products, Clients, etc.)
+- `src/components/` - Reusable components including shadcn/ui
+- `src/lib/` - Utility functions (Firebase service, billing utils, AI extraction)
+- `src/hooks/` - Custom React hooks
+- `src/contexts/` - React context providers
+- `src/types/` - TypeScript type definitions
+
+### Key Configuration
+- Dev server: `0.0.0.0:5000` with `allowedHosts: true`
+- Path alias: `@` maps to `./src`
+
+## User Preferences
+- (None recorded yet)
