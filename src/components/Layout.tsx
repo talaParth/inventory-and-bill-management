@@ -142,6 +142,8 @@ export function Layout({ children }: LayoutProps) {
     }
   }, [user.role, permissions]);
 
+  const [showReorder, setShowReorder] = useState<string | null>(null);
+
   const moveItem = (index: number, direction: 'left' | 'right') => {
     const newItems = [...navItems];
     const newIndex = direction === 'left' ? index - 1 : index + 1;
@@ -151,6 +153,10 @@ export function Layout({ children }: LayoutProps) {
       localStorage.setItem('navItemOrder', JSON.stringify(newItems.map(i => i.path)));
       toast.success("Navigation reordered");
     }
+  };
+
+  const toggleReorder = (path: string) => {
+    setShowReorder(showReorder === path ? null : path);
   };
 
   const isActive = (path: string) => {
@@ -236,11 +242,13 @@ export function Layout({ children }: LayoutProps) {
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
+              const showingReorder = showReorder === item.path;
               return (
                 <div
                   key={item.path}
                   className="relative group snap-center flex-shrink-0"
                   style={{ scrollSnapAlign: "center" }}
+                  onDoubleClick={() => toggleReorder(item.path)}
                 >
                   <Link
                     to={item.path}
@@ -265,7 +273,7 @@ export function Layout({ children }: LayoutProps) {
                       {item.label}
                     </span>
                   </Link>
-                  <div className="absolute -top-2 left-0 right-0 flex justify-between px-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <div className={`absolute -top-2 left-0 right-0 flex justify-between px-1 transition-opacity z-10 ${showingReorder ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
                     <button 
                       onClick={(e) => {
                         e.preventDefault();
@@ -302,8 +310,13 @@ export function Layout({ children }: LayoutProps) {
                 const Icon = item.icon;
                 const active = isActive(item.path);
                 const index = navItems.indexOf(item);
+                const showingReorder = showReorder === item.path;
                 return (
-                  <div key={item.path} className="relative group flex-1">
+                  <div 
+                    key={item.path} 
+                    className="relative group flex-1"
+                    onDoubleClick={() => toggleReorder(item.path)}
+                  >
                     <Link
                       to={item.path}
                       className={`
@@ -328,7 +341,7 @@ export function Layout({ children }: LayoutProps) {
                     </Link>
                     
                     {/* Reordering controls for desktop */}
-                    <div className="absolute -top-3 left-0 right-0 flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <div className={`absolute -top-3 left-0 right-0 flex justify-center gap-1 transition-opacity z-10 ${showingReorder ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
                       {index > 0 && (
                         <button 
                           onClick={(e) => {
