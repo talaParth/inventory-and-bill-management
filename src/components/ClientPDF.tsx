@@ -306,7 +306,7 @@ export const ClientPDF = ({
                 <Text style={[styles.tableCell, { flex: 1.5 }]}>
                   {ret.billNumber}
                 </Text>
-                <Text style={styles.tableCell}>{formatDate(ret.date)}</Text>
+                <Text style={styles.tableCell}>{formatDate(ret.returnDate)}</Text>
                 <Text style={[styles.tableCellRight, styles.loss]}>
                   {formatCurrency(ret.totalReturnValue)}
                 </Text>
