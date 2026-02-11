@@ -1,10 +1,24 @@
-  import { useState, useRef, useEffect } from "react";
-  import { Button } from "@/components/ui/button";
-  import { Input } from "@/components/ui/input";
-  import { ScrollArea } from "@/components/ui/scroll-area";
-  import { Bot, User, Send, Loader2 } from "lucide-react";
-  import { toast } from "sonner";
-  import { getBusinessDataForAI } from "@/lib/businessDataCollector";
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Bot, User, Send, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { 
+  getBills, 
+  getProducts, 
+  getPurchaseBills, 
+  getExpenses, 
+  getInventoryTransactions, 
+  getBillReturns, 
+  getDeadstock, 
+  getClients, 
+  getCompanyProfile, 
+  getNotes 
+} from "@/lib/firebaseService";
+import { getBusinessDataForAI } from "@/lib/businessDataCollector";
 
 
   interface Message {
@@ -133,7 +147,7 @@
           const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
             method: 'POST',
             headers: {
-              'api-subscription-key': import.meta.env.SARVAM_API_KEY || 'sk_cgklaer7_PyVfuZMemeppS9aL53Cvbldg',
+              'api-subscription-key': import.meta.env.VITE_SARVAM_API_KEY || 'sk_cgklaer7_PyVfuZMemeppS9aL53Cvbldg',
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -187,7 +201,7 @@
         const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${import.meta.env.AI_INTEGRATIONS_OPENAI_API_KEY}`,
+            'api-subscription-key': import.meta.env.VITE_SARVAM_API_KEY || 'sk_cgklaer7_PyVfuZMemeppS9aL53Cvbldg',
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({

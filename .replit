@@ -39,3 +39,8 @@ waitForPort = 5000
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+VITE_SARVAM_API_KEY = "sk_cgklaer7_PyVfuZMemeppS9aL53Cvbldg"
