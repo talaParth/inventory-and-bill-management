@@ -310,13 +310,34 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto pb-6 sm:pb-8 px-3 sm:px-4 md:px-0 w-full max-w-full overflow-x-hidden">
+    <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto pb-6 sm:pb-8 px-3 sm:px-4 md:px-0 w-full max-w-full overflow-x-hidden relative">
+      {/* Floating Save Button */}
+      <div className="fixed bottom-6 right-6 z-[60] sm:hidden">
+        <Button
+          onClick={handleSubmit}
+          disabled={saving || !isDirty}
+          size="lg"
+          className="rounded-full h-14 w-14 shadow-2xl transition-all hover:scale-105 active:scale-95"
+        >
+          {saving ? (
+            <Loader2 className="h-6 w-6 animate-spin" />
+          ) : (
+            <Save className="h-6 w-6" />
+          )}
+        </Button>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 sticky top-0 bg-background/95 backdrop-blur z-50 py-4 border-b">
         <div className="min-w-0 flex-1">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 break-words">
             <Settings2 className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary flex-shrink-0" />
             Settings
+            {isDirty && (
+              <Badge variant="destructive" className="ml-2 animate-pulse">
+                Unsaved Changes
+              </Badge>
+            )}
           </h1>
           <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1 sm:mt-2 break-words">
             Manage your company profile and preferences
@@ -326,7 +347,9 @@ export default function Settings() {
           <Button
             onClick={handleSubmit}
             disabled={saving || !isDirty}
-            className="gap-2 w-full sm:w-auto text-xs sm:text-sm touch-manipulation order-first sm:order-none"
+            className={`gap-2 w-full sm:w-auto text-xs sm:text-sm touch-manipulation order-first sm:order-none transition-all ${
+              isDirty ? "bg-primary shadow-lg ring-2 ring-primary/20" : ""
+            }`}
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
