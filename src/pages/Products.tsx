@@ -621,12 +621,12 @@ export default function Products() {
       productsData.push([
         p.name,
         p.hsnCode,
-        p.gstRate,
+        String(p.gstRate),
         p.unit,
-        p.stock,
-        currentAvg,
-        selling,
-        stockValues[p.id] || 0,
+        String(p.stock),
+        String(currentAvg),
+        String(selling),
+        String(stockValues[p.id] || 0),
         margin.toFixed(2),
       ]);
     });
@@ -650,7 +650,12 @@ export default function Products() {
       .sort((a, b) => (stockValues[b.id] || 0) - (stockValues[a.id] || 0))
       .slice(0, 20)
       .forEach((p, i) => {
-        topValueData.push([i + 1, p.name, p.stock, stockValues[p.id] || 0]);
+        topValueData.push([
+          String(i + 1),
+          p.name,
+          String(p.stock),
+          String(stockValues[p.id] || 0),
+        ]);
       });
     const topValueSheet = XLSX.utils.aoa_to_sheet(topValueData);
     topValueSheet["!cols"] = [
@@ -701,6 +706,10 @@ export default function Products() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <Button size="lg" onClick={() => setIsOpen(true)}>
+            <Plus className="h-5 w-5 mr-2" />
+            Create Product
+          </Button>
           <Select value={avgPriceFilter} onValueChange={setAvgPriceFilter}>
             <SelectTrigger className="w-[180px]">
               <Calculator className="h-4 w-4 mr-2" />
@@ -752,341 +761,17 @@ export default function Products() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Dialog
+          <ProductForm
             open={isOpen}
             onOpenChange={(open) => {
               setIsOpen(open);
               if (!open) resetForm();
             }}
-          >
-            <DialogTrigger asChild>
-              <Button size="lg">
-                <Plus className="h-5 w-5 mr-2" />
-                Create Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingProduct ? "Edit Product" : "Create Product"}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Product Name *</Label>
-                  <Input
-                    required
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>HSN Code *</Label>
-                    <Input
-                      required
-                      value={formData.hsnCode}
-                      onChange={(e) =>
-                        setFormData({ ...formData, hsnCode: e.target.value })
-                      }
-                      className={
-                        formData.hsnCode &&
-                        products.some(
-                          (p) =>
-                            p.id !== editingProduct?.id &&
-                            p.hsnCode.trim().toLowerCase() ===
-                              formData.hsnCode.trim().toLowerCase(),
-                        )
-                          ? "border-red-500 focus-visible:ring-red-500"
-                          : ""
-                      }
-                    />
-                    {formData.hsnCode &&
-                      products.some(
-                        (p) =>
-                          p.id !== editingProduct?.id &&
-                          p.hsnCode.trim().toLowerCase() ===
-                            formData.hsnCode.trim().toLowerCase(),
-                      ) && (
-                        <p className="text-xs text-red-500">
-                          HSN Code already exists:{" "}
-                          {
-                            products.find(
-                              (p) =>
-                                p.id !== editingProduct?.id &&
-                                p.hsnCode.trim().toLowerCase() ===
-                                  formData.hsnCode.trim().toLowerCase(),
-                            )?.name
-                          }
-                        </p>
-                      )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>GST Rate (%) *</Label>
-                    <Input
-                      required
-                      type="number"
-                      step="0.01"
-                      value={formData.gstRate}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          gstRate: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Unit *</Label>
-                    <Select
-                      value={formData.unit}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, unit: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select unit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {unitOptions.map((unit) => (
-                          <SelectItem key={unit} value={unit}>
-                            {unit}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Purchase Price (Cost) *</Label>
-                    <Input
-                      required
-                      type="number"
-                      step="0.01"
-                      value={formData.purchasePrice}
-                      onChange={(e) => {
-                        const purchasePrice = parseFloat(e.target.value) || 0;
-                        // Auto-calculate selling price based on commission settings when purchase price changes
-                        const calculatedSellingPrice =
-                          calculateSellingPriceFromCommission(
-                            purchasePrice,
-                            companyProfile?.commissionSettings,
-                          );
-                        setFormData({
-                          ...formData,
-                          purchasePrice: e.target.value,
-                          sellingPrice: purchasePrice
-                            ? String(calculatedSellingPrice)
-                            : "",
-                        });
-                      }}
-                      placeholder="Cost price"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Selling price will auto-calculate with{" "}
-                      {companyProfile?.commissionSettings
-                        ? companyProfile.commissionSettings.commissionType ===
-                          "percentage"
-                          ? `${
-                              companyProfile.commissionSettings
-                                .defaultCommissionRate || 0
-                            }% commission (Percentage)`
-                          : `₹${
-                              companyProfile.commissionSettings
-                                .fixedCommissionAmount || 0
-                            } fixed commission (Fixed)`
-                        : "20% commission (Default - no settings)"}{" "}
-                      from settings
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Weight</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={formData.weight}
-                      onChange={(e) =>
-                        setFormData({ ...formData, weight: e.target.value })
-                      }
-                      placeholder="Weight per unit"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Bought from where</Label>
-                    <Input
-                      value={formData.whereToBuy}
-                      onChange={(e) =>
-                        setFormData({ ...formData, whereToBuy: e.target.value })
-                      }
-                      placeholder="Supplier or source"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>
-                    Selling Price (with Commission) *
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">
-                      (
-                      {companyProfile?.commissionSettings
-                        ? companyProfile.commissionSettings.commissionType ===
-                          "percentage"
-                          ? `${
-                              companyProfile.commissionSettings
-                                .defaultCommissionRate || 0
-                            }% commission`
-                          : `₹${
-                              companyProfile.commissionSettings
-                                .fixedCommissionAmount || 0
-                            } fixed commission`
-                        : "20% default commission"}
-                      )
-                    </span>
-                  </Label>
-                  <Input
-                    required
-                    type="number"
-                    step="0.01"
-                    value={formData.sellingPrice}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        sellingPrice: e.target.value,
-                      })
-                    }
-                    placeholder="Final selling price (includes commission)"
-                  />
-                  {parseFloat(formData.purchasePrice || "0") > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        <span className="font-medium">Margin:</span>{" "}
-                        {parseFloat(formData.sellingPrice || "0") >
-                        parseFloat(formData.purchasePrice || "0")
-                          ? `${(
-                              ((parseFloat(formData.sellingPrice || "0") -
-                                parseFloat(formData.purchasePrice || "0")) /
-                                parseFloat(formData.purchasePrice || "1")) *
-                              100
-                            ).toFixed(1)}%`
-                          : "0%"}
-                      </p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
-                        <span className="font-medium">Commission Type:</span>{" "}
-                        {companyProfile?.commissionSettings
-                          ? companyProfile.commissionSettings.commissionType ===
-                            "percentage"
-                            ? `${
-                                companyProfile.commissionSettings
-                                  .defaultCommissionRate || 0
-                              }% (Percentage) - from settings`
-                            : `₹${
-                                companyProfile.commissionSettings
-                                  .fixedCommissionAmount || 0
-                              } (Fixed) - from settings`
-                          : "20% (Percentage) - default (no settings)"}
-                      </p>
-                      <p className="text-xs text-muted-foreground italic">
-                        This is the actual selling price. Commission is already
-                        included.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {!editingProduct && (
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="addInitialStock"
-                        checked={addInitialStock}
-                        onCheckedChange={(checked) =>
-                          setAddInitialStock(!!checked)
-                        }
-                      />
-                      <label
-                        htmlFor="addInitialStock"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Add initial stock?
-                      </label>
-                    </div>
-                    {addInitialStock && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Initial Quantity *</Label>
-                          <Input
-                            required
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            value={initialStockData.quantity}
-                            onChange={(e) =>
-                              setInitialStockData({
-                                ...initialStockData,
-                                quantity: e.target.value,
-                              })
-                            }
-                            placeholder="0.00"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Initial Purchase Price *</Label>
-                          <Input
-                            required
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            value={initialStockData.purchasePrice}
-                            onChange={(e) =>
-                              setInitialStockData({
-                                ...initialStockData,
-                                purchasePrice: e.target.value,
-                              })
-                            }
-                            placeholder="0.00"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsOpen(false);
-                      resetForm();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={saving}>
-                    {saving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {editingProduct ? "Updating..." : "Creating..."}
-                      </>
-                    ) : (
-                      <>{editingProduct ? "Update" : "Create"} Product</>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+            onSuccess={() => {
+              loadProducts();
+            }}
+            product={editingProduct}
+          />
           <Dialog
             open={isAddStockOpen}
             onOpenChange={(open) => {
