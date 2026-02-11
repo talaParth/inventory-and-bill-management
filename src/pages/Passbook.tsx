@@ -350,7 +350,7 @@ export default function Passbook() {
     if (loading) {
         return (
           <div className="min-h-screen">
-            <LoadingSpinner size="xl" text="Loading products..." fullScreen />
+            <LoadingSpinner size="xl" text="Loading products..." fullScreen contentAreaOnly />
           </div>
         );
     }
@@ -359,11 +359,11 @@ export default function Passbook() {
         <div className="space-y-6 p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+                    <h1 className="page-title flex items-center gap-2">
                         <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                         Passbook
                     </h1>
-                    <p className="text-muted-foreground mt-1 text-sm md:text-base">Complete financial transaction history</p>
+                    <p className="page-subtitle">Complete financial transaction history</p>
                 </div>
                 <Button variant="outline" onClick={exportToExcel} className="self-start sm:self-auto">
                     <Download className="h-4 w-4 mr-2" />

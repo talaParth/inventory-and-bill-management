@@ -691,7 +691,7 @@ export default function Products() {
   if (loading) {
     return (
       <div className="min-h-screen">
-        <LoadingSpinner size="xl" text="Loading products..." fullScreen />
+        <LoadingSpinner size="xl" text="Loading products..." fullScreen contentAreaOnly />
       </div>
     );
   }
@@ -700,10 +700,8 @@ export default function Products() {
     <div className="space-y-6 p-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Products</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your product inventory
-          </p>
+          <h1 className="page-title">Products</h1>
+          <p className="page-subtitle">Manage your product inventory</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button size="lg" onClick={() => setIsOpen(true)}>

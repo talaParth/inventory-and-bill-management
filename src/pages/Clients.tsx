@@ -200,7 +200,7 @@ export default function Clients() {
   if (loading) {
     return (
       <div className="min-h-screen">
-        <LoadingSpinner size="xl" text="Loading clients..." fullScreen />
+        <LoadingSpinner size="xl" text="Loading clients..." fullScreen contentAreaOnly />
       </div>
     );
   }
@@ -209,10 +209,8 @@ export default function Clients() {
     <div className="space-y-6 p-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Clients</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your client information
-          </p>
+          <h1 className="page-title">Clients</h1>
+          <p className="page-subtitle">Manage your client information</p>
         </div>
         <Dialog
           open={isOpen}

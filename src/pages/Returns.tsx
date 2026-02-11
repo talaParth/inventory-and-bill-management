@@ -327,7 +327,7 @@ export default function Returns() {
   if (loading) {
     return (
       <div className="min-h-screen">
-        <LoadingSpinner size="xl" text="Loading products..." fullScreen />
+        <LoadingSpinner size="xl" text="Loading products..." fullScreen contentAreaOnly />
       </div>
     );
   }
@@ -347,7 +347,7 @@ export default function Returns() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">
+            <CardTitle className="section-title">
               Total Returns
             </CardTitle>
             <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
@@ -361,7 +361,7 @@ export default function Returns() {
 
         <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-emerald-600 dark:text-emerald-400">
+            <CardTitle className="section-title text-emerald-600 dark:text-emerald-400">
               Good Returns
             </CardTitle>
             <Package className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
@@ -381,7 +381,7 @@ export default function Returns() {
 
         <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-400">
+            <CardTitle className="section-title text-red-600 dark:text-red-400">
               Deadstock Loss
             </CardTitle>
             <PackageX className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 flex-shrink-0" />

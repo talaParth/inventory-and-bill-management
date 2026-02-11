@@ -1103,7 +1103,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen">
-        <LoadingSpinner size="xl" text="Loading dashboard data..." fullScreen />
+        <LoadingSpinner size="xl" text="Loading dashboard data..." fullScreen contentAreaOnly />
       </div>
     );
   }
@@ -1116,10 +1116,10 @@ export default function Dashboard() {
       <div className="flex flex-col gap-3 sm:gap-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground break-words">
+            <h1 className="page-title break-words">
               Dashboard
             </h1>
-            <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1 break-words">
+            <p className="page-subtitle break-words">
               Comprehensive business analytics and insights
             </p>
           </div>

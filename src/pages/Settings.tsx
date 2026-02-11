@@ -336,7 +336,7 @@ export default function Settings() {
             <Settings2 className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary flex-shrink-0" />
             Settings
           </h1>
-          <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1 sm:mt-2 break-words">
+          <p className="page-subtitle break-words">
             Manage your company profile and preferences
           </p>
         </div>

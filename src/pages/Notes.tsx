@@ -160,8 +160,8 @@ export default function Notes() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Notes</h1>
-          <p className="text-muted-foreground mt-1">Manage your daily notes and reminders</p>
+          <h1 className="page-title">Notes</h1>
+          <p className="page-subtitle">Manage your daily notes and reminders</p>
         </div>
 
         <Dialog open={isOpen} onOpenChange={setIsOpen}>

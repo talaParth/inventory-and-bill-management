@@ -80,7 +80,7 @@ const App = () => (
                       <Route
                         path="/sample-bills/:id"
                         element={
-                          <Suspense fallback={<LoadingSpinner fullScreen />}>
+                          <Suspense fallback={<LoadingSpinner fullScreen contentAreaOnly />}>
                             <SampleBillViewPage />
                           </Suspense>
                         }
@@ -88,7 +88,7 @@ const App = () => (
                       <Route
                         path="/sample-bills/:id/edit"
                         element={
-                          <Suspense fallback={<LoadingSpinner fullScreen />}>
+                          <Suspense fallback={<LoadingSpinner fullScreen contentAreaOnly />}>
                             <SampleBillEditPage />
                           </Suspense>
                         }
