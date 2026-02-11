@@ -122,6 +122,11 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
             recentNotes: notes.slice(-10).map(n => n.content)
           };
 
+          const systemMessage: Message = {
+            role: "system",
+            content: "You are a professional invoice data extractor. Extract data accurately into JSON format."
+          };
+
           const initialMessage: Message = {
             role: "user",
             content: `You are a professional Business Growth Consultant for "Starlink" GST Software. 
@@ -152,7 +157,7 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
             },
             body: JSON.stringify({
               model: 'sarvam-m',
-              messages: [initialMessage],
+              messages: [systemMessage, initialMessage],
               temperature: 0.7,
               max_tokens: 2000,
             }),
@@ -165,6 +170,8 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
           const data = await response.json();
           if (data && data.choices && data.choices[0]) {
             setMessages([
+              systemMessage,
+              initialMessage,
               {
                 role: "assistant",
                 content: data.choices[0].message.content
@@ -272,7 +279,7 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
                   </div>
                 )}
 
-                {messages.map((message, index) => (
+                {messages.filter(m => m.role !== 'system').map((message, index) => (
                   <div
                     key={index}
                     className={`flex ${
