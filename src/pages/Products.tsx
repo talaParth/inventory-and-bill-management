@@ -278,7 +278,7 @@ export default function Products() {
         sellingPrice: sellingPriceNum,
         stock: editingProduct?.stock || 0, // Keep existing stock or default to 0
         whereToBuy: formData.whereToBuy,
-        weight: String(weightNum),
+        weight: weightNum,
         createdAt: editingProduct?.createdAt || new Date().toISOString(),
       };
 
@@ -452,7 +452,7 @@ export default function Products() {
           purchasePriceNum,
         stock: 0, // Will be updated by addStockToProduct
         whereToBuy: formData.whereToBuy,
-        weight: String(weightNum),
+        weight: weightNum,
         createdAt: new Date().toISOString(),
       };
 

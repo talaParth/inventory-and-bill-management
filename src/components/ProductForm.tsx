@@ -67,7 +67,7 @@ export function ProductForm({
         purchasePrice: String(editingProduct.purchasePrice),
         sellingPrice: String(editingProduct.sellingPrice),
         whereToBuy: editingProduct.whereToBuy || "",
-        weight: editingProduct.weight || "",
+        weight: editingProduct.weight ? String(editingProduct.weight) : "",
       });
       setImagePreview(editingProduct.imageUrl || null);
     } else {
@@ -143,7 +143,7 @@ export function ProductForm({
         sellingPrice: sellingPriceNum,
         stock: editingProduct?.stock || 0,
         whereToBuy: formData.whereToBuy,
-        weight: formData.weight,
+        weight: parseFloat(formData.weight) || 0,
         createdAt: editingProduct?.createdAt || new Date().toISOString(),
         imageUrl: imageUrl,
       };
