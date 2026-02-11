@@ -124,29 +124,26 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
 
           const systemMessage: Message = {
             role: "system",
-            content: "You are a professional invoice data extractor. Extract data accurately into JSON format."
+            content: `You are a high-level Strategic Business Consultant for "Starlink" GST Software users. 
+            Your goal is to provide insightful, professional, and actionable business advice based on data.
+            
+            CRITICAL INSTRUCTIONS:
+            - NEVER show raw JSON data or technical structures to the user.
+            - Always interpret the data into human-friendly business insights.
+            - Use a professional yet encouraging tone.
+            - Format your response with clear headings, bullet points, and bold text for readability.
+            - Focus on growth, efficiency, and financial health.`
           };
 
           const initialMessage: Message = {
             role: "user",
-            content: `You are a professional Business Growth Consultant for "Starlink" GST Software. 
-            Analyze the following business data and provide a clear, supportive, and professional analysis for the owner.
-
-            Guidelines:
-            - Use Indian Rupees (₹) for all currency.
-            - Use simple, friendly language.
-            - Format with Markdown (headings, bold text, lists).
-            - Be constructive and offer real advice.
-
-            Report Structure:
-            1. **Business Snapshot**: Overview of current performance.
-            2. **Financial Health**: Sales, Purchases, and Expenses breakdown.
-            3. **Inventory & Stock**: Stock levels, deadstock, and moving items.
-            4. **Customer Insights**: Top performing clients.
-            5. **Growth Strategy**: 3 actionable steps to improve profitability.
-            6. **Risk Report**: Pending payments and potential issues.
-
-            Business Data: ${JSON.stringify(systemData)}`,
+            content: `Please analyze my current business performance using the following data and provide a strategic report. 
+            
+            Context for analysis:
+            - Business Name: Starlink GST Software
+            - Currency: INR (₹)
+            
+            Data to analyze: ${JSON.stringify(systemData)}`,
           };
 
           const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
@@ -239,71 +236,83 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
     };
 
     return (
-      <div className="flex flex-col h-[calc(100vh-6rem)] w-full max-w-5xl mx-auto bg-background">
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="border-b bg-muted/20 px-6 py-4 flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Bot className="h-6 w-6 text-primary" />
+      <div className="flex flex-col h-[calc(100vh-6rem)] w-full max-w-6xl mx-auto bg-gradient-to-b from-background to-muted/5 p-4 md:p-6">
+        <div className="flex-1 flex flex-col overflow-hidden bg-card rounded-3xl border shadow-xl shadow-primary/5">
+          <div className="border-b bg-primary/5 px-8 py-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary rounded-2xl shadow-lg shadow-primary/20">
+                <Bot className="h-7 w-7 text-primary-foreground" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">Strategic Business Consultant</h2>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                  <p className="text-sm font-medium text-muted-foreground">AI Intelligence Active</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-bold tracking-tight">AI Business Agent</h2>
-              <p className="text-xs text-muted-foreground">Powered by Sarvam AI • Real-time Business Intelligence</p>
+            <div className="hidden md:block">
+              <div className="px-4 py-2 bg-background/50 backdrop-blur-sm rounded-full border text-xs font-semibold text-muted-foreground shadow-sm">
+                Powered by Sarvam AI
+              </div>
             </div>
           </div>
 
           <div className="flex-1 overflow-hidden relative">
-            <ScrollArea ref={scrollAreaRef} className="h-full px-6 py-4">
-              <div className="space-y-6 max-w-4xl mx-auto">
+            <ScrollArea ref={scrollAreaRef} className="h-full px-4 md:px-8 py-6">
+              <div className="space-y-8 max-w-4xl mx-auto pb-4">
                 {messages.length === 0 && isLoading && (
-                  <div className="flex flex-col items-center justify-center h-[500px] text-center space-y-8 animate-in fade-in duration-500">
+                  <div className="flex flex-col items-center justify-center h-[500px] text-center space-y-10 animate-in fade-in zoom-in-95 duration-700">
                     <div className="relative">
-                      <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
-                      <div className="relative p-6 rounded-full bg-primary/10">
-                        <Bot className="h-16 w-16 text-primary" />
+                      <div className="absolute inset-0 bg-primary/30 rounded-full animate-ping [animation-duration:3s]" />
+                      <div className="relative p-10 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm">
+                        <Bot className="h-20 w-20 text-primary animate-pulse" />
                       </div>
                     </div>
-                    <div className="space-y-3">
-                      <h3 className="text-2xl font-bold">Analyzing Your Business Data</h3>
-                      <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
-                        I'm processing your sales, inventory, purchases, and expenses to generate comprehensive insights and growth strategies.
+                    <div className="space-y-4">
+                      <h3 className="text-3xl font-extrabold tracking-tight">Synthesizing Business Intelligence</h3>
+                      <p className="text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
+                        I'm auditing your financial landscape, inventory efficiency, and growth trajectories to architect a custom strategy.
                       </p>
                     </div>
-                    <div className="flex flex-col items-center gap-4">
-                      <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                      <div className="flex gap-1.5">
-                        <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
-                        <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
-                        <span className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                    <div className="flex flex-col items-center gap-6">
+                      <div className="flex gap-2.5">
+                        <span className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                        <span className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                        <span className="w-3 h-3 bg-primary rounded-full animate-bounce" />
+                      </div>
+                      <div className="w-64 h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="w-full h-full bg-primary origin-left animate-[loading_2s_ease-in-out_infinite]" />
                       </div>
                     </div>
                   </div>
                 )}
 
-                {messages.filter(m => m.role !== 'system').map((message, index) => (
+                {messages.filter(m => m.role !== 'system' && m.role !== 'user' || (m.role === 'user' && !m.content.includes('Business Data:'))).map((message, index) => (
                   <div
                     key={index}
                     className={`flex ${
                       message.role === "user" ? "justify-end" : "justify-start"
-                    } animate-in slide-in-from-bottom-2 duration-300`}
+                    } animate-in slide-in-from-bottom-4 fade-in duration-500`}
                   >
                     <div
-                      className={`flex gap-4 max-w-[90%] ${
+                      className={`flex gap-4 max-w-[90%] md:max-w-[85%] ${
                         message.role === "user" ? "flex-row-reverse" : "flex-row"
                       }`}
                     >
-                      <div className={`mt-1 flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center shadow-sm ${
-                        message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted border border-border"
+                      <div className={`mt-1 flex-shrink-0 h-10 w-10 md:h-12 md:w-12 rounded-2xl flex items-center justify-center shadow-md ${
+                        message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border shadow-inner"
                       }`}>
-                        {message.role === "user" ? <User size={20} /> : <Bot size={20} />}
+                        {message.role === "user" ? <User size={22} /> : <Bot size={22} className="text-primary" />}
                       </div>
                       <div
-                        className={`rounded-2xl px-5 py-3 shadow-sm ${
+                        className={`rounded-3xl px-6 py-4 shadow-sm ${
                           message.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted/40 border border-border/50"
+                            ? "bg-primary text-primary-foreground rounded-tr-none"
+                            : "bg-muted/30 border border-border/40 rounded-tl-none backdrop-blur-[2px]"
                         }`}
                       >
-                        <div className={`prose prose-sm dark:prose-invert max-w-none ${
+                        <div className={`prose prose-sm md:prose-base dark:prose-invert max-w-none ${
                           message.role === "user" ? "prose-invert text-primary-foreground" : "text-foreground"
                         }`}>
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -317,14 +326,14 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
                 {isLoading && messages.length > 0 && (
                   <div className="flex justify-start animate-in fade-in duration-300">
                     <div className="flex gap-4 max-w-[90%]">
-                      <div className="mt-1 h-10 w-10 rounded-xl bg-muted border border-border flex items-center justify-center">
-                        <Bot size={20} className="animate-pulse text-primary" />
+                      <div className="mt-1 h-12 w-12 rounded-2xl bg-card border shadow-inner flex items-center justify-center">
+                        <Bot size={22} className="animate-pulse text-primary" />
                       </div>
-                      <div className="bg-muted/40 border border-border/50 rounded-2xl px-5 py-3 flex items-center">
-                        <div className="flex gap-1.5">
-                          <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" />
-                          <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]" />
-                          <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:0.4s]" />
+                      <div className="bg-muted/30 border border-border/40 rounded-3xl rounded-tl-none px-6 py-4 flex items-center backdrop-blur-[2px]">
+                        <div className="flex gap-2">
+                          <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" />
+                          <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:0.2s]" />
+                          <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:0.4s]" />
                         </div>
                       </div>
                     </div>
@@ -335,18 +344,22 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
           </div>
 
           {isAnalyzed && (
-            <div className="border-t bg-background p-6">
+            <div className="border-t bg-card p-6 md:p-8">
               <div className="max-w-4xl mx-auto">
-                <form onSubmit={handleSendMessage} className="flex w-full gap-3">
-                  <Input
-                    placeholder="Ask follow-up questions about your business..."
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    disabled={isLoading}
-                    className="flex-1 h-12 px-6 rounded-xl border-border bg-muted/20 focus-visible:ring-primary/20"
-                  />
-                  <Button type="submit" size="icon" className="h-12 w-12 rounded-xl shadow-lg" disabled={isLoading || !input.trim()}>
-                    <Send className="h-5 w-5" />
+                <form onSubmit={handleSendMessage} className="flex w-full gap-4">
+                  <div className="relative flex-1 group">
+                    <Input
+                      placeholder="Ask for deeper insights or specific strategy..."
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      disabled={isLoading}
+                      className="h-14 px-8 rounded-2xl border-border bg-muted/30 focus-visible:ring-primary/10 transition-all duration-300 group-hover:bg-muted/50 text-base shadow-inner"
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-primary/5 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity duration-300" />
+                  </div>
+                  <Button type="submit" size="lg" className="h-14 w-14 md:w-auto md:px-8 rounded-2xl shadow-xl shadow-primary/20 hover:shadow-primary/30 active:scale-95 transition-all duration-200" disabled={isLoading || !input.trim()}>
+                    <Send className="h-5 w-5 md:mr-2" />
+                    <span className="hidden md:inline">Analyze</span>
                   </Button>
                 </form>
               </div>
@@ -354,5 +367,6 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
           )}
         </div>
       </div>
+    );
     );
   }
