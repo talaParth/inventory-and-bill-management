@@ -311,21 +311,24 @@ export default function Settings() {
 
   return (
     <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto pb-6 sm:pb-8 px-3 sm:px-4 md:px-0 w-full max-w-full overflow-x-hidden relative">
-      {/* Floating Save Button */}
-      <div className="fixed bottom-6 right-6 z-[60] sm:hidden">
-        <Button
-          onClick={handleSubmit}
-          disabled={saving || !isDirty}
-          size="lg"
-          className="rounded-full h-14 w-14 shadow-2xl transition-all hover:scale-105 active:scale-95"
-        >
-          {saving ? (
-            <Loader2 className="h-6 w-6 animate-spin" />
-          ) : (
-            <Save className="h-6 w-6" />
-          )}
-        </Button>
-      </div>
+      {/* Conditional Floating Save Button */}
+      {isDirty && (
+        <div className="fixed bottom-6 right-6 z-[60] flex items-center justify-center">
+          <Button
+            onClick={handleSubmit}
+            disabled={saving}
+            size="lg"
+            className="rounded-full h-14 px-6 shadow-2xl transition-all hover:scale-105 active:scale-95 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 ring-4 ring-primary/20 animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300"
+          >
+            {saving ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Save className="h-5 w-5" />
+            )}
+            <span className="font-semibold">Save Changes</span>
+          </Button>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 sticky top-0 bg-background/95 backdrop-blur z-50 py-4 border-b">
@@ -333,39 +336,10 @@ export default function Settings() {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 break-words">
             <Settings2 className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary flex-shrink-0" />
             Settings
-            {isDirty && (
-              <Badge variant="destructive" className="ml-2 animate-pulse">
-                Unsaved Changes
-              </Badge>
-            )}
           </h1>
           <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1 sm:mt-2 break-words">
             Manage your company profile and preferences
           </p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <Button
-            onClick={handleSubmit}
-            disabled={saving || !isDirty}
-            className={`gap-2 w-full sm:w-auto text-xs sm:text-sm touch-manipulation order-first sm:order-none transition-all ${
-              isDirty ? "bg-primary shadow-lg ring-2 ring-primary/20" : ""
-            }`}
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            className="gap-2 w-full sm:w-auto text-xs sm:text-sm touch-manipulation"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
         </div>
       </div>
 
