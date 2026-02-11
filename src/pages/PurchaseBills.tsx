@@ -119,10 +119,12 @@ export default function PurchaseBills() {
   const [selectedBill, setSelectedBill] = useState<PurchaseBill | null>(null);
   const [viewImageBill, setViewImageBill] = useState<PurchaseBill | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedBillForHistory, setSelectedBillForHistory] = useState<PurchaseBill | null>(null);
+  const [selectedBillForHistory, setSelectedBillForHistory] =
+    useState<PurchaseBill | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
-  const [selectedBillForReturn, setSelectedBillForReturn] = useState<PurchaseBill | null>(null);
+  const [selectedBillForReturn, setSelectedBillForReturn] =
+    useState<PurchaseBill | null>(null);
 
   const openHistoryDialog = (bill: PurchaseBill) => {
     setSelectedBillForHistory(bill);
@@ -131,25 +133,25 @@ export default function PurchaseBills() {
 
   const getPurchaseHistory = (bill: PurchaseBill) => {
     const history: any[] = [];
-    
+
     // Add the original purchase
     history.push({
       id: `purchase-${bill.id}`,
       date: bill.billDate || bill.createdAt,
-      type: 'purchase',
-      description: `Purchase - Bill #${bill.billNumber || 'N/A'}`,
+      type: "purchase",
+      description: `Purchase - Bill #${bill.billNumber || "N/A"}`,
       amount: -bill.total,
       quantity: bill.items.reduce((sum, item) => sum + item.quantity, 0),
     });
 
     // Add payments
     if (bill.payments && bill.payments.length > 0) {
-      bill.payments.forEach(payment => {
+      bill.payments.forEach((payment) => {
         history.push({
           id: `payment-${payment.id}`,
           date: payment.date,
-          type: 'payment',
-          description: `Payment Made (${payment.method})${payment.note ? ` - ${payment.note}` : ''}`,
+          type: "payment",
+          description: `Payment Made (${payment.method})${payment.note ? ` - ${payment.note}` : ""}`,
           amount: payment.amount,
           quantity: 0,
         });
@@ -158,14 +160,19 @@ export default function PurchaseBills() {
 
     // Add returns
     if (bill.returns && bill.returns.length > 0) {
-      bill.returns.forEach(ret => {
-        const productNames = ret.items.map(item => item.description).join(", ");
-        const returnQty = ret.items.reduce((sum, item) => sum + item.quantity, 0);
+      bill.returns.forEach((ret) => {
+        const productNames = ret.items
+          .map((item) => item.description)
+          .join(", ");
+        const returnQty = ret.items.reduce(
+          (sum, item) => sum + item.quantity,
+          0,
+        );
         history.push({
           id: `return-${ret.id}`,
           date: ret.returnDate,
-          type: 'return',
-          description: `Purchase Return (${productNames})${ret.notes ? ` - ${ret.notes}` : ''}`,
+          type: "return",
+          description: `Purchase Return (${productNames})${ret.notes ? ` - ${ret.notes}` : ""}`,
           amount: ret.totalReturnValue,
           quantity: returnQty,
         });
@@ -173,21 +180,29 @@ export default function PurchaseBills() {
     }
 
     // Sort by date descending
-    return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return history.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
   };
 
   const getAvailableStockForBill = (bill: PurchaseBill) => {
     if (!bill || !products) return 0;
-    const billProductIds = new Set(bill.items.map(item => {
-      const p = products.find(p => 
-        p.name.toLowerCase().trim() === item.description.toLowerCase().trim() || 
-        (item.hsnCode && p.hsnCode === item.hsnCode)
-      );
-      return p?.id;
-    }).filter(Boolean));
-    
+    const billProductIds = new Set(
+      bill.items
+        .map((item) => {
+          const p = products.find(
+            (p) =>
+              p.name.toLowerCase().trim() ===
+                item.description.toLowerCase().trim() ||
+              (item.hsnCode && p.hsnCode === item.hsnCode),
+          );
+          return p?.id;
+        })
+        .filter(Boolean),
+    );
+
     return products
-      .filter(p => billProductIds.has(p.id))
+      .filter((p) => billProductIds.has(p.id))
       .reduce((sum, p) => sum + (p.stock || 0), 0);
   };
 
@@ -197,11 +212,13 @@ export default function PurchaseBills() {
   const [editingReturn, setEditingReturn] = useState<any>(null);
 
   const handleEditTransaction = (entry: any) => {
-    if (entry.type === 'payment') {
+    if (entry.type === "payment") {
       setEditingTransaction(entry);
       setTransactionAmount(entry.amount.toString());
-    } else if (entry.type === 'return') {
-      const returnObj = selectedBillForHistory?.returns?.find(r => `return-${r.id}` === entry.id);
+    } else if (entry.type === "return") {
+      const returnObj = selectedBillForHistory?.returns?.find(
+        (r) => `return-${r.id}` === entry.id,
+      );
       if (returnObj && selectedBillForHistory) {
         setEditingReturn(returnObj);
         setSelectedBillForReturn(selectedBillForHistory);
@@ -216,54 +233,66 @@ export default function PurchaseBills() {
       const amount = parseFloat(transactionAmount);
       if (isNaN(amount)) return;
 
-      const paymentId = editingTransaction.id.replace('payment-', '');
+      const paymentId = editingTransaction.id.replace("payment-", "");
       await updatePurchaseBillPayment(
         selectedBillForHistory.id,
         amount,
-        editingTransaction.method || 'Cash',
+        editingTransaction.method || "Cash",
         editingTransaction.note,
         editingTransaction.date,
-        paymentId
+        paymentId,
       );
-      
+
       toast({ title: "Success", description: "Payment updated successfully" });
       setEditingTransaction(null);
       await loadBills();
       // Update history dialog view
-      const updatedBill = bills.find(b => b.id === selectedBillForHistory.id);
+      const updatedBill = bills.find((b) => b.id === selectedBillForHistory.id);
       if (updatedBill) setSelectedBillForHistory(updatedBill);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to update payment", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to update payment",
+        variant: "destructive",
+      });
     }
   };
 
   const handleDeleteTransaction = async (entry: any) => {
     if (!selectedBillForHistory) return;
     try {
-      if (entry.type === 'payment') {
-        const paymentId = entry.id.replace('payment-', '');
+      if (entry.type === "payment") {
+        const paymentId = entry.id.replace("payment-", "");
         await deletePurchaseBillPayment(selectedBillForHistory.id, paymentId);
         toast({ title: "Deleted", description: "Payment removed" });
-      } else if (entry.type === 'return') {
-        const returnId = entry.id.replace('return-', '');
+      } else if (entry.type === "return") {
+        const returnId = entry.id.replace("return-", "");
         await deletePurchaseReturn(returnId, selectedBillForHistory.id);
-        toast({ title: "Deleted", description: "Return removed and stock reverted" });
+        toast({
+          title: "Deleted",
+          description: "Return removed and stock reverted",
+        });
       }
       await loadBills();
-      const updatedBill = bills.find(b => b.id === selectedBillForHistory.id);
+      const updatedBill = bills.find((b) => b.id === selectedBillForHistory.id);
       if (updatedBill) setSelectedBillForHistory(updatedBill);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to delete transaction", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to delete transaction",
+        variant: "destructive",
+      });
     }
   };
   const [editedBill, setEditedBill] = useState<PurchaseBill | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [selectedBillForPayment, setSelectedBillForPayment] = useState<PurchaseBill | null>(null);
+  const [selectedBillForPayment, setSelectedBillForPayment] =
+    useState<PurchaseBill | null>(null);
   const [loadingPayment, setLoadingPayment] = useState<string | null>(null);
   const [loadingInventory, setLoadingInventory] = useState<string | null>(null);
   const [savingEditedBill, setSavingEditedBill] = useState(false);
   const [productConflicts, setProductConflicts] = useState<ProductConflict[]>(
-    []
+    [],
   );
   const [loading, setLoading] = useState(false);
   const [pendingInventoryBill, setPendingInventoryBill] =
@@ -272,7 +301,7 @@ export default function PurchaseBills() {
     InventoryItemInput[]
   >([]);
   const [lastInventoryError, setLastInventoryError] = useState<string | null>(
-    null
+    null,
   );
 
   // Inventory dialog state
@@ -317,8 +346,8 @@ export default function PurchaseBills() {
         typeof e?.message === "string"
           ? e.message
           : typeof error === "string"
-          ? error
-          : "Unknown error";
+            ? error
+            : "Unknown error";
 
       const meta: any = {};
       if (e?.code) meta.code = e.code;
@@ -370,8 +399,8 @@ export default function PurchaseBills() {
           bill.vendorName.toLowerCase().includes(term) ||
           bill.billNumber?.toLowerCase().includes(term) ||
           bill.items.some((item) =>
-            item.description.toLowerCase().includes(term)
-          )
+            item.description.toLowerCase().includes(term),
+          ),
       );
     }
 
@@ -379,8 +408,11 @@ export default function PurchaseBills() {
     if (statusFilter !== "all") {
       filtered = filtered.filter((bill) => {
         if (statusFilter === "overpaid") {
-          const netTotal = bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0);
-          return (netTotal - (bill.paidAmount || 0)) < 0;
+          const netTotal =
+            bill.total -
+            (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) ||
+              0);
+          return netTotal - (bill.paidAmount || 0) < 0;
         }
         return bill.paymentStatus === statusFilter;
       });
@@ -432,7 +464,7 @@ export default function PurchaseBills() {
   const currentPage = Math.min(page, totalPages);
   const pagedBills = filteredBills.slice(
     (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    currentPage * pageSize,
   );
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -463,7 +495,7 @@ export default function PurchaseBills() {
         toast({
           title: "Image Too Large",
           description: `Image is ${sizeKB.toFixed(
-            0
+            0,
           )} KB. Please try a different photo.`,
           variant: "destructive",
         });
@@ -502,7 +534,7 @@ export default function PurchaseBills() {
         extracted.billNumber &&
         (await isPurchaseBillDuplicate(
           extracted.billNumber,
-          extracted.vendorName
+          extracted.vendorName,
         ))
       ) {
         toast({
@@ -585,11 +617,22 @@ export default function PurchaseBills() {
     });
   };
 
-  const handlePaymentCollected = async (amount: number, type: any, note?: string, date?: string) => {
+  const handlePaymentCollected = async (
+    amount: number,
+    type: any,
+    note?: string,
+    date?: string,
+  ) => {
     if (selectedBillForPayment) {
       setLoadingPayment(selectedBillForPayment.id);
       try {
-        await updatePurchaseBillPayment(selectedBillForPayment.id, amount, type, note, date);
+        await updatePurchaseBillPayment(
+          selectedBillForPayment.id,
+          amount,
+          type,
+          note,
+          date,
+        );
         await loadBills();
         toast({
           title: "Payment Collected",
@@ -625,7 +668,7 @@ export default function PurchaseBills() {
       toast({
         title: "Already Added",
         description: `Items were added to inventory on ${formatDate(
-          bill.inventoryAddedAt || bill.createdAt
+          bill.inventoryAddedAt || bill.createdAt,
         )}`,
         variant: "destructive",
       });
@@ -637,9 +680,11 @@ export default function PurchaseBills() {
     const products = await getProducts();
     const items = bill.items.map((item) => {
       const existingProduct = products.find(
-        (p) => p.name.toLowerCase() === item.description.toLowerCase() || p.hsnCode === item.hsnCode
+        (p) =>
+          p.name.toLowerCase() === item.description.toLowerCase() ||
+          p.hsnCode === item.hsnCode,
       );
-      
+
       return {
         description: item.description,
         hsnCode: item.hsnCode || "",
@@ -648,7 +693,7 @@ export default function PurchaseBills() {
         purchasePrice: item.rate,
         sellingPrice: calculateSellingPriceFromCommission(
           item.rate,
-          companyProfile?.commissionSettings
+          companyProfile?.commissionSettings,
         ),
         gstRate: item.gstRate || 0,
         whereToBuy: (item as any).whereToBuy || bill.vendorName || "",
@@ -664,7 +709,7 @@ export default function PurchaseBills() {
   };
 
   const confirmAddToInventory = async (
-    conflictResolutions?: Map<string, string>
+    conflictResolutions?: Map<string, string>,
   ) => {
     if (!inventoryDialogBill) return;
 
@@ -672,7 +717,7 @@ export default function PurchaseBills() {
     try {
       // Validate all selling prices
       const hasInvalidPrices = inventoryItems.some(
-        (item) => item.sellingPrice <= 0
+        (item) => item.sellingPrice <= 0,
       );
       if (hasInvalidPrices) {
         toast({
@@ -684,24 +729,24 @@ export default function PurchaseBills() {
         return;
       }
 
-    const itemsInput: InventoryItemInput[] = inventoryItems.map((item) => ({
-      description: item.description,
-      hsnCode: item.hsnCode,
-      quantity: item.quantity,
-      unit: item.unit,
-      purchasePrice: item.purchasePrice,
-      sellingPrice: item.sellingPrice,
-      gstRate: item.gstRate,
-      productId: item.productId,
-      isNewProduct: item.isNewProduct,
-      weight: item.weight,
-      weightUnit: item.weightUnit,
-    }));
+      const itemsInput: InventoryItemInput[] = inventoryItems.map((item) => ({
+        description: item.description,
+        hsnCode: item.hsnCode,
+        quantity: item.quantity,
+        unit: item.unit,
+        purchasePrice: item.purchasePrice,
+        sellingPrice: item.sellingPrice,
+        gstRate: item.gstRate,
+        productId: item.productId,
+        isNewProduct: item.isNewProduct,
+        weight: item.weight,
+        weightUnit: item.weightUnit,
+      }));
 
       const result = await addPurchaseItemsToInventory(
         inventoryDialogBill,
         itemsInput,
-        conflictResolutions
+        conflictResolutions,
       );
 
       // Check if there are conflicts
@@ -776,7 +821,7 @@ export default function PurchaseBills() {
       const result = await addPurchaseItemsToInventory(
         pendingInventoryBill,
         pendingInventoryItems,
-        resolutions
+        resolutions,
       );
 
       await loadBills();
@@ -811,7 +856,7 @@ export default function PurchaseBills() {
 
   const updateInventoryItemSellingPrice = (
     index: number,
-    sellingPrice: number
+    sellingPrice: number,
   ) => {
     const items = [...inventoryItems];
     items[index].sellingPrice = sellingPrice;
@@ -864,11 +909,11 @@ export default function PurchaseBills() {
       // Recalculate totals
       const subtotal = editedBill.items.reduce(
         (sum, item) => sum + item.amount,
-        0
+        0,
       );
       const totalTax = editedBill.items.reduce(
         (sum, item) => sum + (item.gstAmount || 0),
-        0
+        0,
       );
       const total = subtotal + totalTax;
 
@@ -908,7 +953,7 @@ export default function PurchaseBills() {
   const updateEditedItem = (
     index: number,
     field: keyof PurchaseBillItem,
-    value: any
+    value: any,
   ) => {
     if (!editedBill) return;
 
@@ -956,15 +1001,14 @@ export default function PurchaseBills() {
     const isOverdueVal = isOverdue(bill);
     const status = bill.paymentStatus;
     const paidAmount = bill.paidAmount || 0;
-    const netTotal = bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0);
+    const netTotal =
+      bill.total -
+      (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0);
     const remaining = netTotal - paidAmount;
 
     if (remaining < 0) {
       return (
-        <Badge
-          variant="default"
-          className="bg-orange-600 hover:bg-orange-700"
-        >
+        <Badge variant="default" className="bg-orange-600 hover:bg-orange-700">
           <IndianRupee className="h-3 w-3 mr-1" /> Overpaid
         </Badge>
       );
@@ -984,7 +1028,8 @@ export default function PurchaseBills() {
     if (paidAmount > 0) {
       return (
         <Badge variant="outline" className="text-blue-600 border-blue-400">
-          <Clock className="h-3 w-3 mr-1" /> Partial ({formatCurrency(paidAmount)})
+          <Clock className="h-3 w-3 mr-1" /> Partial (
+          {formatCurrency(paidAmount)})
         </Badge>
       );
     }
@@ -1078,8 +1123,8 @@ export default function PurchaseBills() {
             {isCompressing
               ? "Processing..."
               : isExtracting
-              ? "Extracting..."
-              : "Upload Bill"}
+                ? "Extracting..."
+                : "Upload Bill"}
           </Button>
         </div>
       </div>
@@ -1214,31 +1259,31 @@ export default function PurchaseBills() {
                           </p>
                         )}
                       </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <div
-                              className={`cursor-pointer ${
-                                loadingPayment === bill.id
-                                  ? "opacity-50 pointer-events-none"
-                                  : ""
-                              }`}
-                              onClick={() => openPaymentDialog(bill)}
-                            >
-                              {loadingPayment === bill.id ? (
-                                <Badge variant="secondary">
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />{" "}
-                                  Updating...
-                                </Badge>
-                              ) : (
-                                <div className="flex flex-col gap-1 items-end">
-                                  {getPaymentStatusBadge(bill)}
-                                  {bill.paymentStatus !== "paid" && (
-                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                      Paid: {formatCurrency(bill.paidAmount || 0)}
-                                    </span>
-                                  )}
-                                </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <div
+                          className={`cursor-pointer ${
+                            loadingPayment === bill.id
+                              ? "opacity-50 pointer-events-none"
+                              : ""
+                          }`}
+                          onClick={() => openPaymentDialog(bill)}
+                        >
+                          {loadingPayment === bill.id ? (
+                            <Badge variant="secondary">
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />{" "}
+                              Updating...
+                            </Badge>
+                          ) : (
+                            <div className="flex flex-col gap-1 items-end">
+                              {getPaymentStatusBadge(bill)}
+                              {bill.paymentStatus !== "paid" && (
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                  Paid: {formatCurrency(bill.paidAmount || 0)}
+                                </span>
                               )}
                             </div>
+                          )}
+                        </div>
                         {bill.extractionErrors &&
                           bill.extractionErrors.length > 0 && (
                             <Badge
@@ -1276,47 +1321,84 @@ export default function PurchaseBills() {
                     <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t pt-3">
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider font-bold">Total:</span>
-                          <p className="text-lg sm:text-xl font-black text-foreground">
+                          <span className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider font-bold">
+                            Total:
+                          </span>
+                          <p className="text-[10px] sm:text-base font-black text-foreground">
                             {formatCurrency(
-                              bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)
+                              bill.total -
+                                (bill.returns?.reduce(
+                                  (sum, r) => sum + r.totalReturnValue,
+                                  0,
+                                ) || 0),
                             )}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider font-bold">Remaining:</span>
-                          <p className={`text-sm sm:text-base font-black ${
-                            (bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0) - (bill.paidAmount || 0)) < 0 
-                              ? "text-red-600" 
-                              : "text-blue-600"
-                          }`}>
+                          <span className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider font-bold">
+                            Remaining:
+                          </span>
+                          <p
+                            className={`text-sm sm:text-base font-black text-foreground ${
+                              bill.total -
+                                (bill.returns?.reduce(
+                                  (sum, r) => sum + r.totalReturnValue,
+                                  0,
+                                ) || 0) -
+                                (bill.paidAmount || 0) <
+                              0
+                                ? "text-red-600"
+                                : "text-black-600"
+                            }`}
+                          >
                             {formatCurrency(
-                              bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0) - (bill.paidAmount || 0)
+                              bill.total -
+                                (bill.returns?.reduce(
+                                  (sum, r) => sum + r.totalReturnValue,
+                                  0,
+                                ) || 0) -
+                                (bill.paidAmount || 0),
                             )}
                           </p>
                         </div>
                         {bill.returns && bill.returns.length > 0 && (
-                          <p className="text-[11px] sm:text-xs text-orange-600 font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
-                            Ret: {formatCurrency(bill.returns.reduce((sum, r) => sum + r.totalReturnValue, 0))}
+                          <p className="text-[11px] sm:text-xs text-orange-600 font-bold">
+                            Ret:{" "}
+                            {formatCurrency(
+                              bill.returns.reduce(
+                                (sum, r) => sum + r.totalReturnValue,
+                                0,
+                              ),
+                            )}
                           </p>
                         )}
-                        {bill.paidAmount > 0 && bill.payments && bill.payments.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {Object.entries(
-                              bill.payments.reduce((acc, p) => {
-                                acc[p.method] = (acc[p.method] || 0) + p.amount;
-                                return acc;
-                              }, {} as Record<string, number>)
-                            ).map(([method, amount]) => (
-                              <Badge key={method} variant="outline" className="text-[10px] sm:text-[11px] px-2 py-0 h-5 flex items-center gap-1 bg-primary/5 border-primary/20 text-primary font-bold">
-                                <span>{method}:</span>
-                                <span>{formatCurrency(amount)}</span>
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                        {bill.paidAmount > 0 &&
+                          bill.payments &&
+                          bill.payments.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {Object.entries(
+                                bill.payments.reduce(
+                                  (acc, p) => {
+                                    acc[p.method] =
+                                      (acc[p.method] || 0) + p.amount;
+                                    return acc;
+                                  },
+                                  {} as Record<string, number>,
+                                ),
+                              ).map(([method, amount]) => (
+                                <Badge
+                                  key={method}
+                                  variant="outline"
+                                  className="text-[10px] sm:text-[11px] px-2 py-0 h-5 flex items-center gap-1 bg-primary/5 border-primary/20 text-primary font-bold"
+                                >
+                                  <span>{method}:</span>
+                                  <span>{formatCurrency(amount)}</span>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                       </div>
-                      
+
                       <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
@@ -1330,7 +1412,11 @@ export default function PurchaseBills() {
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -1343,7 +1429,7 @@ export default function PurchaseBills() {
                               <IndianRupee className="h-4 w-4" />
                               Pay Now
                             </DropdownMenuItem>
-                            
+
                             {!bill.itemsAddedToInventory && (
                               <DropdownMenuItem
                                 onClick={() => handleAddToInventory(bill)}
@@ -1387,10 +1473,10 @@ export default function PurchaseBills() {
                             </DropdownMenuItem>
 
                             <DropdownMenuSeparator />
-                            
+
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   onSelect={(e) => e.preventDefault()}
                                   className="gap-2 text-destructive focus:text-destructive"
                                 >
@@ -1400,9 +1486,12 @@ export default function PurchaseBills() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Purchase Bill?</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Delete Purchase Bill?
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This action cannot be undone and will remove all associated payment and return records.
+                                    This action cannot be undone and will remove
+                                    all associated payment and return records.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -1483,7 +1572,7 @@ export default function PurchaseBills() {
 
       {/* Detail View Dialog */}
       {/* Detail View Dialog */}
-     <Dialog
+      <Dialog
         open={!!selectedBill}
         onOpenChange={() => {
           setSelectedBill(null);
@@ -1513,7 +1602,11 @@ export default function PurchaseBills() {
                       fileName={`Bill_${selectedBill.billNumber || selectedBill.id}.pdf`}
                     >
                       {({ loading }) => (
-                        <Button variant="outline" size="default" disabled={loading}>
+                        <Button
+                          variant="outline"
+                          size="default"
+                          disabled={loading}
+                        >
                           {loading ? (
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
                           ) : (
@@ -1635,12 +1728,16 @@ export default function PurchaseBills() {
                     {isEditing ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         <div className="space-y-1.5">
-                          <Label className="text-sm font-medium">Vendor Name</Label>
+                          <Label className="text-sm font-medium">
+                            Vendor Name
+                          </Label>
                           <Input
                             value={editedBill?.vendorName || ""}
                             onChange={(e) =>
                               setEditedBill((prev) =>
-                                prev ? { ...prev, vendorName: e.target.value } : null
+                                prev
+                                  ? { ...prev, vendorName: e.target.value }
+                                  : null,
                               )
                             }
                             className="h-10 text-sm"
@@ -1657,28 +1754,32 @@ export default function PurchaseBills() {
                                       ...prev,
                                       vendorGstin: e.target.value.toUpperCase(),
                                     }
-                                  : null
+                                  : null,
                               )
                             }
                             className="h-10 text-sm"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-sm font-medium">Bill Number</Label>
+                          <Label className="text-sm font-medium">
+                            Bill Number
+                          </Label>
                           <Input
                             value={editedBill?.billNumber || ""}
                             onChange={(e) =>
                               setEditedBill((prev) =>
                                 prev
                                   ? { ...prev, billNumber: e.target.value }
-                                  : null
+                                  : null,
                               )
                             }
                             className="h-10 text-sm"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-sm font-medium">Bill Date</Label>
+                          <Label className="text-sm font-medium">
+                            Bill Date
+                          </Label>
                           <Input
                             type="date"
                             value={editedBill?.billDate || ""}
@@ -1686,14 +1787,16 @@ export default function PurchaseBills() {
                               setEditedBill((prev) =>
                                 prev
                                   ? { ...prev, billDate: e.target.value }
-                                  : null
+                                  : null,
                               )
                             }
                             className="h-10 text-sm"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-sm font-medium">Due Date</Label>
+                          <Label className="text-sm font-medium">
+                            Due Date
+                          </Label>
                           <Input
                             type="date"
                             value={editedBill?.dueDate || ""}
@@ -1701,7 +1804,7 @@ export default function PurchaseBills() {
                               setEditedBill((prev) =>
                                 prev
                                   ? { ...prev, dueDate: e.target.value }
-                                  : null
+                                  : null,
                               )
                             }
                             className="h-10 text-sm"
@@ -1723,7 +1826,7 @@ export default function PurchaseBills() {
                                       paymentTerms:
                                         parseInt(e.target.value) || 0,
                                     }
-                                  : null
+                                  : null,
                               )
                             }
                             className="h-10 text-sm"
@@ -1737,7 +1840,7 @@ export default function PurchaseBills() {
                               setEditedBill((prev) =>
                                 prev
                                   ? { ...prev, vendorAddress: e.target.value }
-                                  : null
+                                  : null,
                               )
                             }
                             rows={3}
@@ -1824,70 +1927,118 @@ export default function PurchaseBills() {
                       <span>Payment History</span>
                       <Badge
                         variant={
-                          (isEditing ? editedBill : selectedBill)?.paymentStatus === "paid"
+                          (isEditing ? editedBill : selectedBill)
+                            ?.paymentStatus === "paid"
                             ? "default"
                             : "secondary"
                         }
                         className="text-sm py-1 px-3"
                       >
-                        {(isEditing ? editedBill : selectedBill)?.paymentStatus.toUpperCase()}
+                        {(isEditing
+                          ? editedBill
+                          : selectedBill
+                        )?.paymentStatus.toUpperCase()}
                       </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-5 px-5 pb-5">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                       <div className="space-y-1.5 p-4 bg-muted/20 rounded-lg border">
-                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total Amount</span>
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                          Total Amount
+                        </span>
                         <p className="text-2xl font-bold text-foreground">
-                          {formatCurrency((isEditing ? editedBill : selectedBill)?.total || 0)}
+                          {formatCurrency(
+                            (isEditing ? editedBill : selectedBill)?.total || 0,
+                          )}
                         </p>
                       </div>
                       <div className="space-y-1.5 p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-100 dark:border-emerald-900">
-                        <span className="text-xs text-emerald-700 dark:text-emerald-300 uppercase tracking-wider font-semibold">Total Paid</span>
+                        <span className="text-xs text-emerald-700 dark:text-emerald-300 uppercase tracking-wider font-semibold">
+                          Total Paid
+                        </span>
                         <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                          {formatCurrency((isEditing ? editedBill : selectedBill)?.paidAmount || 0)}
+                          {formatCurrency(
+                            (isEditing ? editedBill : selectedBill)
+                              ?.paidAmount || 0,
+                          )}
                         </p>
                       </div>
                       <div className="space-y-1.5 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-100 dark:border-blue-900">
-                        <span className="text-xs text-blue-700 dark:text-blue-300 uppercase tracking-wider font-semibold">Payment Breakdown</span>
+                        <span className="text-xs text-blue-700 dark:text-blue-300 uppercase tracking-wider font-semibold">
+                          Payment Breakdown
+                        </span>
                         <div className="flex flex-wrap gap-1.5 pt-1">
                           {Object.entries(
-                            (isEditing ? editedBill : selectedBill)?.payments?.reduce((acc, p) => {
-                              acc[p.method] = (acc[p.method] || 0) + p.amount;
-                              return acc;
-                            }, {} as Record<string, number>) || {}
+                            (isEditing
+                              ? editedBill
+                              : selectedBill
+                            )?.payments?.reduce(
+                              (acc, p) => {
+                                acc[p.method] = (acc[p.method] || 0) + p.amount;
+                                return acc;
+                              },
+                              {} as Record<string, number>,
+                            ) || {},
                           ).map(([method, amount]) => (
-                            <Badge key={method} variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 border-none text-xs">
+                            <Badge
+                              key={method}
+                              variant="secondary"
+                              className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 border-none text-xs"
+                            >
                               {method}: {formatCurrency(amount)}
                             </Badge>
                           ))}
-                          {((isEditing ? editedBill : selectedBill)?.payments?.length || 0) === 0 && (
-                            <span className="text-xs text-muted-foreground italic">No payments yet</span>
+                          {((isEditing ? editedBill : selectedBill)?.payments
+                            ?.length || 0) === 0 && (
+                            <span className="text-xs text-muted-foreground italic">
+                              No payments yet
+                            </span>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    {((isEditing ? editedBill : selectedBill)?.payments?.length || 0) > 0 ? (
+                    {((isEditing ? editedBill : selectedBill)?.payments
+                      ?.length || 0) > 0 ? (
                       <div className="overflow-x-auto rounded-lg border">
                         <table className="w-full text-sm">
                           <thead className="bg-muted/60">
                             <tr>
-                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Date</th>
-                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Method</th>
-                              <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">Amount</th>
-                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Note</th>
+                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">
+                                Date
+                              </th>
+                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">
+                                Method
+                              </th>
+                              <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">
+                                Amount
+                              </th>
+                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">
+                                Note
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
-                            {(isEditing ? editedBill : selectedBill)?.payments?.map((payment, i) => (
+                            {(isEditing
+                              ? editedBill
+                              : selectedBill
+                            )?.payments?.map((payment, i) => (
                               <tr key={payment.id || i} className="border-t">
-                                <td className="px-4 py-3 text-sm">{formatDate(payment.date)}</td>
-                                <td className="px-4 py-3">
-                                  <Badge variant="outline" className="text-xs">{payment.method}</Badge>
+                                <td className="px-4 py-3 text-sm">
+                                  {formatDate(payment.date)}
                                 </td>
-                                <td className="px-4 py-3 text-right font-semibold">{formatCurrency(payment.amount)}</td>
-                                <td className="px-4 py-3 text-muted-foreground text-sm">{payment.note || "—"}</td>
+                                <td className="px-4 py-3">
+                                  <Badge variant="outline" className="text-xs">
+                                    {payment.method}
+                                  </Badge>
+                                </td>
+                                <td className="px-4 py-3 text-right font-semibold">
+                                  {formatCurrency(payment.amount)}
+                                </td>
+                                <td className="px-4 py-3 text-muted-foreground text-sm">
+                                  {payment.note || "—"}
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -1895,7 +2046,9 @@ export default function PurchaseBills() {
                       </div>
                     ) : (
                       <div className="text-center py-8 bg-muted/10 rounded-lg border border-dashed">
-                        <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
+                        <p className="text-sm text-muted-foreground">
+                          No payments recorded yet.
+                        </p>
                       </div>
                     )}
                   </CardContent>
@@ -1909,8 +2062,10 @@ export default function PurchaseBills() {
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-normal text-muted-foreground">
                           {
-                            (isEditing ? editedBill?.items : selectedBill?.items)
-                              ?.length
+                            (isEditing
+                              ? editedBill?.items
+                              : selectedBill?.items
+                            )?.length
                           }{" "}
                           item(s)
                         </span>
@@ -1986,7 +2141,7 @@ export default function PurchaseBills() {
                                         updateEditedItem(
                                           index,
                                           "description",
-                                          e.target.value
+                                          e.target.value,
                                         )
                                       }
                                       className="h-9 text-sm"
@@ -1999,7 +2154,7 @@ export default function PurchaseBills() {
                                           updateEditedItem(
                                             index,
                                             "whereToBuy" as any,
-                                            e.target.value
+                                            e.target.value,
                                           )
                                         }
                                         className="h-8 text-sm"
@@ -2011,7 +2166,7 @@ export default function PurchaseBills() {
                                           updateEditedItem(
                                             index,
                                             "weight" as any,
-                                            e.target.value
+                                            e.target.value,
                                           )
                                         }
                                         className="h-8 text-sm"
@@ -2050,13 +2205,15 @@ export default function PurchaseBills() {
                                       updateEditedItem(
                                         index,
                                         "hsnCode",
-                                        e.target.value
+                                        e.target.value,
                                       )
                                     }
                                     className="h-9 w-28 mx-auto text-sm"
                                   />
                                 ) : (
-                                  <span className="text-sm">{item.hsnCode || "—"}</span>
+                                  <span className="text-sm">
+                                    {item.hsnCode || "—"}
+                                  </span>
                                 )}
                               </td>
                               <td className="px-4 py-3 text-right">
@@ -2069,7 +2226,7 @@ export default function PurchaseBills() {
                                         updateEditedItem(
                                           index,
                                           "quantity",
-                                          parseFloat(e.target.value) || 0
+                                          parseFloat(e.target.value) || 0,
                                         )
                                       }
                                       className="h-9 w-20 text-right text-sm"
@@ -2080,7 +2237,7 @@ export default function PurchaseBills() {
                                         updateEditedItem(
                                           index,
                                           "unit",
-                                          e.target.value
+                                          e.target.value,
                                         )
                                       }
                                       className="h-9 w-16 text-sm"
@@ -2102,13 +2259,15 @@ export default function PurchaseBills() {
                                       updateEditedItem(
                                         index,
                                         "rate",
-                                        parseFloat(e.target.value) || 0
+                                        parseFloat(e.target.value) || 0,
                                       )
                                     }
                                     className="h-9 w-28 text-right text-sm"
                                   />
                                 ) : (
-                                  <span className="text-sm">{formatCurrency(item.rate)}</span>
+                                  <span className="text-sm">
+                                    {formatCurrency(item.rate)}
+                                  </span>
                                 )}
                               </td>
                               <td className="px-4 py-3 text-right">
@@ -2121,7 +2280,7 @@ export default function PurchaseBills() {
                                       updateEditedItem(
                                         index,
                                         "gstRate",
-                                        parseFloat(e.target.value) || 0
+                                        parseFloat(e.target.value) || 0,
                                       )
                                     }
                                     className="h-9 w-20 text-right text-sm"
@@ -2170,28 +2329,45 @@ export default function PurchaseBills() {
                         <table className="w-full text-sm">
                           <thead className="bg-orange-100/50">
                             <tr>
-                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Item / Reason</th>
-                              <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wide">Qty</th>
-                              <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">Date</th>
-                              <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">Value</th>
+                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">
+                                Item / Reason
+                              </th>
+                              <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wide">
+                                Qty
+                              </th>
+                              <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">
+                                Date
+                              </th>
+                              <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">
+                                Value
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-orange-100">
-                            {selectedBill.returns.map((ret) => (
+                            {selectedBill.returns.map((ret) =>
                               ret.items.map((item, idx) => (
-                                <tr key={`${ret.id}-${idx}`} className="hover:bg-orange-100/10">
+                                <tr
+                                  key={`${ret.id}-${idx}`}
+                                  className="hover:bg-orange-100/10"
+                                >
                                   <td className="px-4 py-3">
                                     <div className="space-y-1">
-                                      <p className="font-semibold text-sm text-foreground">{item.description}</p>
+                                      <p className="font-semibold text-sm text-foreground">
+                                        {item.description}
+                                      </p>
                                       {ret.notes && (
                                         <p className="text-xs text-muted-foreground italic flex items-center gap-1">
-                                          <BookOpen className="h-3 w-3" /> {ret.notes}
+                                          <BookOpen className="h-3 w-3" />{" "}
+                                          {ret.notes}
                                         </p>
                                       )}
                                     </div>
                                   </td>
                                   <td className="px-4 py-3 text-center">
-                                    <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-100/50 font-semibold text-xs">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-orange-600 border-orange-200 bg-orange-100/50 font-semibold text-xs"
+                                    >
                                       -{item.quantity}
                                     </Badge>
                                   </td>
@@ -2199,11 +2375,16 @@ export default function PurchaseBills() {
                                     {formatDate(ret.returnDate)}
                                   </td>
                                   <td className="px-4 py-3 text-right font-semibold text-orange-600">
-                                    -{formatCurrency(item.quantity * item.rate * (1 + (item.gstRate || 0) / 100))}
+                                    -
+                                    {formatCurrency(
+                                      item.quantity *
+                                        item.rate *
+                                        (1 + (item.gstRate || 0) / 100),
+                                    )}
                                   </td>
                                 </tr>
-                              ))
-                            ))}
+                              )),
+                            )}
                           </tbody>
                         </table>
                       </div>
@@ -2227,22 +2408,24 @@ export default function PurchaseBills() {
                             isEditing
                               ? editedBill?.items.reduce(
                                   (sum, item) => sum + item.amount,
-                                  0
+                                  0,
                                 ) || 0
-                              : selectedBill?.subtotal || 0
+                              : selectedBill?.subtotal || 0,
                           )}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Tax Amount</span>
+                        <span className="text-muted-foreground">
+                          Tax Amount
+                        </span>
                         <span className="font-semibold">
                           {formatCurrency(
                             isEditing
                               ? editedBill?.items.reduce(
                                   (sum, item) => sum + (item.gstAmount || 0),
-                                  0
+                                  0,
                                 ) || 0
-                              : selectedBill?.totalTax || 0
+                              : selectedBill?.totalTax || 0,
                           )}
                         </span>
                       </div>
@@ -2254,30 +2437,31 @@ export default function PurchaseBills() {
                               isEditing
                                 ? (editedBill?.items.reduce(
                                     (sum, item) => sum + item.amount,
-                                    0
+                                    0,
                                   ) || 0) +
                                     (editedBill?.items.reduce(
                                       (sum, item) =>
                                         sum + (item.gstAmount || 0),
-                                      0
+                                      0,
                                     ) || 0)
-                                : selectedBill?.total || 0
+                                : selectedBill?.total || 0,
                             )}
                           </span>
                         </div>
-                        {selectedBill?.returns && selectedBill.returns.length > 0 && (
-                          <div className="flex justify-between text-sm text-red-600">
-                            <span>- Returns</span>
-                            <span className="font-semibold">
-                              {formatCurrency(
-                                selectedBill.returns.reduce(
-                                  (sum, r) => sum + r.totalReturnValue,
-                                  0
-                                )
-                              )}
-                            </span>
-                          </div>
-                        )}
+                        {selectedBill?.returns &&
+                          selectedBill.returns.length > 0 && (
+                            <div className="flex justify-between text-sm text-red-600">
+                              <span>- Returns</span>
+                              <span className="font-semibold">
+                                {formatCurrency(
+                                  selectedBill.returns.reduce(
+                                    (sum, r) => sum + r.totalReturnValue,
+                                    0,
+                                  ),
+                                )}
+                              </span>
+                            </div>
+                          )}
                         <div className="flex justify-between text-xl lg:text-2xl pt-2 border-t">
                           <span className="font-bold">Current Total</span>
                           <span className="font-bold text-primary">
@@ -2285,18 +2469,17 @@ export default function PurchaseBills() {
                               (isEditing
                                 ? (editedBill?.items.reduce(
                                     (sum, item) => sum + item.amount,
-                                    0
+                                    0,
                                   ) || 0) +
-                                    (editedBill?.items.reduce(
-                                      (sum, item) =>
-                                        sum + (item.gstAmount || 0),
-                                      0
-                                    ) || 0)
+                                  (editedBill?.items.reduce(
+                                    (sum, item) => sum + (item.gstAmount || 0),
+                                    0,
+                                  ) || 0)
                                 : selectedBill?.total || 0) -
                                 (selectedBill?.returns?.reduce(
                                   (sum, r) => sum + r.totalReturnValue,
-                                  0
-                                ) || 0)
+                                  0,
+                                ) || 0),
                             )}
                           </span>
                         </div>
@@ -2304,7 +2487,6 @@ export default function PurchaseBills() {
                     </div>
                   </CardContent>
                 </Card>
-
               </div>
             )}
           </div>
@@ -2388,7 +2570,9 @@ export default function PurchaseBills() {
                       size="sm"
                       onClick={async () => {
                         try {
-                          await navigator.clipboard.writeText(lastInventoryError);
+                          await navigator.clipboard.writeText(
+                            lastInventoryError,
+                          );
                           toast({
                             title: "Copied",
                             description: "Error details copied to clipboard",
@@ -2440,73 +2624,87 @@ export default function PurchaseBills() {
                       GST: {item.gstRate}%
                     </Badge>
                   </div>
-                  
-                          {/* Matching Option */}
-                          <div className="mt-2 p-2 bg-background/50 rounded-md border border-dashed">
-                            <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-1">Inventory Action</p>
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                variant={item.isNewProduct ? "default" : "outline"}
-                                size="sm"
-                                className="flex-1 h-8 text-xs py-0"
-                                onClick={() => {
-                                  const newItems = [...inventoryItems];
-                                  newItems[index].isNewProduct = true;
-                                  setInventoryItems(newItems);
-                                }}
-                              >
-                                Create New
-                              </Button>
-                              <Button
-                                type="button"
-                                variant={!item.isNewProduct ? "default" : "outline"}
-                                size="sm"
-                                className="flex-1 h-8 text-xs py-0"
-                                onClick={() => {
-                                  const newItems = [...inventoryItems];
-                                  newItems[index].isNewProduct = false;
-                                  setInventoryItems(newItems);
-                                }}
-                              >
-                                Update Stock
-                              </Button>
-                            </div>
-                            
-                            {/* Product Selector for Update Stock */}
-                            {!item.isNewProduct && (
-                              <div className="mt-2 space-y-1">
-                                <Label className="text-[10px] px-1">Selected Product</Label>
-                                <Select 
-                                  value={item.productId || ""} 
-                                  onValueChange={(val) => {
-                                    const newItems = [...inventoryItems];
-                                    newItems[index].productId = val;
-                                    const selectedProduct = products.find(p => p.id === val);
-                                    if (selectedProduct) {
-                                      newItems[index].hsnCode = selectedProduct.hsnCode || "";
-                                    }
-                                    setInventoryItems(newItems);
-                                  }}
-                                >
-                                  <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue placeholder="Select Product" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {products.map(p => (
-                                      <SelectItem key={p.id} value={p.id} className="text-xs">
-                                        {p.name} (₹{p.sellingPrice})
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            )}
 
-                            {!item.productId && !item.isNewProduct && (
-                              <p className="text-[10px] text-amber-600 mt-1 px-1">No matching product found by name/HSN. Please select one manually.</p>
-                            )}
-                          </div>
+                  {/* Matching Option */}
+                  <div className="mt-2 p-2 bg-background/50 rounded-md border border-dashed">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-1">
+                      Inventory Action
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={item.isNewProduct ? "default" : "outline"}
+                        size="sm"
+                        className="flex-1 h-8 text-xs py-0"
+                        onClick={() => {
+                          const newItems = [...inventoryItems];
+                          newItems[index].isNewProduct = true;
+                          setInventoryItems(newItems);
+                        }}
+                      >
+                        Create New
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={!item.isNewProduct ? "default" : "outline"}
+                        size="sm"
+                        className="flex-1 h-8 text-xs py-0"
+                        onClick={() => {
+                          const newItems = [...inventoryItems];
+                          newItems[index].isNewProduct = false;
+                          setInventoryItems(newItems);
+                        }}
+                      >
+                        Update Stock
+                      </Button>
+                    </div>
+
+                    {/* Product Selector for Update Stock */}
+                    {!item.isNewProduct && (
+                      <div className="mt-2 space-y-1">
+                        <Label className="text-[10px] px-1">
+                          Selected Product
+                        </Label>
+                        <Select
+                          value={item.productId || ""}
+                          onValueChange={(val) => {
+                            const newItems = [...inventoryItems];
+                            newItems[index].productId = val;
+                            const selectedProduct = products.find(
+                              (p) => p.id === val,
+                            );
+                            if (selectedProduct) {
+                              newItems[index].hsnCode =
+                                selectedProduct.hsnCode || "";
+                            }
+                            setInventoryItems(newItems);
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select Product" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products.map((p) => (
+                              <SelectItem
+                                key={p.id}
+                                value={p.id}
+                                className="text-xs"
+                              >
+                                {p.name} (₹{p.sellingPrice})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {!item.productId && !item.isNewProduct && (
+                      <p className="text-[10px] text-amber-600 mt-1 px-1">
+                        No matching product found by name/HSN. Please select one
+                        manually.
+                      </p>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     <div className="space-y-1">
@@ -2526,7 +2724,7 @@ export default function PurchaseBills() {
                         onChange={(e) =>
                           updateInventoryItemSellingPrice(
                             index,
-                            parseFloat(e.target.value) || 0
+                            parseFloat(e.target.value) || 0,
                           )
                         }
                         className="h-9"
@@ -2612,16 +2810,24 @@ export default function PurchaseBills() {
                 </DialogTitle>
                 {selectedBillForHistory && (
                   <p className="text-primary-foreground/80 font-medium">
-                    Bill #{selectedBillForHistory.billNumber || "N/A"} • {selectedBillForHistory.vendorName}
+                    Bill #{selectedBillForHistory.billNumber || "N/A"} •{" "}
+                    {selectedBillForHistory.vendorName}
                   </p>
                 )}
               </div>
               {selectedBillForHistory && (
                 <div className="text-right hidden sm:block">
-                  <p className="text-xs text-primary-foreground/70 uppercase font-bold tracking-widest opacity-80">Remaining Balance</p>
+                  <p className="text-xs text-primary-foreground/70 uppercase font-bold tracking-widest opacity-80">
+                    Remaining Balance
+                  </p>
                   <p className="text-2xl font-black text-primary-foreground">
                     {formatCurrency(
-                      (selectedBillForHistory.total - (selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)) - selectedBillForHistory.paidAmount
+                      selectedBillForHistory.total -
+                        (selectedBillForHistory.returns?.reduce(
+                          (sum, r) => sum + r.totalReturnValue,
+                          0,
+                        ) || 0) -
+                        selectedBillForHistory.paidAmount,
                     )}
                   </p>
                 </div>
@@ -2635,27 +2841,53 @@ export default function PurchaseBills() {
                 {/* Summary Info Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <Card className="p-4 border shadow-sm">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Total Bill</p>
-                    <p className="text-lg font-bold">{formatCurrency(selectedBillForHistory.total)}</p>
-                  </Card>
-                  <Card className="p-4 border shadow-sm">
-                    <p className="text-[10px] text-orange-600 dark:text-orange-400 uppercase font-bold mb-1">Returns</p>
-                    <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                      -{formatCurrency(selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)}
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">
+                      Total Bill
+                    </p>
+                    <p className="text-lg font-bold">
+                      {formatCurrency(selectedBillForHistory.total)}
                     </p>
                   </Card>
                   <Card className="p-4 border shadow-sm">
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold mb-1">Total Paid</p>
-                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(selectedBillForHistory.paidAmount)}</p>
+                    <p className="text-[10px] text-orange-600 dark:text-orange-400 uppercase font-bold mb-1">
+                      Returns
+                    </p>
+                    <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                      -
+                      {formatCurrency(
+                        selectedBillForHistory.returns?.reduce(
+                          (sum, r) => sum + r.totalReturnValue,
+                          0,
+                        ) || 0,
+                      )}
+                    </p>
+                  </Card>
+                  <Card className="p-4 border shadow-sm">
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold mb-1">
+                      Total Paid
+                    </p>
+                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(selectedBillForHistory.paidAmount)}
+                    </p>
                   </Card>
                   <Card className="p-4 border shadow-sm bg-accent/50 border-accent">
-                    <p className="text-[10px] text-accent-foreground uppercase font-bold mb-1">Net Payable</p>
+                    <p className="text-[10px] text-accent-foreground uppercase font-bold mb-1">
+                      Net Payable
+                    </p>
                     <p className="text-lg font-black text-accent-foreground">
-                      {formatCurrency(selectedBillForHistory.total - (selectedBillForHistory.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0))}
+                      {formatCurrency(
+                        selectedBillForHistory.total -
+                          (selectedBillForHistory.returns?.reduce(
+                            (sum, r) => sum + r.totalReturnValue,
+                            0,
+                          ) || 0),
+                      )}
                     </p>
                   </Card>
                   <Card className="p-4 border shadow-sm bg-blue-50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900">
-                    <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase font-bold mb-1">Available Stock</p>
+                    <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase font-bold mb-1">
+                      Available Stock
+                    </p>
                     <p className="text-lg font-black text-blue-600 dark:text-blue-400">
                       {getAvailableStockForBill(selectedBillForHistory)} Units
                     </p>
@@ -2667,94 +2899,123 @@ export default function PurchaseBills() {
                   <table className="w-full border-collapse">
                     <thead className="bg-muted border-b border-border">
                       <tr>
-                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Date</th>
-                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Type</th>
-                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">Details</th>
-                        <th className="text-right p-4 font-bold text-xs uppercase text-muted-foreground">Qty</th>
-                        <th className="text-right p-4 font-bold text-xs uppercase text-muted-foreground">Amount</th>
-                        <th className="p-4 font-bold text-xs uppercase text-muted-foreground text-center">Actions</th>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">
+                          Date
+                        </th>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">
+                          Type
+                        </th>
+                        <th className="text-left p-4 font-bold text-xs uppercase text-muted-foreground">
+                          Details
+                        </th>
+                        <th className="text-right p-4 font-bold text-xs uppercase text-muted-foreground">
+                          Qty
+                        </th>
+                        <th className="text-right p-4 font-bold text-xs uppercase text-muted-foreground">
+                          Amount
+                        </th>
+                        <th className="p-4 font-bold text-xs uppercase text-muted-foreground text-center">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {getPurchaseHistory(selectedBillForHistory).map((entry: any) => (
-                        <tr key={entry.id} className="hover:bg-muted/50 transition-colors group">
-                          <td className="p-4">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
-                              {formatDate(entry.date)}
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <Badge
-                              className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                entry.type === 'purchase' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800' :
-                                entry.type === 'payment' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' :
-                                'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800'
-                              }`}
-                            >
-                              {entry.type}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <p className="text-sm font-medium text-foreground max-w-[250px] leading-relaxed">
-                              {entry.description}
-                            </p>
-                          </td>
-                          <td className="p-4 text-right">
-                            <span className="text-sm font-bold tabular-nums">
-                              {entry.quantity || "—"}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            <span className={`font-black tabular-nums text-sm ${entry.amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                              {entry.amount >= 0 ? "+" : ""}
-                              {formatCurrency(entry.amount)}
-                            </span>
-                          </td>
-                          <td className="p-4 text-center">
-                            {entry.type !== 'purchase' && (
-                              <div className="flex items-center justify-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
-                                  onClick={() => handleEditTransaction(entry)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent className="rounded-2xl">
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle className="text-xl font-bold">Delete Transaction?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently remove this {entry.type} entry and update the bill balance.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                                      <AlertDialogAction 
-                                        onClick={() => handleDeleteTransaction(entry)}
-                                        className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                      >
-                                        Delete Forever
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
+                      {getPurchaseHistory(selectedBillForHistory).map(
+                        (entry: any) => (
+                          <tr
+                            key={entry.id}
+                            className="hover:bg-muted/50 transition-colors group"
+                          >
+                            <td className="p-4">
+                              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                {formatDate(entry.date)}
                               </div>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="p-4">
+                              <Badge
+                                className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                  entry.type === "purchase"
+                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800"
+                                    : entry.type === "payment"
+                                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                      : "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800"
+                                }`}
+                              >
+                                {entry.type}
+                              </Badge>
+                            </td>
+                            <td className="p-4">
+                              <p className="text-sm font-medium text-foreground max-w-[250px] leading-relaxed">
+                                {entry.description}
+                              </p>
+                            </td>
+                            <td className="p-4 text-right">
+                              <span className="text-sm font-bold tabular-nums">
+                                {entry.quantity || "—"}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <span
+                                className={`font-black tabular-nums text-sm ${entry.amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
+                              >
+                                {entry.amount >= 0 ? "+" : ""}
+                                {formatCurrency(entry.amount)}
+                              </span>
+                            </td>
+                            <td className="p-4 text-center">
+                              {entry.type !== "purchase" && (
+                                <div className="flex items-center justify-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                                    onClick={() => handleEditTransaction(entry)}
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent className="rounded-2xl">
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle className="text-xl font-bold">
+                                          Delete Transaction?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently remove this{" "}
+                                          {entry.type} entry and update the bill
+                                          balance.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel className="rounded-xl">
+                                          Cancel
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() =>
+                                            handleDeleteTransaction(entry)
+                                          }
+                                          className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Delete Forever
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ),
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -2767,9 +3028,13 @@ export default function PurchaseBills() {
             <div className="p-6 border-t bg-muted shrink-0">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 max-w-2xl mx-auto">
                 <div className="space-y-2 flex-1">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Update Amount</Label>
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Update Amount
+                  </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">₹</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">
+                      ₹
+                    </span>
                     <Input
                       type="number"
                       value={transactionAmount}
@@ -2780,14 +3045,14 @@ export default function PurchaseBills() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setEditingTransaction(null)}
                     className="h-12 px-6 rounded-xl"
                   >
                     Cancel
                   </Button>
-                  <Button 
+                  <Button
                     onClick={saveEditedTransaction}
                     className="h-12 px-8 rounded-xl font-bold"
                   >
@@ -2802,8 +3067,8 @@ export default function PurchaseBills() {
             <div className="text-xs text-muted-foreground italic">
               * Click edit icon to modify individual payments
             </div>
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               onClick={() => setHistoryDialogOpen(false)}
               className="px-8 rounded-xl font-bold"
             >
