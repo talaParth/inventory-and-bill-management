@@ -64,6 +64,7 @@ export interface Product {
   stock: number;
   createdAt: string;
   absorbedLoss?: number;
+  imageUrl?: string;
 }
 
 export interface BillItem {

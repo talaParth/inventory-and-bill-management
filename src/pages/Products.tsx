@@ -78,6 +78,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { ProductsPDF } from "@/components/ProductsPDF";
+import { ProductForm } from "@/components/ProductForm";
 
 export default function Products() {
   const [loading, setLoading] = useState(true);
@@ -1403,8 +1404,17 @@ export default function Products() {
             return (
               <Card
                 key={product.id}
-                className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary"
+                className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary overflow-hidden"
               >
+                {product.imageUrl && (
+                  <div className="w-full h-48 bg-muted">
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">

@@ -19,6 +19,7 @@ export {
   getBillCounter,
   incrementBillCounter,
   updateBillPayment,
+  uploadProductImage,
   getInventoryTransactions,
   saveInventoryTransaction,
   addStockToProduct,

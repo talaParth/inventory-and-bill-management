@@ -565,6 +565,19 @@ export const incrementBillCounter = async (): Promise<number> => {
   }
 };
 
+export const uploadProductImage = async (productId: string, file: File): Promise<string> => {
+  try {
+    const userId = getUserId();
+    const storageRef = ref(storage, `products/${userId}/${productId}_${file.name}`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
+  } catch (error) {
+    console.error("Error uploading product image:", error);
+    throw error;
+  }
+};
+
 export const updateBillPayment = async (
   billId: string,
   paidAmount: number,

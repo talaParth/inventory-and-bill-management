@@ -16,13 +16,14 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Checkbox } from "./ui/checkbox";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Product } from "@/types";
 import {
   saveProduct,
   getCompanyProfile,
   addStockToProduct,
+  uploadProductImage,
 } from "@/lib/storage";
 import { calculateSellingPriceFromCommission } from "@/lib/billUtils";
 
@@ -30,16 +31,20 @@ interface ProductFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: (product: Product) => void;
+  product?: Product | null;
 }
 
 export function ProductForm({
   open,
   onOpenChange,
   onSuccess,
+  product: editingProduct,
 }: ProductFormProps) {
   const [saving, setSaving] = useState(false);
   const [companyProfile, setCompanyProfile] = useState<any>(null);
   const [addInitialStock, setAddInitialStock] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -58,10 +63,28 @@ export function ProductForm({
   });
 
   useEffect(() => {
+    if (editingProduct) {
+      setFormData({
+        name: editingProduct.name,
+        hsnCode: editingProduct.hsnCode,
+        gstRate: String(editingProduct.gstRate),
+        unit: editingProduct.unit,
+        purchasePrice: String(editingProduct.purchasePrice),
+        sellingPrice: String(editingProduct.sellingPrice),
+        whereToBuy: editingProduct.whereToBuy || "",
+        weight: editingProduct.weight || "",
+      });
+      setImagePreview(editingProduct.imageUrl || null);
+    } else {
+      resetForm();
+    }
+  }, [editingProduct]);
+
+  useEffect(() => {
     const loadProfile = async () => {
       const profile = await getCompanyProfile();
       setCompanyProfile(profile);
-      if (profile?.defaultUnit) {
+      if (profile?.defaultUnit && !editingProduct) {
         setFormData((prev) => ({
           ...prev,
           unit: profile.defaultUnit,
@@ -69,10 +92,12 @@ export function ProductForm({
       }
     };
     loadProfile();
-  }, []);
+  }, [editingProduct]);
 
   const resetForm = () => {
     setAddInitialStock(false);
+    setImageFile(null);
+    setImagePreview(null);
     setFormData({
       name: "",
       hsnCode: "",
@@ -86,6 +111,18 @@ export function ProductForm({
     setInitialStock({ quantity: "", purchasePrice: "" });
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -93,9 +130,15 @@ export function ProductForm({
     try {
       const purchasePriceNum = parseFloat(formData.purchasePrice) || 0;
       const sellingPriceNum = parseFloat(formData.sellingPrice) || 0;
+      const productId = editingProduct?.id || crypto.randomUUID();
+
+      let imageUrl = editingProduct?.imageUrl || "";
+      if (imageFile) {
+        imageUrl = await uploadProductImage(productId, imageFile);
+      }
 
       const product: Product = {
-        id: crypto.randomUUID(),
+        id: productId,
         name: formData.name,
         hsnCode: formData.hsnCode.trim(),
         gstRate: parseFloat(formData.gstRate) || 0,
@@ -103,15 +146,16 @@ export function ProductForm({
         price: sellingPriceNum,
         purchasePrice: purchasePriceNum,
         sellingPrice: sellingPriceNum,
-        stock: 0,
+        stock: editingProduct?.stock || 0,
         whereToBuy: formData.whereToBuy,
         weight: formData.weight,
-        createdAt: new Date().toISOString(),
+        createdAt: editingProduct?.createdAt || new Date().toISOString(),
+        imageUrl: imageUrl,
       };
 
       await saveProduct(product);
 
-      if (addInitialStock) {
+      if (addInitialStock && !editingProduct) {
         const qty = parseFloat(initialStock.quantity) || 0;
         const price = parseFloat(initialStock.purchasePrice) || 0;
 
@@ -120,13 +164,13 @@ export function ProductForm({
         }
       }
 
-      toast.success("Product created successfully");
+      toast.success(editingProduct ? "Product updated successfully" : "Product created successfully");
       onSuccess(product);
       onOpenChange(false);
       resetForm();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to create product");
+      toast.error("Failed to save product");
     } finally {
       setSaving(false);
     }
@@ -139,12 +183,48 @@ export function ProductForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Product</DialogTitle>
+          <DialogTitle>{editingProduct ? "Edit Product" : "Create Product"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex justify-center mb-4">
+            <div className="relative group">
+              <div className="w-32 h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center overflow-hidden bg-muted">
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <Upload className="w-8 h-8 text-muted-foreground" />
+                )}
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+              {imagePreview && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImageFile(null);
+                    setImagePreview(null);
+                  }}
+                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Product Image</Label>
+            <p className="text-xs text-muted-foreground">Click the box above to upload or change image</p>
+          </div>
+
           <div className="space-y-2">
             <Label>Product Name *</Label>
             <Input
