@@ -173,8 +173,7 @@ export default function Passbook() {
                 }
             });
 
-            // Sort by date and calculate running balance
-            // Note: For running balance, we only consider actual cash movements (payments, purchases, expenses, returns)
+            // Sort by date (Oldest to Newest) and calculate running balance
             const sortedEntries = allEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
             let runningBalance = 0;
@@ -186,7 +185,9 @@ export default function Passbook() {
                 };
             });
 
-            setEntries(entriesWithBalance);
+            // For display purposes, we show Newest to Oldest, but balance was calculated Oldest to Newest
+            const displayEntries = [...entriesWithBalance].reverse();
+            setEntries(displayEntries);
         } catch (error) {
             console.error('Error loading passbook data:', error);
         } finally {
@@ -227,14 +228,10 @@ export default function Passbook() {
             filtered = filtered.filter(entry => new Date(entry.date) <= new Date(dateRange.end));
         }
 
-        // Sort
-        filtered.sort((a, b) => {
-            const dateA = new Date(a.date).getTime();
-            const dateB = new Date(b.date).getTime();
-            return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-        });
-
         // Recalculate running balance for filtered entries
+        // 1. Sort by date (Oldest to Newest) to calculate correct running balance
+        filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
         let runningBalance = 0;
         const filteredWithBalance = filtered.map(entry => {
             runningBalance += entry.amount;
@@ -242,6 +239,13 @@ export default function Passbook() {
                 ...entry,
                 balance: runningBalance,
             };
+        });
+
+        // 2. Sort for display (Newest to Oldest or Oldest to Newest based on user preference)
+        filteredWithBalance.sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
         });
 
         setFilteredEntries(filteredWithBalance);
