@@ -642,7 +642,8 @@ export default function PurchaseBills() {
         ),
         gstRate: item.gstRate || 0,
         whereToBuy: (item as any).whereToBuy || bill.vendorName || "",
-        weight: (item as any).weight || "",
+        weight: (item as any).weight || 0,
+        weightUnit: (item as any).weightUnit || "g",
         productId: existingProduct?.id,
         isNewProduct: !existingProduct,
       };
@@ -673,17 +674,19 @@ export default function PurchaseBills() {
         return;
       }
 
-      const itemsInput: InventoryItemInput[] = inventoryItems.map((item) => ({
-        description: item.description,
-        hsnCode: item.hsnCode,
-        quantity: item.quantity,
-        unit: item.unit,
-        purchasePrice: item.purchasePrice,
-        sellingPrice: item.sellingPrice,
-        gstRate: item.gstRate,
-        productId: item.productId,
-        isNewProduct: item.isNewProduct,
-      }));
+    const itemsInput: InventoryItemInput[] = inventoryItems.map((item) => ({
+      description: item.description,
+      hsnCode: item.hsnCode,
+      quantity: item.quantity,
+      unit: item.unit,
+      purchasePrice: item.purchasePrice,
+      sellingPrice: item.sellingPrice,
+      gstRate: item.gstRate,
+      productId: item.productId,
+      isNewProduct: item.isNewProduct,
+      weight: item.weight,
+      weightUnit: item.weightUnit,
+    }));
 
       const result = await addPurchaseItemsToInventory(
         inventoryDialogBill,
