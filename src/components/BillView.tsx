@@ -2130,25 +2130,26 @@ export function BillView({ bill }: BillViewProps) {
         </Button>
       </div>
       <div id="bill-print-wrapper" className="w-full">
-        <div
-          ref={billRef}
-          id="bill-print"
-          className="bg-white shadow-2xl"
-          style={{
-            width: "210mm",
-            minWidth: "210mm",
-            maxWidth: "210mm",
-            minHeight: "297mm",
-            margin: "0 auto",
-            fontFamily: "Inter, Arial, sans-serif !important",
-            padding: "5mm",
-            boxSizing: "border-box",
-            fontSize: "10px",
-            lineHeight: "1.4",
-            transform: `scale(${scale})`,
-            transformOrigin: "top center",
-          }}
-        >
+          <div
+            ref={billRef}
+            id="bill-print"
+            className="bg-white shadow-2xl text-black"
+            style={{
+              width: "210mm",
+              minWidth: "210mm",
+              maxWidth: "210mm",
+              minHeight: "297mm",
+              margin: "0 auto",
+              fontFamily: "Inter, Arial, sans-serif !important",
+              padding: "5mm",
+              boxSizing: "border-box",
+              fontSize: "10px",
+              lineHeight: "1.4",
+              transform: `scale(${scale})`,
+              transformOrigin: "top center",
+              color: "black",
+            }}
+          >
           {isInternational ? (
             <div>
               {/* Export / Proforma style (matches International PDF layout) */}
@@ -2503,28 +2504,28 @@ export function BillView({ bill }: BillViewProps) {
                     {company.name}
                   </h1>
                 </div>
-                <div className="text-[10px] leading-relaxed mt-1">
-                  {formatAddress(company.address)}
-                </div>
-                {gstEnabled && (
-                  <div className="text-[10px] mt-1">
-                    <p>
-                      <strong>GSTIN/UIN:</strong> {company.gstin}
-                    </p>
-                    <p>
-                      <strong>State:</strong> {company.state},{" "}
-                      <strong>Code:</strong> {company.stateCode}
-                    </p>
-                  </div>
-                )}
-                <div className="text-[10px] mt-1">
-                  <p>
-                    <strong>Phone:</strong> {company.phone}
-                  </p>
-                  <p>
-                    <strong>Email:</strong> {company.email}
-                  </p>
-                </div>
+                    <div className="text-[10px] leading-relaxed mt-1 text-black">
+                      {formatAddress(company.address)}
+                    </div>
+                    {gstEnabled && (
+                      <div className="text-[10px] mt-1 text-black">
+                        <p>
+                          <strong>GSTIN/UIN:</strong> {company.gstin}
+                        </p>
+                        <p>
+                          <strong>State:</strong> {company.state},{" "}
+                          <strong>Code:</strong> {company.stateCode}
+                        </p>
+                      </div>
+                    )}
+                    <div className="text-[10px] mt-1 text-black">
+                      <p>
+                        <strong>Phone:</strong> {company.phone}
+                      </p>
+                      <p>
+                        <strong>Email:</strong> {company.email}
+                      </p>
+                    </div>
               </div>
               <div className="text-right">
                 <h2
@@ -2537,29 +2538,29 @@ export function BillView({ bill }: BillViewProps) {
                     ? "TAX INVOICE"
                     : "INVOICE"}
                 </h2>
-                <div className="text-[10px] space-y-0.5">
-                  <p>
-                    <strong>Invoice No.:</strong> {bill.billNumber}
-                  </p>
-                  <p>
-                    <strong>Date:</strong> {formatDate(bill.date)}
-                  </p>
-                  {!isInternational && (
-                    <p>
-                      <strong>Due Date:</strong> {formatDate(bill.dueDate)}
-                    </p>
-                  )}
-                  {bill.deliveryNote && (
-                    <p>
-                      <strong>Delivery Note:</strong> {bill.deliveryNote}
-                    </p>
-                  )}
-                  {bill.modeOfPayment && (
-                    <p>
-                      <strong>Payment Mode:</strong> {bill.modeOfPayment}
-                    </p>
-                  )}
-                </div>
+                    <div className="text-[10px] space-y-0.5 text-black">
+                      <p>
+                        <strong>Invoice No.:</strong> {bill.billNumber}
+                      </p>
+                      <p>
+                        <strong>Date:</strong> {formatDate(bill.date)}
+                      </p>
+                      {!isInternational && (
+                        <p>
+                          <strong>Due Date:</strong> {formatDate(bill.dueDate)}
+                        </p>
+                      )}
+                      {bill.deliveryNote && (
+                        <p>
+                          <strong>Delivery Note:</strong> {bill.deliveryNote}
+                        </p>
+                      )}
+                      {bill.modeOfPayment && (
+                        <p>
+                          <strong>Payment Mode:</strong> {bill.modeOfPayment}
+                        </p>
+                      )}
+                    </div>
               </div>
             </div>
           </div>
