@@ -183,7 +183,7 @@ export default function SampleBills() {
 
   if (loading) {
     return (
-      <LoadingSpinner size="xl" text="Loading sample bills..." fullScreen />
+      <LoadingSpinner size="xl" text="Loading sample bills..." fullScreen contentAreaOnly />
     );
   }
 

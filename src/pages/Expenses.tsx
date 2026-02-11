@@ -204,7 +204,7 @@ export default function Expenses() {
   if (loading) {
     return (
       <div className="min-h-screen">
-        <LoadingSpinner size="xl" text="Loading products..." fullScreen />
+        <LoadingSpinner size="xl" text="Loading products..." fullScreen contentAreaOnly />
       </div>
     );
   }
@@ -214,10 +214,8 @@ export default function Expenses() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Expenses</h1>
-          <p className="text-muted-foreground mt-1">
-            Track and manage your business expenses
-          </p>
+          <h1 className="page-title">Expenses</h1>
+          <p className="page-subtitle">Track and manage your business expenses</p>
         </div>
 
         <Dialog open={isOpen} onOpenChange={setIsOpen}>

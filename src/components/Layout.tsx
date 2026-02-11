@@ -2,12 +2,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "./ui/button";
-import { Footer } from "./Footer";
 import { checkSessionExpiry, logout, getCurrentUser } from "@/pages/Auth";
 import { toast } from "sonner";
 import {
-  ChevronLeft,
-  ChevronRight,
   LayoutDashboard,
   FileText,
   Package,
@@ -25,11 +22,137 @@ import {
   UserCheck,
   LogOut,
   Sparkles,
+  X,
 } from "lucide-react";
 import { getCompanyProfile } from "@/lib/storage";
+import { cn } from "@/lib/utils";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+  useSidebar,
+} from "./ui/sidebar";
 
 interface LayoutProps {
   children: React.ReactNode;
+}
+
+function getInitialSidebarOpen(): boolean {
+  if (typeof document === "undefined") return true;
+  const match = document.cookie.match(/sidebar:state=(\w+)/);
+  return match ? match[1] === "true" : true;
+}
+
+function AppSidebarContent({
+  navItems,
+  isActive,
+  company,
+  user,
+  onNavClick,
+}: {
+  navItems: { path: string; icon: React.ElementType; label: string }[];
+  isActive: (path: string) => boolean;
+  company: any;
+  user: any;
+  onNavClick: () => void;
+}) {
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const handleNavClick = () => {
+    if (isMobile) setOpenMobile(false);
+    onNavClick();
+  };
+
+  return (
+    <>
+      <SidebarHeader className="border-b border-sidebar-border/60 p-4 pb-3 bg-gradient-to-b from-sidebar-accent/30 to-transparent">
+        <div className="flex items-center gap-3">
+          <div className="relative shrink-0">
+            {company?.logo ? (
+              <img
+                src={company.logo}
+                alt="Logo"
+                className="h-11 w-11 object-contain rounded-xl border border-sidebar-border/80 bg-sidebar-accent/50 p-1.5 shadow-sm ring-1 ring-sidebar-border/50"
+              />
+            ) : (
+              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center border border-sidebar-border/80">
+                <LayoutDashboard className="h-5 w-5 text-primary" />
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+            <h2 className="font-bold text-sidebar-foreground truncate text-base tracking-tight">
+              {company?.name || "BillEasy"}
+            </h2>
+            <p className="text-xs text-sidebar-foreground/60 truncate mt-0.5 font-medium">
+              {user.name}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden shrink-0 h-9 w-9 rounded-lg hover:bg-sidebar-accent"
+            onClick={() => isMobile && setOpenMobile(false)}
+            aria-label="Close menu"
+          >
+            <X className="size-5" />
+          </Button>
+        </div>
+      </SidebarHeader>
+      <SidebarContent className="px-2 py-3">
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu className="gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.label}
+                      size="lg"
+                        className={cn(
+                            "rounded-lg px-3 h-11 transition-all duration-200",
+                            "group-data-[collapsible=icon]:!h-10 group-data-[collapsible=icon]:!rounded-lg",
+                            active && "bg-primary/15 text-primary font-semibold shadow-md ring-2 ring-primary/30 group-data-[collapsible=icon]:ring-2"
+                          )}
+                    >
+                      <Link to={item.path} onClick={handleNavClick}>
+                        <Icon className={cn("size-5 shrink-0", active && "text-primary")} />
+                        <span className="font-medium">{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter className="border-t border-sidebar-border/60 p-3 bg-gradient-to-t from-sidebar-accent/20 to-transparent group-data-[collapsible=icon]:hidden">
+        <div className="rounded-lg bg-sidebar-accent/50 px-3 py-2 border border-sidebar-border/50">
+          <p className="text-[11px] text-sidebar-foreground/60 font-medium">
+            <kbd className="px-1.5 py-0.5 rounded bg-sidebar-background/80 text-[10px] font-mono">⌘</kbd>
+            <span className="mx-1">+</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-sidebar-background/80 text-[10px] font-mono">B</kbd>
+            <span className="ml-1.5">Toggle</span>
+          </p>
+        </div>
+      </SidebarFooter>
+    </>
+  );
 }
 
 export function Layout({ children }: LayoutProps) {
@@ -69,28 +192,6 @@ export function Layout({ children }: LayoutProps) {
     toast.success("Logged out successfully");
     navigate("/auth");
   };
-
-  // Global scrollbar hiding styles (injected once)
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.id = "scrollbar-hide-style";
-    style.textContent = `
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `;
-    document.head.appendChild(style);
-    return () => {
-      const existingStyle = document.getElementById("scrollbar-hide-style");
-      if (existingStyle) {
-        document.head.removeChild(existingStyle);
-      }
-    };
-  }, []);
 
   const allNavItems = [
     { path: "/", icon: LayoutDashboard, label: "Home" },
@@ -142,254 +243,69 @@ export function Layout({ children }: LayoutProps) {
     }
   }, [user.role, permissions]);
 
-  const [showReorder, setShowReorder] = useState<string | null>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showReorder) {
-        const nav = document.querySelector('nav');
-        if (nav && !nav.contains(event.target as Node)) {
-          setShowReorder(null);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showReorder]);
-
-  const moveItem = (index: number, direction: 'left' | 'right') => {
-    const newItems = [...navItems];
-    const newIndex = direction === 'left' ? index - 1 : index + 1;
-    if (newIndex >= 0 && newIndex < newItems.length) {
-      [newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]];
-      setNavItems(newItems);
-      localStorage.setItem('navItemOrder', JSON.stringify(newItems.map(i => i.path)));
-      toast.success("Navigation reordered");
-    }
-  };
-
-  const toggleReorder = (path: string) => {
-    setShowReorder(showReorder === path ? null : path);
-  };
-
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden w-full md:min-h-screen md:overflow-x-hidden">
-      {/* Top Header - Fixed */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur-sm border-b border-border/50 z-50 flex items-center justify-between px-4 md:px-6 shadow-sm w-full">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          {company?.logo && (
-            <div className="flex-shrink-0">
-              <img
-                src={company.logo}
-                alt="Company Logo"
-                className="h-10 w-10 md:h-12 md:w-12 object-contain rounded-md shadow-sm border border-border/50 bg-card/50 p-1"
-              />
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <h1 className="font-semibold text-lg md:text-xl text-foreground truncate leading-tight">
-              {company?.name || "BillEasy"}
-            </h1>
-            <p className="text-[10px] md:text-xs text-muted-foreground truncate">
-              {user.name} ({user.role})
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="rounded-lg h-9 w-9 md:h-10 md:w-10 flex-shrink-0 hover:bg-muted"
-          >
-            {theme === "light" ? (
-              <Moon className="h-4 w-4 md:h-5 md:w-5" />
-            ) : (
-              <Sun className="h-4 w-4 md:h-5 md:w-5" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleLogout}
-            aria-label="Logout"
-            className="rounded-lg h-9 w-9 md:h-10 md:w-10 flex-shrink-0 hover:bg-muted text-destructive"
-          >
-            <LogOut className="h-4 w-4 md:h-5 md:w-5" />
-          </Button>
-        </div>
-      </header>
-      {/* Main Content Area - Fixed height on mobile, scrollable */}
-      <main
-        className="overflow-y-auto overflow-x-hidden"
-        style={{
-          overscrollBehavior: "contain",
-          WebkitOverflowScrolling: "touch",
-          position: "fixed",
-          top: "4rem",
-          bottom: "4rem",
-          left: 0,
-          right: 0,
-          width: "100%",
-        }}
-      >
-        <div className="px-3 sm:px-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full py-4 sm:py-6 overflow-x-hidden">
-          {children}
-        </div>
-      </main>
-      {/* Footer */}
-      {/* <Footer /> */}
-      {/* Bottom Navigation - Scrollable on Mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 shadow-2xl safe-area-inset-bottom w-full overflow-hidden">
-        {/* Mobile: Horizontal Scrollable Nav */}
-        <div className="md:hidden h-16 sm:h-18 w-full overflow-hidden">
-          <div className="h-full flex overflow-x-auto scrollbar-hide py-2 px-2 sm:px-4 gap-1.5 sm:gap-2 snap-x snap-mandatory touch-pan-x"
-            style={{ overscrollBehaviorX: "contain" }}
-          >
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-              const showingReorder = showReorder === item.path;
-              return (
-                <div
-                  key={item.path}
-                  className="relative group snap-center flex-shrink-0"
-                  style={{ scrollSnapAlign: "center" }}
-                  onDoubleClick={() => toggleReorder(item.path)}
-                >
-                  <Link
-                    to={item.path}
-                    className={`
-                        flex flex-col items-center justify-center
-                        min-w-[72px] sm:min-w-[84px] px-2 sm:px-3 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl
-                        transition-all duration-300 ease-out
-                        shadow-sm backdrop-blur-sm
-                        ${
-                          active
-                            ? "bg-primary text-primary-foreground shadow-lg scale-105 ring-2 ring-primary/30"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:scale-105 hover:shadow-md"
-                        }
-                      `}
-                  >
-                    <Icon
-                      className={`h-5 w-5 sm:h-6 sm:w-6 mb-0.5 sm:mb-1 ${
-                        active ? "drop-shadow-sm" : ""
-                      }`}
-                    />
-                    <span className="text-[10px] sm:text-xs font-semibold leading-tight text-center px-0.5 sm:px-1">
-                      {item.label}
-                    </span>
-                  </Link>
-                  <div className={`absolute -top-2 left-0 right-0 flex justify-between px-1 transition-opacity z-10 ${showingReorder ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        moveItem(navItems.indexOf(item), 'left');
-                      }} 
-                      className="bg-background/90 rounded-full p-1 shadow-md border border-border hover:bg-primary hover:text-primary-foreground transition-colors"
-                      title="Move Left"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        moveItem(navItems.indexOf(item), 'right');
-                      }} 
-                      className="bg-background/90 rounded-full p-1.5 shadow-md border border-border hover:bg-primary hover:text-primary-foreground transition-all active:scale-95"
-                      title="Move Right"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        {/* Desktop/Tablet: Full Width Button Layout */}
-        <div className="hidden md:block h-18">
-          <div className="h-full max-w-[98%] mx-auto px-2 py-3">
-            <div className="h-full flex items-center justify-between gap-1 lg:gap-2">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.path);
-                const index = navItems.indexOf(item);
-                const showingReorder = showReorder === item.path;
-                return (
-                  <div 
-                    key={item.path} 
-                    className="relative group flex-1"
-                    onDoubleClick={() => toggleReorder(item.path)}
-                  >
-                    <Link
-                      to={item.path}
-                      className={`
-                        flex flex-col items-center justify-center
-                        w-full px-1 py-2 rounded-xl
-                        transition-all duration-300 ease-out
-                        ${
-                          active
-                            ? "bg-primary text-primary-foreground shadow-lg scale-105 ring-2 ring-primary/30"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:scale-105 hover:shadow-md"
-                        }
-                      `}
-                    >
-                      <Icon
-                        className={`h-5 w-5 mb-1 ${
-                          active ? "drop-shadow-sm" : ""
-                        }`}
-                      />
-                      <span className="text-[10px] lg:text-xs font-semibold leading-tight text-center whitespace-nowrap">
-                        {item.label}
-                      </span>
-                    </Link>
-                    
-                    {/* Reordering controls for desktop */}
-                    <div className={`absolute -top-3 left-0 right-0 flex justify-center gap-1 transition-opacity z-10 ${showingReorder ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-                      {index > 0 && (
-                        <button 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            moveItem(index, 'left');
-                          }} 
-                          className="bg-background/90 rounded-full p-1 shadow-md border border-border hover:bg-primary hover:text-primary-foreground transition-colors"
-                          title="Move Left"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </button>
-                      )}
-                      {index < navItems.length - 1 && (
-                        <button 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            moveItem(index, 'right');
-                          }} 
-                          className="bg-background/90 rounded-full p-1.5 shadow-md border border-border hover:bg-primary hover:text-primary-foreground transition-all active:scale-95"
-                          title="Move Right"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+    <SidebarProvider defaultOpen={getInitialSidebarOpen()} className="h-screen flex overflow-hidden">
+      <Sidebar side="left" collapsible="icon" className="border-r border-sidebar-border/80 shadow-sm">
+        <AppSidebarContent
+          navItems={navItems}
+          isActive={isActive}
+          company={company}
+          user={user}
+          onNavClick={() => {}}
+        />
+        <SidebarRail />
+      </Sidebar>
+      <div className="flex flex-1 flex-col min-h-0 min-w-0">
+        {/* Header */}
+        <header className="sticky top-0 z-40 h-14 shrink-0 bg-background/95 backdrop-blur-sm border-b border-border/50 flex items-center justify-between px-3 sm:px-4 md:px-6 gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <SidebarTrigger
+              className="-ml-1 h-9 w-9 sm:h-10 sm:w-10"
+              aria-label="Toggle sidebar"
+            />
+            <div className="min-w-0 flex-1 md:hidden">
+              <h1 className="font-semibold text-base text-foreground truncate">{company?.name || "BillEasy"}</h1>
             </div>
           </div>
-        </div>
-      </nav>
-    </div>
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              className="h-9 w-9 sm:h-10 sm:w-10"
+            >
+              {theme === "light" ? <Moon className="size-4 sm:size-5" /> : <Sun className="size-4 sm:size-5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              aria-label="Logout"
+              className="h-9 w-9 sm:h-10 sm:w-10 text-destructive"
+            >
+              <LogOut className="size-4 sm:size-5" />
+            </Button>
+          </div>
+        </header>
+        {/* Main Content */}
+        <main
+          className="relative flex-1 overflow-y-auto overflow-x-hidden"
+          style={{
+            overscrollBehavior: "contain",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          <div className="px-3 sm:px-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full py-4 sm:py-6">
+            {children}
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
   );
 }

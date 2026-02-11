@@ -196,15 +196,15 @@ export default function Bills() {
 
   
 if (loading) {
-  return <LoadingSpinner size="xl" text="Loading products..." fullScreen />;
+  return <LoadingSpinner size="xl" text="Loading products..." fullScreen contentAreaOnly />;
 }
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6 p-3 sm:p-4 w-full max-w-full overflow-x-hidden">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground break-words">Bills</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground break-words">Manage all your invoices</p>
+          <h1 className="page-title break-words">Bills</h1>
+          <p className="page-subtitle break-words">Manage all your invoices</p>
         </div>
         <div className="flex flex-row items-center gap-4 w-full sm:w-auto">
           <div className="flex items-center space-x-2 bg-card border px-3 py-2 rounded-md shadow-sm">

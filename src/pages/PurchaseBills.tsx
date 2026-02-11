@@ -100,7 +100,7 @@ import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog"
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { compressFile, getBase64SizeKB } from "@/lib/imageCompression";
 
-export default function PurchaseBills() {
+function PurchaseBills() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1064,7 +1064,7 @@ export default function PurchaseBills() {
   if (loading) {
     return (
       <div className="min-h-screen">
-        <LoadingSpinner size="xl" text="Loading products..." fullScreen />
+        <LoadingSpinner size="xl" text="Loading products..." fullScreen contentAreaOnly />
       </div>
     );
   }
@@ -1074,10 +1074,10 @@ export default function PurchaseBills() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+          <h1 className="page-title">
             Purchase Bills
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="page-subtitle">
             AI-powered bill extraction with validation
           </p>
         </div>
@@ -3080,3 +3080,5 @@ export default function PurchaseBills() {
     </div>
   );
 }
+
+export default PurchaseBills;

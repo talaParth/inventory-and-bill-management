@@ -21,7 +21,7 @@ export function SampleBillEditPage() {
     loadBill();
   }, [id]);
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading) return <LoadingSpinner fullScreen contentAreaOnly />;
   if (!bill) return <div>Sample bill not found</div>;
 
   return (

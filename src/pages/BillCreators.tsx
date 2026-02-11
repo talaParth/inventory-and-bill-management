@@ -311,10 +311,8 @@ export default function BillCreators() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Bills by {selectedCreator}</h1>
-            <p className="text-muted-foreground">
-              Performance overview and bill history
-            </p>
+            <h1 className="page-title">Bills by {selectedCreator}</h1>
+            <p className="page-subtitle">Performance overview and bill history</p>
           </div>
         </div>
 
@@ -447,11 +445,11 @@ export default function BillCreators() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+          <h1 className="page-title flex items-center gap-2">
             <User className="h-8 w-8 text-primary" />
             Bill Creators
           </h1>
-          <p className="text-muted-foreground">
+          <p className="page-subtitle">
             Manage and view performance of bill creators
           </p>
         </div>
