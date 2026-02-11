@@ -2094,7 +2094,7 @@ export function BillView({ bill }: BillViewProps) {
     (!bill.gstType && company.stateCode !== bill.client.stateCode);
 
   return (
-    <div className="w-full max-w-full">
+    <div className="w-full max-w-full bg-slate-50 dark:bg-slate-900 min-h-screen p-2 sm:p-4">
       <div className="mb-3 sm:mb-4 flex flex-wrap gap-2 print:hidden px-2 sm:px-0">
         <PDFDownloadLink
           document={
@@ -2123,7 +2123,7 @@ export function BillView({ bill }: BillViewProps) {
         <Button
           onClick={handleWhatsAppShare}
           variant="outline"
-          className="flex-1 sm:flex-none bg-green-50 hover:bg-green-100 text-green-700 border-green-200 text-xs sm:text-sm touch-manipulation"
+          className="flex-1 sm:flex-none bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/50 text-xs sm:text-sm touch-manipulation"
         >
           <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
           WhatsApp Share
