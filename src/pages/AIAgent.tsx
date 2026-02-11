@@ -368,5 +368,4 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
         </div>
       </div>
     );
-    );
   }
