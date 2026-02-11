@@ -196,9 +196,7 @@ export default function Passbook() {
 
             let runningBalance = 0;
             const entriesWithBalance = sortedEntries.map(entry => {
-                if (entry.type !== 'sale') {
-                    runningBalance += entry.amount;
-                }
+                runningBalance += entry.amount;
                 return {
                     ...entry,
                     balance: runningBalance,
@@ -256,9 +254,7 @@ export default function Passbook() {
         // Recalculate running balance for filtered entries
         let runningBalance = 0;
         const filteredWithBalance = filtered.map(entry => {
-            if (entry.type !== 'sale') {
-                runningBalance += entry.amount;
-            }
+            runningBalance += entry.amount;
             return {
                 ...entry,
                 balance: runningBalance,
