@@ -1273,22 +1273,22 @@ export default function PurchaseBills() {
                       )}
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between border-t pt-3">
-                      <div className="flex items-center gap-6">
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t pt-3">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Total:</span>
-                          <p className="text-base font-bold text-foreground">
+                          <span className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider font-bold">Total:</span>
+                          <p className="text-lg sm:text-xl font-black text-foreground">
                             {formatCurrency(
                               bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)
                             )}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Remaining:</span>
-                          <p className={`text-sm font-bold ${
+                          <span className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-wider font-bold">Remaining:</span>
+                          <p className={`text-sm sm:text-base font-black ${
                             (bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0) - (bill.paidAmount || 0)) < 0 
                               ? "text-red-600" 
-                              : "text-foreground"
+                              : "text-blue-600"
                           }`}>
                             {formatCurrency(
                               bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0) - (bill.paidAmount || 0)
@@ -1296,28 +1296,28 @@ export default function PurchaseBills() {
                           </p>
                         </div>
                         {bill.returns && bill.returns.length > 0 && (
-                          <p className="text-[11px] text-orange-600 font-medium">
-                            Returned: {formatCurrency(bill.returns.reduce((sum, r) => sum + r.totalReturnValue, 0))}
+                          <p className="text-[11px] sm:text-xs text-orange-600 font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
+                            Ret: {formatCurrency(bill.returns.reduce((sum, r) => sum + r.totalReturnValue, 0))}
                           </p>
                         )}
                         {bill.paidAmount > 0 && bill.payments && bill.payments.length > 0 && (
-                          <div className="hidden md:flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1.5">
                             {Object.entries(
                               bill.payments.reduce((acc, p) => {
                                 acc[p.method] = (acc[p.method] || 0) + p.amount;
                                 return acc;
                               }, {} as Record<string, number>)
                             ).map(([method, amount]) => (
-                              <Badge key={method} variant="outline" className="text-[10px] px-1.5 py-0 h-4 flex items-center gap-1 bg-muted/30 border-dashed">
-                                <span className="opacity-70">{method}:</span>
-                                <span className="font-bold">{formatCurrency(amount)}</span>
+                              <Badge key={method} variant="outline" className="text-[10px] sm:text-[11px] px-2 py-0 h-5 flex items-center gap-1 bg-primary/5 border-primary/20 text-primary font-bold">
+                                <span>{method}:</span>
+                                <span>{formatCurrency(amount)}</span>
                               </Badge>
                             ))}
                           </div>
                         )}
                       </div>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="icon"
