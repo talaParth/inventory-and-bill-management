@@ -229,8 +229,8 @@ export const getProducts = async (): Promise<Product[]> => {
         ...data,
         purchasePrice: data.purchasePrice || 0,
         sellingPrice: data.sellingPrice || data.price || 0,
-        weight: typeof data.weight === 'string' ? parseFloat(data.weight) || 0 : (data.weight || 0),
-        weightUnit: (data.weightUnit as string) || (data.unit === 'kg' ? 'kg' : 'g'),
+        weight: typeof data.weight === "string" ? parseFloat(data.weight) || 0 : (data.weight || 0),
+        weightUnit: (data.weightUnit as any) || (data.unit === "kg" ? "kg" : "g"),
       } as Product;
     });
 
@@ -733,7 +733,16 @@ export const getPurchaseBills = async (): Promise<PurchaseBill[]> => {
     );
     const querySnapshot = await getDocs(q);
 
-    const bills = querySnapshot.docs.map((doc) => doc.data() as PurchaseBill);
+    const bills = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        ...data,
+        items: (data.items || []).map((item: any) => ({
+          ...item,
+          weight: typeof item.weight === 'string' ? parseFloat(item.weight) || 0 : (item.weight || 0)
+        }))
+      } as PurchaseBill;
+    });
 
     // Sort by createdAt descending in JavaScript (avoids index requirement)
     return bills.sort((a, b) => {

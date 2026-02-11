@@ -6,6 +6,8 @@ import { Footer } from "./Footer";
 import { checkSessionExpiry, logout, getCurrentUser } from "@/pages/Auth";
 import { toast } from "sonner";
 import {
+  ChevronLeft,
+  ChevronRight,
   LayoutDashboard,
   FileText,
   Package,
@@ -102,8 +104,8 @@ export function Layout({ children }: LayoutProps) {
     { path: "/clients", icon: Users, label: "Clients" },
     { path: "/files", icon: FolderOpen, label: "Files" },
     { path: "/notes", icon: StickyNote, label: "Notes" },
-    { path: "/ai-agent", icon: Sparkles, label: "AI-Agent" },
-    { path: "/bill-creators", icon: UserCheck, label: "Creators" },
+    { path: "/ai-agent", icon: Sparkles, label: "AI" },
+    { path: "/bill-creators", icon: UserCheck, label: "Users" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
 
@@ -115,31 +117,26 @@ export function Layout({ children }: LayoutProps) {
       ? allNavItems 
       : allNavItems.filter(item => permissions.includes(item.path));
     
+    // Only update if the items list or user role has changed to avoid unnecessary re-renders
+    const currentPaths = navItems.map(i => i.path).join(',');
+    
     if (savedOrder) {
       try {
         const order = JSON.parse(savedOrder);
         const orderedItems = order.map((path: string) => items.find(i => i.path === path)).filter(Boolean);
-        // Add any new items that weren't in the saved order
         const newItems = items.filter(i => !order.includes(i.path));
-        
         const finalItems = [...orderedItems, ...newItems];
-        // Only update if the items have actually changed
-        const currentPaths = navItems.map(i => i.path).join(',');
-        const finalPaths = finalItems.map(i => i.path).join(',');
-        if (currentPaths !== finalPaths) {
+        
+        if (currentPaths !== finalItems.map(i => i.path).join(',')) {
           setNavItems(finalItems);
         }
       } catch (e) {
-        const currentPaths = navItems.map(i => i.path).join(',');
-        const itemsPaths = items.map(i => i.path).join(',');
-        if (currentPaths !== itemsPaths) {
+        if (currentPaths !== items.map(i => i.path).join(',')) {
           setNavItems(items);
         }
       }
     } else {
-      const currentPaths = navItems.map(i => i.path).join(',');
-      const itemsPaths = items.map(i => i.path).join(',');
-      if (currentPaths !== itemsPaths) {
+      if (currentPaths !== items.map(i => i.path).join(',')) {
         setNavItems(items);
       }
     }
@@ -268,12 +265,28 @@ export function Layout({ children }: LayoutProps) {
                       {item.label}
                     </span>
                   </Link>
-                  <div className="absolute -top-2 left-0 right-0 flex justify-between px-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => moveItem(navItems.indexOf(item), 'left')} className="bg-background/80 rounded-full p-0.5 shadow-sm border border-border">
-                      <LayoutDashboard className="h-3 w-3 rotate-180" />
+                  <div className="absolute -top-2 left-0 right-0 flex justify-between px-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        moveItem(navItems.indexOf(item), 'left');
+                      }} 
+                      className="bg-background/90 rounded-full p-1 shadow-md border border-border hover:bg-primary hover:text-primary-foreground transition-colors"
+                      title="Move Left"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
                     </button>
-                    <button onClick={() => moveItem(navItems.indexOf(item), 'right')} className="bg-background/80 rounded-full p-0.5 shadow-sm border border-border">
-                      <LayoutDashboard className="h-3 w-3" />
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        moveItem(navItems.indexOf(item), 'right');
+                      }} 
+                      className="bg-background/90 rounded-full p-1.5 shadow-md border border-border hover:bg-primary hover:text-primary-foreground transition-all active:scale-95"
+                      title="Move Right"
+                    >
+                      <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -283,18 +296,19 @@ export function Layout({ children }: LayoutProps) {
         </div>
         {/* Desktop/Tablet: Full Width Button Layout */}
         <div className="hidden md:block h-18">
-          <div className="h-full max-w-[96%] mx-auto px-4 py-3">
-            <div className="h-full flex items-center justify-between gap-3 lg:gap-4">
+          <div className="h-full max-w-[98%] mx-auto px-2 py-3">
+            <div className="h-full flex items-center justify-between gap-1 lg:gap-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
+                const index = navItems.indexOf(item);
                 return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`
+                  <div key={item.path} className="relative group flex-1">
+                    <Link
+                      to={item.path}
+                      className={`
                         flex flex-col items-center justify-center
-                        flex-1 px-3 py-2 rounded-xl
+                        w-full px-1 py-2 rounded-xl
                         transition-all duration-300 ease-out
                         ${
                           active
@@ -302,16 +316,47 @@ export function Layout({ children }: LayoutProps) {
                             : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:scale-105 hover:shadow-md"
                         }
                       `}
-                  >
-                    <Icon
-                      className={`h-5 w-5 mb-1 ${
-                        active ? "drop-shadow-sm" : ""
-                      }`}
-                    />
-                    <span className="text-xs font-semibold leading-tight text-center whitespace-nowrap">
-                      {item.label}
-                    </span>
-                  </Link>
+                    >
+                      <Icon
+                        className={`h-5 w-5 mb-1 ${
+                          active ? "drop-shadow-sm" : ""
+                        }`}
+                      />
+                      <span className="text-[10px] lg:text-xs font-semibold leading-tight text-center whitespace-nowrap">
+                        {item.label}
+                      </span>
+                    </Link>
+                    
+                    {/* Reordering controls for desktop */}
+                    <div className="absolute -top-3 left-0 right-0 flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      {index > 0 && (
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            moveItem(index, 'left');
+                          }} 
+                          className="bg-background/90 rounded-full p-1 shadow-md border border-border hover:bg-primary hover:text-primary-foreground transition-colors"
+                          title="Move Left"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                      )}
+                      {index < navItems.length - 1 && (
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            moveItem(index, 'right');
+                          }} 
+                          className="bg-background/90 rounded-full p-1.5 shadow-md border border-border hover:bg-primary hover:text-primary-foreground transition-all active:scale-95"
+                          title="Move Right"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>

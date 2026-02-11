@@ -279,6 +279,8 @@ export default function PurchaseBills() {
       purchasePrice: number;
       sellingPrice: number;
       gstRate: number;
+      weight: number;
+      weightUnit: string;
       productId?: string;
       isNewProduct?: boolean;
     }[]
@@ -834,7 +836,7 @@ export default function PurchaseBills() {
       gstRate: 0,
       gstAmount: 0,
       whereToBuy: editedBill.vendorName || "",
-      weight: "",
+      weight: 0,
       hasError: false,
     };
     setEditedBill({ ...editedBill, items: [...editedBill.items, newItem] });
