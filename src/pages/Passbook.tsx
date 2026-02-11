@@ -185,7 +185,14 @@ export default function Passbook() {
             });
 
             // Sort by date (Oldest to Newest) and calculate running balance
-            const sortedEntries = allEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            // When dates are the same, we need a secondary sort (e.g., ID or type) to ensure consistency
+            const sortedEntries = allEntries.sort((a, b) => {
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                if (dateA !== dateB) return dateA - dateB;
+                // Secondary sort by ID to ensure stable ordering for balance calculation
+                return a.id.localeCompare(b.id);
+            });
 
             let runningBalance = 0;
             const entriesWithBalance = sortedEntries.map(entry => {
@@ -241,7 +248,12 @@ export default function Passbook() {
 
         // Recalculate running balance for filtered entries
         // 1. Sort by date (Oldest to Newest) to calculate correct running balance
-        filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        filtered.sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            if (dateA !== dateB) return dateA - dateB;
+            return a.id.localeCompare(b.id);
+        });
 
         let runningBalance = 0;
         const filteredWithBalance = filtered.map(entry => {
@@ -256,7 +268,11 @@ export default function Passbook() {
         filteredWithBalance.sort((a, b) => {
             const dateA = new Date(a.date).getTime();
             const dateB = new Date(b.date).getTime();
-            return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            if (dateA !== dateB) {
+                return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            }
+            // For the same date, reverse the secondary sort if we are in descending order
+            return sortOrder === 'asc' ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id);
         });
 
         setFilteredEntries(filteredWithBalance);
