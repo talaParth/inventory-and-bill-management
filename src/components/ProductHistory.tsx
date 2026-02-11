@@ -1300,7 +1300,7 @@ export function ProductHistory({
                       </div>
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase font-bold">Weight</p>
-                        <p className="text-sm font-semibold">{product.weight || "0"}</p>
+                        <p className="text-sm font-semibold">{product.weight || "0"} {product.weightUnit || ""}</p>
                       </div>
                       <div className="col-span-2">
                         <p className="text-[10px] text-muted-foreground uppercase font-bold">Source</p>
@@ -1317,7 +1317,7 @@ export function ProductHistory({
                       {Number(product.stock).toFixed(2)} <span className="text-xs font-normal uppercase">{product.unit}</span>
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Total Weight: {stats.totalStockWeight ? stats.totalStockWeight.toFixed(2) : "0"}
+                      Total Weight: {stats.totalStockWeight ? stats.totalStockWeight.toFixed(2) : "0"} {product.weightUnit || ""}
                     </p>
                   </CardContent>
                 </Card>

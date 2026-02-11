@@ -229,7 +229,8 @@ export const getProducts = async (): Promise<Product[]> => {
         ...data,
         purchasePrice: data.purchasePrice || 0,
         sellingPrice: data.sellingPrice || data.price || 0,
-        weight: typeof data.weight === 'string' ? parseFloat(data.weight) || 0 : data.weight || 0,
+        weight: typeof data.weight === 'string' ? parseFloat(data.weight) || 0 : (data.weight || 0),
+        weightUnit: (data.weightUnit as string) || (data.unit === 'kg' ? 'kg' : 'g'),
       } as Product;
     });
 

@@ -53,6 +53,7 @@ export interface Client {
 export interface Product {
   whereToBuy: string;
   weight: number;
+  weightUnit?: string;
   id: string;
   name: string;
   hsnCode: string;
@@ -258,6 +259,7 @@ export interface PurchaseBillItem {
   gstAmount?: number;
   whereToBuy?: string; // Added to support item-level tracking
   weight?: number; // Added to support item-level tracking
+  weightUnit?: string; // Added to support item-level tracking
   hasError?: boolean; // Flag for AI extraction errors
   errorMessage?: string; // Error message from AI
 }

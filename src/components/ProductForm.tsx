@@ -50,6 +50,7 @@ export function ProductForm({
     sellingPrice: "",
     whereToBuy: "",
     weight: "",
+    weightUnit: "g",
   });
 
   const [initialStock, setInitialStock] = useState({
@@ -68,6 +69,7 @@ export function ProductForm({
         sellingPrice: String(editingProduct.sellingPrice),
         whereToBuy: editingProduct.whereToBuy || "",
         weight: editingProduct.weight ? String(editingProduct.weight) : "",
+        weightUnit: editingProduct.weightUnit || "g",
       });
       setImagePreview(editingProduct.imageUrl || null);
     } else {
@@ -93,16 +95,17 @@ export function ProductForm({
     setAddInitialStock(false);
     setImageFile(null);
     setImagePreview(null);
-    setFormData({
-      name: "",
-      hsnCode: "",
-      gstRate: "",
-      unit: companyProfile?.defaultUnit || "kg",
-      purchasePrice: "",
-      sellingPrice: "",
-      whereToBuy: "",
-      weight: "",
-    });
+      setFormData({
+        name: "",
+        hsnCode: "",
+        gstRate: "",
+        unit: companyProfile?.defaultUnit || "kg",
+        purchasePrice: "",
+        sellingPrice: "",
+        whereToBuy: "",
+        weight: "",
+        weightUnit: "g",
+      });
     setInitialStock({ quantity: "", purchasePrice: "" });
   };
 
@@ -144,6 +147,7 @@ export function ProductForm({
         stock: editingProduct?.stock || 0,
         whereToBuy: formData.whereToBuy,
         weight: parseFloat(formData.weight) || 0,
+        weightUnit: formData.weightUnit,
         createdAt: editingProduct?.createdAt || new Date().toISOString(),
         imageUrl: imageUrl,
       };
@@ -330,14 +334,33 @@ export function ProductForm({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Weight</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.weight}
-                onChange={(e) =>
-                  setFormData({ ...formData, weight: e.target.value })
-                }
-              />
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  step="0.01"
+                  className="flex-1"
+                  value={formData.weight}
+                  onChange={(e) =>
+                    setFormData({ ...formData, weight: e.target.value })
+                  }
+                />
+                <Select
+                  value={formData.weightUnit}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, weightUnit: value })
+                  }
+                >
+                  <SelectTrigger className="w-[80px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="g">g</SelectItem>
+                    <SelectItem value="kg">kg</SelectItem>
+                    <SelectItem value="mg">mg</SelectItem>
+                    <SelectItem value="ct">ct</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
