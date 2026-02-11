@@ -84,7 +84,15 @@ import {
   Calendar,
   BookOpen,
   Download,
+  MoreVertical,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { PurchaseBillPDF } from "@/components/PurchaseBillPDF";
 import { Textarea } from "@/components/ui/textarea";
@@ -1244,39 +1252,39 @@ export default function PurchaseBills() {
                       </div>
                     </div>
 
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
+                    <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
                         <PackagePlus className="h-3.5 w-3.5" />
                         <span>{bill.items.length} item(s)</span>
                       </div>
                       {bill.vendorGstin && (
-                        <div className="flex items-center gap-1">
-                          <span className="font-medium text-xs">GSTIN:</span>
-                          <span className="text-xs">{bill.vendorGstin}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium">GSTIN:</span>
+                          <span>{bill.vendorGstin}</span>
                         </div>
                       )}
                       {bill.itemsAddedToInventory && (
                         <Badge
                           variant="outline"
-                          className="text-emerald-600 border-emerald-500 bg-emerald-50/50"
+                          className="text-emerald-600 border-emerald-500 bg-emerald-50/50 h-5 text-[11px]"
                         >
                           <PackagePlus className="h-3 w-3 mr-1" /> In Inventory
                         </Badge>
                       )}
                     </div>
 
-                    <div className="mt-3 flex flex-col md:flex-row md:items-center justify-between gap-4 border-t pt-3">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total:</span>
-                          <p className="text-xl font-bold text-foreground">
+                    <div className="mt-3 flex items-center justify-between border-t pt-3">
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Total:</span>
+                          <p className="text-base font-bold text-foreground">
                             {formatCurrency(
                               bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0)
                             )}
                           </p>
                         </div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Remaining:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Remaining:</span>
                           <p className={`text-sm font-bold ${
                             (bill.total - (bill.returns?.reduce((sum, r) => sum + r.totalReturnValue, 0) || 0) - (bill.paidAmount || 0)) < 0 
                               ? "text-red-600" 
@@ -1288,12 +1296,12 @@ export default function PurchaseBills() {
                           </p>
                         </div>
                         {bill.returns && bill.returns.length > 0 && (
-                          <p className="text-[10px] text-orange-600 font-medium -mt-1">
+                          <p className="text-[11px] text-orange-600 font-medium">
                             Returned: {formatCurrency(bill.returns.reduce((sum, r) => sum + r.totalReturnValue, 0))}
                           </p>
                         )}
                         {bill.paidAmount > 0 && bill.payments && bill.payments.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-1">
+                          <div className="hidden md:flex flex-wrap gap-1.5">
                             {Object.entries(
                               bill.payments.reduce((acc, p) => {
                                 acc[p.method] = (acc[p.method] || 0) + p.amount;
@@ -1308,98 +1316,108 @@ export default function PurchaseBills() {
                           </div>
                         )}
                       </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedBillForReturn(bill);
-                              setReturnDialogOpen(true);
-                            }}
-                          >
-                            <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                            Return
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1.5"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openPaymentDialog(bill);
-                            }}
-                            disabled={bill.paymentStatus === "paid"}
-                          >
-                            <IndianRupee className="h-3.5 w-3.5" />
-                            Pay
-                          </Button>
-                        {!bill.itemsAddedToInventory && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleAddToInventory(bill)}
-                            disabled={loadingInventory === bill.id}
-                            className="h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-300"
-                          >
-                            {loadingInventory === bill.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <PackagePlus className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
-                        )}
+                      
+                      <div className="flex items-center gap-2">
                         <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8"
-                          onClick={() => setViewImageBill(bill)}
-                        >
-                          <ImageIcon className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-foreground"
                           onClick={() => setSelectedBill(bill)}
+                          title="View Details"
                         >
-                          <Eye className="h-3.5 w-3.5" />
+                          <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8"
-                          onClick={() => openHistoryDialog(bill)}
-                          title="Transaction History"
-                        >
-                          <Clock className="h-3.5 w-3.5 text-blue-600" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-8">
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Delete Purchase Bill?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(bill.id)}
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => openPaymentDialog(bill)}
+                              disabled={bill.paymentStatus === "paid"}
+                              className="gap-2"
+                            >
+                              <IndianRupee className="h-4 w-4" />
+                              Pay Now
+                            </DropdownMenuItem>
+                            
+                            {!bill.itemsAddedToInventory && (
+                              <DropdownMenuItem
+                                onClick={() => handleAddToInventory(bill)}
+                                disabled={loadingInventory === bill.id}
+                                className="gap-2 text-emerald-600 focus:text-emerald-600"
                               >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                {loadingInventory === bill.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <PackagePlus className="h-4 w-4" />
+                                )}
+                                Add to Inventory
+                              </DropdownMenuItem>
+                            )}
+
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedBillForReturn(bill);
+                                setReturnDialogOpen(true);
+                              }}
+                              className="gap-2 text-orange-600 focus:text-orange-600"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                              Purchase Return
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              onClick={() => openHistoryDialog(bill)}
+                              className="gap-2"
+                            >
+                              <Clock className="h-4 w-4" />
+                              Transaction History
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              onClick={() => setViewImageBill(bill)}
+                              className="gap-2"
+                            >
+                              <ImageIcon className="h-4 w-4" />
+                              View Bill Image
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator />
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem 
+                                  onSelect={(e) => e.preventDefault()}
+                                  className="gap-2 text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Delete Bill
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Purchase Bill?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone and will remove all associated payment and return records.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(bill.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </div>
