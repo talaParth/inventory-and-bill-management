@@ -2,12 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import {
   Select,
   SelectContent,
@@ -164,7 +159,11 @@ export function ProductForm({
         }
       }
 
-      toast.success(editingProduct ? "Product updated successfully" : "Product created successfully");
+      toast.success(
+        editingProduct
+          ? "Product updated successfully"
+          : "Product created successfully",
+      );
       onSuccess(product);
       onOpenChange(false);
       resetForm();
@@ -185,7 +184,9 @@ export function ProductForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editingProduct ? "Edit Product" : "Create Product"}</DialogTitle>
+          <DialogTitle>
+            {editingProduct ? "Edit Product" : "Create Product"}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -193,7 +194,11 @@ export function ProductForm({
             <div className="relative group">
               <div className="w-32 h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center overflow-hidden bg-muted">
                 {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <Upload className="w-8 h-8 text-muted-foreground" />
                 )}
@@ -222,7 +227,9 @@ export function ProductForm({
 
           <div className="space-y-2">
             <Label>Product Image</Label>
-            <p className="text-xs text-muted-foreground">Click the box above to upload or change image</p>
+            <p className="text-xs text-muted-foreground">
+              Click the box above to upload or change image
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -295,7 +302,7 @@ export function ProductForm({
                   const price = parseFloat(e.target.value) || 0;
                   const selling = calculateSellingPriceFromCommission(
                     price,
-                    companyProfile?.commissionSettings
+                    companyProfile?.commissionSettings,
                   );
                   setFormData({
                     ...formData,
@@ -393,8 +400,10 @@ export function ProductForm({
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
+                  {editingProduct ? "Updating..." : "Creating..."}
                 </>
+              ) : editingProduct ? (
+                "Update Product"
               ) : (
                 "Create Product"
               )}

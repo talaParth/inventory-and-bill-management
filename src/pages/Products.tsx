@@ -1186,7 +1186,7 @@ export default function Products() {
                       <span>Weight</span>
                       <span className="font-medium">
                         {product.weight != null ? product.weight : "N/A"}{" "}
-                        {product.unit}
+                        {/* {product.unit} */}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-xs text-muted-foreground mt-1">
