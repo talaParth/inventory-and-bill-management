@@ -162,7 +162,7 @@ export function Layout({ children }: LayoutProps) {
   const [company, setCompany] = useState<any>(null);
   const user = getCurrentUser();
   const permissions = user.role === 'admin' ? [] : (localStorage.getItem('userPermissions')?.split(',') || []);
-  console.log("--here");
+  console.log("--here--");
 
   useEffect(() => {
     const loadCompany = async () => {
