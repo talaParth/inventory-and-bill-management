@@ -393,71 +393,45 @@ export default function Dashboard() {
       // Calculate current average purchase prices for inventory valuation
       // This matches the logic from Products page - using cost basis method
       const currentAveragePrices: Record<string, number> = {};
-      await Promise.all(products.map(async (product) => {
-        const transactions = productTransactionsMap[product.id];
+      const stockValues: Record<string, number> = {};
 
+      for (const product of products) {
+        const transactions = await getProductTransactions(product.id);
+        
         if (transactions && transactions.length > 0) {
+          // Sort transactions by date descending to handle "last X bills"
+          // In dashboard, we use "all time" logic as default for inventory value
+          let filteredTransactions = [...transactions].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+
           // Calculate total purchase value and quantity
-          const totalPurchaseValue = transactions
-            .filter(t => t.type === 'purchase' && t.purchasePrice)
-            .reduce((sum, t) => sum + t.quantity * (t.purchasePrice || 0), 0);
-          const totalPurchaseQuantity = transactions
-            .filter(t => t.type === 'purchase')
-            .reduce((sum, t) => sum + t.quantity, 0);
+          const totalPurchaseValue = filteredTransactions.reduce(
+            (sum, t) => sum + t.quantity * (t.purchasePrice || 0),
+            0
+          );
+          const totalPurchaseQuantity = filteredTransactions.reduce(
+            (sum, t) => sum + t.quantity,
+            0
+          );
 
           // Overall weighted average purchase price
-          const overallAvgPurchasePrice =
+          const filteredAvgPurchasePrice =
             totalPurchaseQuantity > 0
               ? totalPurchaseValue / totalPurchaseQuantity
               : product.purchasePrice || 0;
 
-          // Calculate COGS (Cost of Goods Sold) using historical cost at time of sale
-          // This is the correct way to calculate remaining inventory value
-          let totalCOGS = 0;
-          allBills.forEach((bill) => {
-            bill.items.forEach((item) => {
-              if (item.productId === product.id) {
-                // Use historical average cost at the time of sale for accurate COGS
-                const costPrice = getHistoricalAverageCost(product.id, bill.date);
-                totalCOGS += item.quantity * costPrice;
-              }
-            });
-          });
-
-          // Handle returns: good returns reduce COGS (they go back to inventory)
-          // Bad returns don't affect COGS (they're losses)
-          allReturns.forEach((returnItem) => {
-            returnItem.items.forEach((returnItemData) => {
-              if (returnItemData.productId === product.id && returnItemData.condition === 'good') {
-                // Good returns go back to inventory, so reduce COGS
-                const returnDate = returnItem.returnDate || returnItem.createdAt;
-                const costPrice = getHistoricalAverageCost(product.id, returnDate);
-                totalCOGS -= returnItemData.quantity * costPrice;
-              }
-            });
-          });
-
-          // Assets (Remaining Inventory Value) = Total Purchase Value - COGS
-          // This is the correct cost basis method for inventory valuation
-          const assets = roundToTwoDecimals(totalPurchaseValue - totalCOGS);
-
-          // Current Average Price (Avg Buy) = Assets / Current Stock
-          // This represents the actual cost basis of remaining inventory
-          currentAveragePrices[product.id] = product.stock > 0
-            ? roundToTwoDecimals(assets / product.stock)
-            : overallAvgPurchasePrice;
+          currentAveragePrices[product.id] = filteredAvgPurchasePrice;
+          stockValues[product.id] = product.stock * filteredAvgPurchasePrice;
         } else {
           // No purchase history, use product's purchase price
-          currentAveragePrices[product.id] = product.purchasePrice || product.price || 0;
+          currentAveragePrices[product.id] = product.purchasePrice || 0;
+          stockValues[product.id] = product.stock * (product.purchasePrice || 0);
         }
-      }));
+      }
 
-      // Calculate current inventory value using current average purchase prices (cost basis method)
-      // This matches the Products page calculation logic
-      const inventoryValue = roundToTwoDecimals(products.reduce((sum, p) => {
-        const currentAvgPrice = currentAveragePrices[p.id] || p.purchasePrice || p.price || 0;
-        return sum + (p.stock * currentAvgPrice);
-      }, 0));
+      // Calculate current inventory value using the same logic as Products page
+      const inventoryValue = roundToTwoDecimals(Object.values(stockValues).reduce((sum, val) => sum + val, 0));
 
       const buckets: Record<string, { label: string; sales: number; purchases: number; profit: number }> = {};
 
