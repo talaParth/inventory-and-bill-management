@@ -604,12 +604,12 @@ export default function Products() {
       productsData.push([
         p.name,
         p.hsnCode,
-        String(p.gstRate),
+        p.gstRate,
         p.unit,
-        String(p.stock),
-        String(currentAvg),
-        String(selling),
-        String(stockValues[p.id] || 0),
+        p.stock,
+        currentAvg,
+        selling,
+        stockValues[p.id] || 0,
         margin.toFixed(2)
       ]);
     });
@@ -626,7 +626,7 @@ export default function Products() {
       .sort((a, b) => (stockValues[b.id] || 0) - (stockValues[a.id] || 0))
       .slice(0, 20)
       .forEach((p, i) => {
-        topValueData.push([String(i + 1), p.name, String(p.stock), String(stockValues[p.id] || 0)]);
+        topValueData.push([i + 1, p.name, p.stock, stockValues[p.id] || 0]);
       });
     const topValueSheet = XLSX.utils.aoa_to_sheet(topValueData);
     topValueSheet['!cols'] = [{ wch: 8 }, { wch: 30 }, { wch: 12 }, { wch: 15 }];
