@@ -267,6 +267,30 @@ export const ClientPDF = ({
         </View>
       </View>
 
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>RETURNS</Text>
+        <View style={styles.table}>
+          <View style={styles.tableRowHeader}>
+            <Text style={[styles.tableCell, { flex: 1.5 }]}>Bill No</Text>
+            <Text style={styles.tableCell}>Date</Text>
+            <Text style={styles.tableCellRight}>Return Value</Text>
+          </View>
+          {returns.length === 0 ? (
+            <View style={styles.tableRow}>
+              <Text style={[styles.tableCell, { flex: 3, textAlign: 'center' }]}>No returns found</Text>
+            </View>
+          ) : (
+            returns.slice(0, 10).map((ret) => (
+              <View key={ret.id} style={styles.tableRow}>
+                <Text style={[styles.tableCell, { flex: 1.5 }]}>{ret.billNumber}</Text>
+                <Text style={styles.tableCell}>{formatDate(ret.date)}</Text>
+                <Text style={[styles.tableCellRight, styles.loss]}>{formatCurrency(ret.totalReturnValue)}</Text>
+              </View>
+            ))
+          )}
+        </View>
+      </View>
+
       <Text style={styles.footer}>
         {companyProfile?.name || 'Company'} | Generated on {new Date().toLocaleDateString('en-IN')}
       </Text>
