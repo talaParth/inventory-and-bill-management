@@ -106,6 +106,7 @@ export default function Products() {
   >({});
   const [stockValues, setStockValues] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [avgPriceFilter, setAvgPriceFilter] = useState<string>("all");
   const [formData, setFormData] = useState({
     name: "",
     hsnCode: "",
@@ -133,12 +134,14 @@ export default function Products() {
     if (products.length > 0) {
       loadAveragePrices();
     }
-  }, [products]);
+  }, [products, avgPriceFilter]);
 
   const loadAveragePrices = async () => {
     const prices: Record<string, number> = {};
     const currentPrices: Record<string, number> = {};
     const stockValues: Record<string, number> = {};
+
+    const now = new Date();
 
     for (const product of products) {
       // Get all data needed for calculations
@@ -148,43 +151,52 @@ export default function Products() {
       ]);
 
       if (transactions && transactions.length > 0) {
-        // Calculate total purchase value and quantity (same as ProductHistory)
-        const totalPurchaseValue = transactions.reduce(
+        // Sort transactions by date descending to handle "last X bills"
+        let filteredTransactions = [...transactions].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+
+        // Apply time/count filter
+        if (avgPriceFilter === "last3") {
+          filteredTransactions = filteredTransactions.slice(0, 3);
+        } else if (avgPriceFilter === "last5") {
+          filteredTransactions = filteredTransactions.slice(0, 5);
+        } else if (avgPriceFilter === "1month") {
+          const oneMonthAgo = new Date(now);
+          oneMonthAgo.setMonth(now.getMonth() - 1);
+          filteredTransactions = filteredTransactions.filter(t => new Date(t.date) >= oneMonthAgo);
+        } else if (avgPriceFilter === "3month") {
+          const threeMonthsAgo = new Date(now);
+          threeMonthsAgo.setMonth(now.getMonth() - 3);
+          filteredTransactions = filteredTransactions.filter(t => new Date(t.date) >= threeMonthsAgo);
+        } else if (avgPriceFilter === "6month") {
+          const sixMonthsAgo = new Date(now);
+          sixMonthsAgo.setMonth(now.getMonth() - 6);
+          filteredTransactions = filteredTransactions.filter(t => new Date(t.date) >= sixMonthsAgo);
+        }
+
+        // Calculate total purchase value and quantity
+        const totalPurchaseValue = filteredTransactions.reduce(
           (sum, t) => sum + t.quantity * (t.purchasePrice || 0),
           0
         );
-        const totalPurchaseQuantity = transactions.reduce(
+        const totalPurchaseQuantity = filteredTransactions.reduce(
           (sum, t) => sum + t.quantity,
           0
         );
 
-        // Overall weighted average purchase price
-        const overallAvgPurchasePrice =
+        // Overall weighted average purchase price for filtered period
+        const filteredAvgPurchasePrice =
           totalPurchaseQuantity > 0
             ? totalPurchaseValue / totalPurchaseQuantity
             : product.purchasePrice || 0;
 
-        prices[product.id] = overallAvgPurchasePrice;
+        prices[product.id] = filteredAvgPurchasePrice;
 
-        // Find sales for this product from bills
-        let totalSalesValue = 0;
-        bills.forEach((bill) => {
-          bill.items.forEach((item) => {
-            if (item.productId === product.id) {
-              totalSalesValue += item.amount; // This is the actual selling price × quantity
-            }
-          });
-        });
-
-        // Assets (Stock Value) = Total Purchase Value - Total Sales Value
-        // This matches: totalAssets = totalPurchaseValue - totalSalesValue
-        const assets = totalPurchaseValue - totalSalesValue;
-        stockValues[product.id] = assets;
-
-        // Current Average Price (Avg Buy) = Assets / Current Stock
-        // This matches: averagePurchasePrice = totalAssets / product.stock
-        currentPrices[product.id] = product.purchasePrice || 0;
-        stockValues[product.id] = product.stock * (product.purchasePrice || 0);
+        // Current Average Price (Avg Buy) - this part should probably stay as product latest price or global avg
+        // but user specifically asked for "Avg Purchase Price" calculation filter
+        currentPrices[product.id] = filteredAvgPurchasePrice;
+        stockValues[product.id] = product.stock * filteredAvgPurchasePrice;
       } else {
         // No purchase history, use product's purchase price
         prices[product.id] = product.purchasePrice || 0;
@@ -656,7 +668,21 @@ export default function Products() {
             Manage your product inventory
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <Select value={avgPriceFilter} onValueChange={setAvgPriceFilter}>
+            <SelectTrigger className="w-[180px]">
+              <Calculator className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Avg Price Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time Average</SelectItem>
+              <SelectItem value="last3">Last 3 Bills</SelectItem>
+              <SelectItem value="last5">Last 5 Bills</SelectItem>
+              <SelectItem value="1month">Last 1 Month</SelectItem>
+              <SelectItem value="3month">Last 3 Months</SelectItem>
+              <SelectItem value="6month">Last 6 Months</SelectItem>
+            </SelectContent>
+          </Select>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="lg">

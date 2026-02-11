@@ -108,7 +108,7 @@ export interface Bill {
   createdBy?: string;
   paymentTerms: number;
   dueDate: string;
-  paymentStatus: "paid" | "pending" | "overdue";
+  paymentStatus: "paid" | "pending" | "overdue" | "overpaid";
   paidAmount: number;
   paymentType?: PaymentMethod; // For legacy support/display
   payments: PaymentTransaction[]; // Required field for multiple payments
@@ -155,7 +155,7 @@ export interface SampleBill {
   createdBy?: string;
   paymentTerms: number;
   dueDate: string;
-  paymentStatus: "paid" | "pending" | "overdue";
+  paymentStatus: "paid" | "pending" | "overdue" | "overpaid";
   paidAmount: number;
   paymentType?: PaymentMethod; // For legacy support/display
   payments: PaymentTransaction[]; // Required field for multiple payments
@@ -306,7 +306,7 @@ export interface PurchaseBill {
   subtotal: number;
   totalTax: number;
   total: number;
-  paymentStatus: "paid" | "pending" | "overdue";
+  paymentStatus: "paid" | "pending" | "overdue" | "overpaid";
   paidAmount: number;
   payments: PaymentTransaction[];
   notes?: string;

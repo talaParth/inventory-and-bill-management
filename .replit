@@ -36,24 +36,6 @@ task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
 
-[[workflows.workflow]]
-name = "git push"
-mode = "sequential"
-author = 53911480
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "git rebase --abort"
-
-[[workflows.workflow]]
-name = "npm i "
-mode = "sequential"
-author = 53750562
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm i react-markdown"
-
 [[ports]]
 localPort = 5000
 externalPort = 80
