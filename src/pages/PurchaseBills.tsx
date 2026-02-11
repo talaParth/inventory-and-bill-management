@@ -1460,7 +1460,7 @@ export default function PurchaseBills() {
 
       {/* Detail View Dialog */}
       {/* Detail View Dialog */}
-      <Dialog
+     <Dialog
         open={!!selectedBill}
         onOpenChange={() => {
           setSelectedBill(null);
@@ -1477,9 +1477,9 @@ export default function PurchaseBills() {
           p-0 flex flex-col gap-0"
         >
           {/* Fixed Header */}
-          <DialogHeader className="px-6 sm:px-10 py-6 border-b shrink-0 bg-background sticky top-0 z-10 pt-[calc(env(safe-area-inset-top)+1rem)]">
-            <DialogTitle className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <span className="text-2xl lg:text-4xl font-bold">
+          <DialogHeader className="px-6 sm:px-8 py-4 border-b shrink-0 bg-background sticky top-0 z-10 pt-[calc(env(safe-area-inset-top)+1rem)]">
+            <DialogTitle className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+              <span className="text-xl lg:text-2xl font-bold">
                 Extracted Bill Details
               </span>
               <div className="flex flex-wrap gap-2">
@@ -1490,11 +1490,11 @@ export default function PurchaseBills() {
                       fileName={`Bill_${selectedBill.billNumber || selectedBill.id}.pdf`}
                     >
                       {({ loading }) => (
-                        <Button variant="outline" size="lg" disabled={loading}>
+                        <Button variant="outline" size="default" disabled={loading}>
                           {loading ? (
-                            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
                           ) : (
-                            <Download className="h-5 w-5 mr-2" />
+                            <Download className="h-4 w-4 mr-2" />
                           )}
                           Download PDF
                         </Button>
@@ -1502,38 +1502,38 @@ export default function PurchaseBills() {
                     </PDFDownloadLink>
                     <Button
                       variant="outline"
-                      size="lg"
+                      size="default"
                       onClick={() => startEditing(selectedBill)}
                     >
-                      <Edit2 className="h-5 w-5 mr-2" /> Edit
+                      <Edit2 className="h-4 w-4 mr-2" /> Edit
                     </Button>
                   </>
                 )}
                 {isEditing && (
-                  <div className="flex gap-3">
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      size="lg"
+                      size="default"
                       onClick={() => {
                         setIsEditing(false);
                         setEditedBill(null);
                       }}
                     >
-                      <X className="h-5 w-5 mr-2" /> Cancel
+                      <X className="h-4 w-4 mr-2" /> Cancel
                     </Button>
                     <Button
-                      size="lg"
+                      size="default"
                       onClick={saveEditedBill}
                       disabled={savingEditedBill}
                     >
                       {savingEditedBill ? (
                         <>
-                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />{" "}
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />{" "}
                           Saving...
                         </>
                       ) : (
                         <>
-                          <Save className="h-5 w-5 mr-2" /> Save
+                          <Save className="h-4 w-4 mr-2" /> Save
                         </>
                       )}
                     </Button>
@@ -1544,27 +1544,27 @@ export default function PurchaseBills() {
           </DialogHeader>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-8 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
             {/* Extraction Errors Alert */}
             {selectedBill?.extractionErrors &&
               selectedBill.extractionErrors.length > 0 &&
               !isEditing && (
-                <Card className="border-amber-400 bg-amber-50 dark:bg-amber-950/20 mb-8">
-                  <CardContent className="py-6">
-                    <div className="flex items-start gap-4">
-                      <AlertTriangle className="h-7 w-7 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <div className="space-y-3 flex-1">
-                        <p className="font-semibold text-lg text-amber-800 dark:text-amber-200">
+                <Card className="border-amber-400 bg-amber-50 dark:bg-amber-950/20 mb-6">
+                  <CardContent className="py-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="space-y-2 flex-1">
+                        <p className="font-semibold text-base text-amber-800 dark:text-amber-200">
                           AI detected potential issues:
                         </p>
-                        <ul className="space-y-3 text-amber-700 dark:text-amber-300">
+                        <ul className="space-y-2 text-sm text-amber-700 dark:text-amber-300">
                           {selectedBill.extractionErrors.map((error, i) => (
                             <li
                               key={i}
-                              className="flex flex-col lg:flex-row lg:items-start gap-3"
+                              className="flex flex-col lg:flex-row lg:items-start gap-2"
                             >
                               <span
-                                className={`px-2 py-1 rounded text-sm font-medium ${
+                                className={`px-2 py-0.5 rounded text-xs font-medium ${
                                   error.severity === "error"
                                     ? "bg-destructive/20 text-destructive"
                                     : "bg-amber-200 text-amber-800"
@@ -1573,11 +1573,11 @@ export default function PurchaseBills() {
                                 {error.severity.toUpperCase()}
                               </span>
                               <div className="flex-1">
-                                <span className="block text-base">
+                                <span className="block text-sm">
                                   {error.message}
                                 </span>
                                 {error.suggestion && (
-                                  <span className="block text-sm text-amber-600 mt-1">
+                                  <span className="block text-xs text-amber-600 mt-1">
                                     Suggestion: {error.suggestion}
                                   </span>
                                 )}
@@ -1587,11 +1587,11 @@ export default function PurchaseBills() {
                         </ul>
                         <Button
                           variant="outline"
-                          size="lg"
-                          className="mt-4 border-amber-400 text-amber-700"
+                          size="sm"
+                          className="mt-3 border-amber-400 text-amber-700"
                           onClick={() => startEditing(selectedBill)}
                         >
-                          <Edit2 className="h-5 w-5 mr-2" /> Fix Issues
+                          <Edit2 className="h-4 w-4 mr-2" /> Fix Issues
                         </Button>
                       </div>
                     </div>
@@ -1600,19 +1600,19 @@ export default function PurchaseBills() {
               )}
 
             {(isEditing ? editedBill : selectedBill) && (
-              <div className="space-y-10">
+              <div className="space-y-6">
                 {/* Vendor Information */}
                 <Card className="overflow-hidden shadow-sm">
-                  <CardHeader className="bg-muted/40 px-6 py-5">
-                    <CardTitle className="text-2xl lg:text-3xl">
+                  <CardHeader className="bg-muted/40 px-5 py-3.5">
+                    <CardTitle className="text-lg lg:text-xl font-semibold">
                       Vendor Information
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-8 px-6 pb-8">
+                  <CardContent className="pt-5 px-5 pb-5">
                     {isEditing ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <div className="space-y-2">
-                          <Label className="text-base">Vendor Name</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium">Vendor Name</Label>
                           <Input
                             value={editedBill?.vendorName || ""}
                             onChange={(e) =>
@@ -1620,11 +1620,11 @@ export default function PurchaseBills() {
                                 prev ? { ...prev, vendorName: e.target.value } : null
                               )
                             }
-                            className="h-12 text-base"
+                            className="h-10 text-sm"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-base">GSTIN</Label>
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium">GSTIN</Label>
                           <Input
                             value={editedBill?.vendorGstin || ""}
                             onChange={(e) =>
@@ -1637,11 +1637,11 @@ export default function PurchaseBills() {
                                   : null
                               )
                             }
-                            className="h-12 text-base"
+                            className="h-10 text-sm"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-base">Bill Number</Label>
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium">Bill Number</Label>
                           <Input
                             value={editedBill?.billNumber || ""}
                             onChange={(e) =>
@@ -1651,11 +1651,11 @@ export default function PurchaseBills() {
                                   : null
                               )
                             }
-                            className="h-12 text-base"
+                            className="h-10 text-sm"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-base">Bill Date</Label>
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium">Bill Date</Label>
                           <Input
                             type="date"
                             value={editedBill?.billDate || ""}
@@ -1666,11 +1666,11 @@ export default function PurchaseBills() {
                                   : null
                               )
                             }
-                            className="h-12 text-base"
+                            className="h-10 text-sm"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-base">Due Date</Label>
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium">Due Date</Label>
                           <Input
                             type="date"
                             value={editedBill?.dueDate || ""}
@@ -1681,11 +1681,11 @@ export default function PurchaseBills() {
                                   : null
                               )
                             }
-                            className="h-12 text-base"
+                            className="h-10 text-sm"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-base">
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium">
                             Payment Terms (Days)
                           </Label>
                           <Input
@@ -1703,11 +1703,11 @@ export default function PurchaseBills() {
                                   : null
                               )
                             }
-                            className="h-12 text-base"
+                            className="h-10 text-sm"
                           />
                         </div>
-                        <div className="space-y-2 md:col-span-2 xl:col-span-3">
-                          <Label className="text-base">Address</Label>
+                        <div className="space-y-1.5 md:col-span-2 xl:col-span-3">
+                          <Label className="text-sm font-medium">Address</Label>
                           <Textarea
                             value={editedBill?.vendorAddress || ""}
                             onChange={(e) =>
@@ -1717,66 +1717,66 @@ export default function PurchaseBills() {
                                   : null
                               )
                             }
-                            rows={4}
-                            className="resize-none text-base"
+                            rows={3}
+                            className="resize-none text-sm"
                           />
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 text-base lg:text-lg">
-                        <div className="space-y-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-sm">
+                        <div className="space-y-4">
                           <div>
-                            <span className="text-muted-foreground">
-                              Vendor Name:
+                            <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                              Vendor Name
                             </span>
-                            <p className="font-bold text-2xl lg:text-3xl mt-2 break-words">
+                            <p className="font-semibold text-lg mt-1 break-words">
                               {selectedBill?.vendorName}
                             </p>
                           </div>
                           {selectedBill?.vendorAddress && (
                             <div>
-                              <span className="text-muted-foreground">
-                                Address:
+                              <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                                Address
                               </span>
-                              <p className="mt-2 whitespace-pre-line break-words">
+                              <p className="mt-1 whitespace-pre-line break-words">
                                 {selectedBill.vendorAddress}
                               </p>
                             </div>
                           )}
                           {selectedBill?.vendorGstin && (
                             <div>
-                              <span className="text-muted-foreground">
-                                GSTIN:
+                              <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                                GSTIN
                               </span>
-                              <p className="mt-2 font-medium break-all">
+                              <p className="mt-1 font-medium break-all">
                                 {selectedBill.vendorGstin}
                               </p>
                             </div>
                           )}
                         </div>
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                           <div>
-                            <span className="text-muted-foreground">
-                              Bill No:
+                            <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                              Bill Number
                             </span>
-                            <p className="mt-2 font-semibold text-xl lg:text-2xl">
+                            <p className="mt-1 font-semibold text-base">
                               {selectedBill?.billNumber || "—"}
                             </p>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">
-                              Bill Date:
+                            <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                              Bill Date
                             </span>
-                            <p className="mt-2">
+                            <p className="mt-1">
                               {formatDate(selectedBill?.billDate)}
                             </p>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">
-                              Due Date:
+                            <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                              Due Date
                             </span>
                             <p
-                              className={`mt-2 font-medium ${
+                              className={`mt-1 font-medium ${
                                 isOverdue(selectedBill)
                                   ? "text-destructive"
                                   : ""
@@ -1796,52 +1796,50 @@ export default function PurchaseBills() {
 
                 {/* Payment History */}
                 <Card className="overflow-hidden shadow-sm">
-                  <CardHeader className="bg-muted/40 px-6 py-5">
-                    <CardTitle className="text-2xl lg:text-3xl flex items-center justify-between">
+                  <CardHeader className="bg-muted/40 px-5 py-3.5">
+                    <CardTitle className="text-lg lg:text-xl font-semibold flex items-center justify-between">
                       <span>Payment History</span>
-                      <div className="flex items-center gap-4">
-                        <Badge
-                          variant={
-                            (isEditing ? editedBill : selectedBill)?.paymentStatus === "paid"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="text-lg py-1 px-4"
-                        >
-                          {(isEditing ? editedBill : selectedBill)?.paymentStatus.toUpperCase()}
-                        </Badge>
-                      </div>
+                      <Badge
+                        variant={
+                          (isEditing ? editedBill : selectedBill)?.paymentStatus === "paid"
+                            ? "default"
+                            : "secondary"
+                        }
+                        className="text-sm py-1 px-3"
+                      >
+                        {(isEditing ? editedBill : selectedBill)?.paymentStatus.toUpperCase()}
+                      </Badge>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-8 px-6 pb-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                      <div className="space-y-2 p-4 bg-muted/20 rounded-lg border">
-                        <span className="text-muted-foreground text-sm uppercase tracking-wider font-semibold">Total Amount</span>
-                        <p className="text-3xl font-bold text-foreground">
+                  <CardContent className="pt-5 px-5 pb-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                      <div className="space-y-1.5 p-4 bg-muted/20 rounded-lg border">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total Amount</span>
+                        <p className="text-2xl font-bold text-foreground">
                           {formatCurrency((isEditing ? editedBill : selectedBill)?.total || 0)}
                         </p>
                       </div>
-                      <div className="space-y-2 p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-100 dark:border-emerald-900">
-                        <span className="text-emerald-700 dark:text-emerald-300 text-sm uppercase tracking-wider font-semibold">Total Paid</span>
-                        <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                      <div className="space-y-1.5 p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-100 dark:border-emerald-900">
+                        <span className="text-xs text-emerald-700 dark:text-emerald-300 uppercase tracking-wider font-semibold">Total Paid</span>
+                        <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                           {formatCurrency((isEditing ? editedBill : selectedBill)?.paidAmount || 0)}
                         </p>
                       </div>
-                      <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-100 dark:border-blue-900">
-                        <span className="text-blue-700 dark:text-blue-300 text-sm uppercase tracking-wider font-semibold">Payment Breakdown</span>
-                        <div className="flex flex-wrap gap-2 pt-1">
+                      <div className="space-y-1.5 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-100 dark:border-blue-900">
+                        <span className="text-xs text-blue-700 dark:text-blue-300 uppercase tracking-wider font-semibold">Payment Breakdown</span>
+                        <div className="flex flex-wrap gap-1.5 pt-1">
                           {Object.entries(
                             (isEditing ? editedBill : selectedBill)?.payments?.reduce((acc, p) => {
                               acc[p.method] = (acc[p.method] || 0) + p.amount;
                               return acc;
                             }, {} as Record<string, number>) || {}
                           ).map(([method, amount]) => (
-                            <Badge key={method} variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 border-none">
+                            <Badge key={method} variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 border-none text-xs">
                               {method}: {formatCurrency(amount)}
                             </Badge>
                           ))}
                           {((isEditing ? editedBill : selectedBill)?.payments?.length || 0) === 0 && (
-                            <span className="text-sm text-muted-foreground italic">No payments yet</span>
+                            <span className="text-xs text-muted-foreground italic">No payments yet</span>
                           )}
                         </div>
                       </div>
@@ -1849,32 +1847,32 @@ export default function PurchaseBills() {
 
                     {((isEditing ? editedBill : selectedBill)?.payments?.length || 0) > 0 ? (
                       <div className="overflow-x-auto rounded-lg border">
-                        <table className="w-full text-sm lg:text-base">
+                        <table className="w-full text-sm">
                           <thead className="bg-muted/60">
                             <tr>
-                              <th className="text-left px-6 py-4 font-semibold">Date</th>
-                              <th className="text-left px-6 py-4 font-semibold">Method</th>
-                              <th className="text-right px-6 py-4 font-semibold">Amount</th>
-                              <th className="text-left px-6 py-4 font-semibold">Note</th>
+                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Date</th>
+                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Method</th>
+                              <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">Amount</th>
+                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Note</th>
                             </tr>
                           </thead>
                           <tbody>
                             {(isEditing ? editedBill : selectedBill)?.payments?.map((payment, i) => (
                               <tr key={payment.id || i} className="border-t">
-                                <td className="px-6 py-4">{formatDate(payment.date)}</td>
-                                <td className="px-6 py-4">
-                                  <Badge variant="outline">{payment.method}</Badge>
+                                <td className="px-4 py-3 text-sm">{formatDate(payment.date)}</td>
+                                <td className="px-4 py-3">
+                                  <Badge variant="outline" className="text-xs">{payment.method}</Badge>
                                 </td>
-                                <td className="px-6 py-4 text-right font-bold">{formatCurrency(payment.amount)}</td>
-                                <td className="px-6 py-4 text-muted-foreground">{payment.note || "—"}</td>
+                                <td className="px-4 py-3 text-right font-semibold">{formatCurrency(payment.amount)}</td>
+                                <td className="px-4 py-3 text-muted-foreground text-sm">{payment.note || "—"}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
                     ) : (
-                      <div className="text-center py-10 bg-muted/10 rounded-lg border border-dashed">
-                        <p className="text-muted-foreground">No payments recorded yet.</p>
+                      <div className="text-center py-8 bg-muted/10 rounded-lg border border-dashed">
+                        <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
                       </div>
                     )}
                   </CardContent>
@@ -1882,11 +1880,11 @@ export default function PurchaseBills() {
 
                 {/* Items Table */}
                 <Card className="overflow-hidden shadow-sm">
-                  <CardHeader className="bg-muted/40 px-6 py-5">
-                    <CardTitle className="text-2xl lg:text-3xl flex items-center justify-between">
+                  <CardHeader className="bg-muted/40 px-5 py-3.5">
+                    <CardTitle className="text-lg lg:text-xl font-semibold flex items-center justify-between">
                       <span>Items</span>
-                      <div className="flex items-center gap-4">
-                        <span className="text-lg font-normal text-muted-foreground">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-normal text-muted-foreground">
                           {
                             (isEditing ? editedBill?.items : selectedBill?.items)
                               ?.length
@@ -1909,32 +1907,32 @@ export default function PurchaseBills() {
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm lg:text-lg">
+                      <table className="w-full text-sm">
                         <thead className="bg-muted/60">
                           <tr>
-                            <th className="text-left px-6 py-4 font-semibold sticky left-0 bg-muted/60">
+                            <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide sticky left-0 bg-muted/60">
                               #
                             </th>
-                            <th className="text-left px-6 py-4 font-semibold min-w-[300px]">
+                            <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide min-w-[250px]">
                               Description
                             </th>
-                            <th className="text-center px-6 py-4 font-semibold">
+                            <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wide">
                               HSN
                             </th>
-                            <th className="text-right px-6 py-4 font-semibold">
+                            <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">
                               Qty
                             </th>
-                            <th className="text-right px-6 py-4 font-semibold">
+                            <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">
                               Rate
                             </th>
-                            <th className="text-right px-6 py-4 font-semibold">
+                            <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">
                               GST%
                             </th>
-                            <th className="text-right px-6 py-4 font-semibold">
+                            <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">
                               Amount
                             </th>
                             {isEditing && (
-                              <th className="text-right px-6 py-4 font-semibold">
+                              <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">
                                 Actions
                               </th>
                             )}
@@ -1953,10 +1951,10 @@ export default function PurchaseBills() {
                                   : ""
                               }`}
                             >
-                              <td className="px-6 py-4 font-medium sticky left-0 bg-background">
+                              <td className="px-4 py-3 font-medium sticky left-0 bg-background text-sm">
                                 {index + 1}
                               </td>
-                              <td className="px-6 py-4 max-w-md">
+                              <td className="px-4 py-3 max-w-md">
                                 {isEditing ? (
                                   <div className="space-y-2">
                                     <Input
@@ -1968,7 +1966,7 @@ export default function PurchaseBills() {
                                           e.target.value
                                         )
                                       }
-                                      className="h-11 text-base"
+                                      className="h-9 text-sm"
                                       placeholder="Item / Product name"
                                     />
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -1981,7 +1979,7 @@ export default function PurchaseBills() {
                                             e.target.value
                                           )
                                         }
-                                        className="h-10 text-base"
+                                        className="h-8 text-sm"
                                         placeholder="Bought from (optional)"
                                       />
                                       <Input
@@ -1993,35 +1991,35 @@ export default function PurchaseBills() {
                                             e.target.value
                                           )
                                         }
-                                        className="h-10 text-base"
+                                        className="h-8 text-sm"
                                         placeholder="Weight (optional)"
                                       />
                                     </div>
                                   </div>
                                 ) : (
                                   <div>
-                                    <div className="font-medium break-words">
+                                    <div className="font-medium break-words text-sm">
                                       {item.description}
                                     </div>
                                     {(item as any).whereToBuy && (
-                                      <div className="text-sm text-muted-foreground mt-1">
+                                      <div className="text-xs text-muted-foreground mt-1">
                                         Bought from: {(item as any).whereToBuy}
                                       </div>
                                     )}
                                     {(item as any).weight && (
-                                      <div className="text-sm text-muted-foreground">
+                                      <div className="text-xs text-muted-foreground">
                                         Weight: {(item as any).weight}
                                       </div>
                                     )}
                                     {item.hasError && (
-                                      <p className="text-sm text-amber-600 mt-1">
+                                      <p className="text-xs text-amber-600 mt-1">
                                         {item.errorMessage}
                                       </p>
                                     )}
                                   </div>
                                 )}
                               </td>
-                              <td className="px-6 py-4 text-center">
+                              <td className="px-4 py-3 text-center">
                                 {isEditing ? (
                                   <Input
                                     value={item.hsnCode || ""}
@@ -2032,15 +2030,15 @@ export default function PurchaseBills() {
                                         e.target.value
                                       )
                                     }
-                                    className="h-11 w-32 mx-auto text-base"
+                                    className="h-9 w-28 mx-auto text-sm"
                                   />
                                 ) : (
-                                  item.hsnCode || "—"
+                                  <span className="text-sm">{item.hsnCode || "—"}</span>
                                 )}
                               </td>
-                              <td className="px-6 py-4 text-right">
+                              <td className="px-4 py-3 text-right">
                                 {isEditing ? (
-                                  <div className="flex items-center justify-end gap-3">
+                                  <div className="flex items-center justify-end gap-2">
                                     <Input
                                       type="number"
                                       value={item.quantity}
@@ -2051,7 +2049,7 @@ export default function PurchaseBills() {
                                           parseFloat(e.target.value) || 0
                                         )
                                       }
-                                      className="h-11 w-28 text-right text-base"
+                                      className="h-9 w-20 text-right text-sm"
                                     />
                                     <Input
                                       value={item.unit}
@@ -2062,16 +2060,16 @@ export default function PurchaseBills() {
                                           e.target.value
                                         )
                                       }
-                                      className="h-11 w-24 text-base"
+                                      className="h-9 w-16 text-sm"
                                     />
                                   </div>
                                 ) : (
-                                  <span className="font-medium">
+                                  <span className="font-medium text-sm">
                                     {item.quantity} {item.unit}
                                   </span>
                                 )}
                               </td>
-                              <td className="px-6 py-4 text-right">
+                              <td className="px-4 py-3 text-right">
                                 {isEditing ? (
                                   <Input
                                     type="number"
@@ -2084,13 +2082,13 @@ export default function PurchaseBills() {
                                         parseFloat(e.target.value) || 0
                                       )
                                     }
-                                    className="h-11 w-36 text-right text-base"
+                                    className="h-9 w-28 text-right text-sm"
                                   />
                                 ) : (
-                                  formatCurrency(item.rate)
+                                  <span className="text-sm">{formatCurrency(item.rate)}</span>
                                 )}
                               </td>
-                              <td className="px-6 py-4 text-right">
+                              <td className="px-4 py-3 text-right">
                                 {isEditing ? (
                                   <Input
                                     type="number"
@@ -2103,19 +2101,19 @@ export default function PurchaseBills() {
                                         parseFloat(e.target.value) || 0
                                       )
                                     }
-                                    className="h-11 w-28 text-right text-base"
+                                    className="h-9 w-20 text-right text-sm"
                                   />
                                 ) : (
-                                  <span className="font-medium">
+                                  <span className="font-medium text-sm">
                                     {item.gstRate || 0}%
                                   </span>
                                 )}
                               </td>
-                              <td className="px-6 py-4 text-right font-bold">
+                              <td className="px-4 py-3 text-right font-semibold text-sm">
                                 {formatCurrency(item.amount)}
                               </td>
                               {isEditing && (
-                                <td className="px-6 py-4 text-right">
+                                <td className="px-4 py-3 text-right">
                                   <Button
                                     type="button"
                                     variant="ghost"
@@ -2138,46 +2136,46 @@ export default function PurchaseBills() {
                 {/* Purchase Returns Section */}
                 {selectedBill?.returns && selectedBill.returns.length > 0 && (
                   <Card className="overflow-hidden shadow-sm border-2 border-orange-200 bg-orange-50/5">
-                    <CardHeader className="bg-orange-100/30 px-6 py-5">
-                      <CardTitle className="text-2xl lg:text-3xl flex items-center gap-3 text-orange-600">
-                        <RotateCcw className="h-7 w-7" />
+                    <CardHeader className="bg-orange-100/30 px-5 py-3.5">
+                      <CardTitle className="text-lg lg:text-xl font-semibold flex items-center gap-2 text-orange-600">
+                        <RotateCcw className="h-5 w-5" />
                         Purchase Returns
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm lg:text-lg">
+                        <table className="w-full text-sm">
                           <thead className="bg-orange-100/50">
                             <tr>
-                              <th className="text-left px-6 py-4 font-semibold">Item / Reason</th>
-                              <th className="text-center px-6 py-4 font-semibold">Qty</th>
-                              <th className="text-right px-6 py-4 font-semibold">Date</th>
-                              <th className="text-right px-6 py-4 font-semibold">Value</th>
+                              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Item / Reason</th>
+                              <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wide">Qty</th>
+                              <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">Date</th>
+                              <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide">Value</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-orange-100">
                             {selectedBill.returns.map((ret) => (
                               ret.items.map((item, idx) => (
                                 <tr key={`${ret.id}-${idx}`} className="hover:bg-orange-100/10">
-                                  <td className="px-6 py-4">
+                                  <td className="px-4 py-3">
                                     <div className="space-y-1">
-                                      <p className="font-bold text-foreground">{item.description}</p>
+                                      <p className="font-semibold text-sm text-foreground">{item.description}</p>
                                       {ret.notes && (
-                                        <p className="text-sm text-muted-foreground italic flex items-center gap-1">
+                                        <p className="text-xs text-muted-foreground italic flex items-center gap-1">
                                           <BookOpen className="h-3 w-3" /> {ret.notes}
                                         </p>
                                       )}
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 text-center">
-                                    <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-100/50 font-bold">
+                                  <td className="px-4 py-3 text-center">
+                                    <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-100/50 font-semibold text-xs">
                                       -{item.quantity}
                                     </Badge>
                                   </td>
-                                  <td className="px-6 py-4 text-right text-muted-foreground">
+                                  <td className="px-4 py-3 text-right text-muted-foreground text-sm">
                                     {formatDate(ret.returnDate)}
                                   </td>
-                                  <td className="px-6 py-4 text-right font-bold text-orange-600">
+                                  <td className="px-4 py-3 text-right font-semibold text-orange-600">
                                     -{formatCurrency(item.quantity * item.rate * (1 + (item.gstRate || 0) / 100))}
                                   </td>
                                 </tr>
@@ -2192,16 +2190,16 @@ export default function PurchaseBills() {
 
                 {/* Totals Summary */}
                 <Card className="shadow-sm">
-                  <CardHeader className="bg-muted/40 px-6 py-5">
-                    <CardTitle className="text-2xl lg:text-3xl">
+                  <CardHeader className="bg-muted/40 px-5 py-3.5">
+                    <CardTitle className="text-lg lg:text-xl font-semibold">
                       Bill Summary
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-8 px-6 pb-8">
-                    <div className="max-w-lg ml-auto space-y-5">
-                      <div className="flex justify-between text-lg lg:text-2xl">
-                        <span>Subtotal</span>
-                        <span className="font-bold">
+                  <CardContent className="pt-5 px-5 pb-5">
+                    <div className="max-w-lg ml-auto space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="font-semibold">
                           {formatCurrency(
                             isEditing
                               ? editedBill?.items.reduce(
@@ -2212,9 +2210,9 @@ export default function PurchaseBills() {
                           )}
                         </span>
                       </div>
-                      <div className="flex justify-between text-lg lg:text-2xl">
-                        <span>Tax Amount</span>
-                        <span className="font-bold">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Tax Amount</span>
+                        <span className="font-semibold">
                           {formatCurrency(
                             isEditing
                               ? editedBill?.items.reduce(
@@ -2225,10 +2223,10 @@ export default function PurchaseBills() {
                           )}
                         </span>
                       </div>
-                      <div className="border-t-4 border-primary pt-6 space-y-4">
-                        <div className="flex justify-between text-xl lg:text-3xl text-muted-foreground">
+                      <div className="border-t-2 border-primary pt-3 space-y-2.5">
+                        <div className="flex justify-between text-sm text-muted-foreground">
                           <span>Original Bill Amount</span>
-                          <span className="font-semibold decoration-red-500/50">
+                          <span className="font-semibold">
                             {formatCurrency(
                               isEditing
                                 ? (editedBill?.items.reduce(
@@ -2245,7 +2243,7 @@ export default function PurchaseBills() {
                           </span>
                         </div>
                         {selectedBill?.returns && selectedBill.returns.length > 0 && (
-                          <div className="flex justify-between text-xl lg:text-3xl text-red-600">
+                          <div className="flex justify-between text-sm text-red-600">
                             <span>- Returns</span>
                             <span className="font-semibold">
                               {formatCurrency(
@@ -2257,7 +2255,7 @@ export default function PurchaseBills() {
                             </span>
                           </div>
                         )}
-                        <div className="flex justify-between text-2xl lg:text-4xl">
+                        <div className="flex justify-between text-xl lg:text-2xl pt-2 border-t">
                           <span className="font-bold">Current Total</span>
                           <span className="font-bold text-primary">
                             {formatCurrency(
@@ -2289,33 +2287,33 @@ export default function PurchaseBills() {
           </div>
           {/* Sticky footer actions (always visible on mobile) */}
           {!isEditing && selectedBill && (
-            <div className="shrink-0 border-t bg-background px-6 sm:px-10 py-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
-              <div className="flex flex-col lg:flex-row gap-4 justify-end">
+            <div className="shrink-0 border-t bg-background px-6 sm:px-8 py-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+              <div className="flex flex-col lg:flex-row gap-3 justify-end">
                 {!selectedBill.itemsAddedToInventory ? (
                   <Button
                     onClick={() => handleAddToInventory(selectedBill)}
-                    size="lg"
+                    size="default"
                     className="bg-emerald-600 hover:bg-emerald-700"
                   >
-                    <PackagePlus className="h-6 w-6 mr-3" />
+                    <PackagePlus className="h-4 w-4 mr-2" />
                     Add to Inventory
                   </Button>
                 ) : (
-                  <Badge variant="secondary" className="py-3 px-6 text-lg">
-                    <PackagePlus className="h-6 w-6 mr-3" />
+                  <Badge variant="secondary" className="py-2 px-4 text-sm">
+                    <PackagePlus className="h-4 w-4 mr-2" />
                     Added to Inventory
                   </Badge>
                 )}
                 <Button
                   variant="outline"
-                  size="lg"
+                  size="default"
                   onClick={() => setViewImageBill(selectedBill)}
                 >
-                  <Image className="h-6 w-6 mr-3" />
+                  <Image className="h-4 w-4 mr-2" />
                   View Original Bill
                 </Button>
                 <Button
-                  size="lg"
+                  size="default"
                   variant={
                     selectedBill.paymentStatus === "paid"
                       ? "secondary"

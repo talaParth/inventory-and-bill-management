@@ -1281,217 +1281,102 @@ export function ProductHistory({
         ) : (
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
             <div className="space-y-4 py-4">
-              {/* Product Details */}
-              <Card className="border">
-                <CardHeader className="px-3 sm:px-4 pt-3 sm:pt-4 pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                    <Info className="h-4 w-4 flex-shrink-0" />
-                    Product Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        HSN Code
-                      </p>
-                      <p className="text-sm sm:text-base font-semibold">
-                        {product.hsnCode}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        GST Rate
-                      </p>
-                      <p className="text-sm sm:text-base font-semibold">
-                        {product.gstRate}%
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        Unit
-                      </p>
-                      <p className="text-sm sm:text-base font-semibold">
-                        {product.unit}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        Weight per Unit
-                      </p>
-                      <p className="text-sm sm:text-base font-semibold">
-                        {product.weight
-                          ? `${product.weight} ${product.unit}`
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <div className="col-span-2 md:col-span-1">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        Bought from where
-                      </p>
-                      <p className="text-sm sm:text-base font-semibold">
-                        {product.whereToBuy || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        Total Stock Weight
-                      </p>
-                      <p className="text-sm sm:text-base font-semibold">
-                        {stats.totalStockWeight
-                          ? `${stats.totalStockWeight.toFixed(2)} ${
-                              product.unit
-                            }`
-                          : "N/A"}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Summary Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <Card className="border">
-                  <CardHeader className="pb-2 px-3 pt-3">
-                    <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
-                      <Package className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">Stock</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-3 pb-3">
-                    <div className="text-lg sm:text-xl font-bold">
-                      {Number(product.stock).toFixed(2)} {product.unit}
+              {/* Product Info & Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="md:col-span-2 border shadow-sm">
+                  <CardContent className="p-3">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">HSN</p>
+                        <p className="text-sm font-semibold">{product.hsnCode}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">GST</p>
+                        <p className="text-sm font-semibold">{product.gstRate}%</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Unit</p>
+                        <p className="text-sm font-semibold uppercase">{product.unit}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Weight</p>
+                        <p className="text-sm font-semibold">{product.weight || "0"} {product.unit}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Source</p>
+                        <p className="text-sm font-semibold truncate">{product.whereToBuy || "Direct"}</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border">
-                  <CardHeader className="pb-2 px-3 pt-3">
-                    <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
-                      <DollarSign className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">Assets</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-3 pb-3">
-                    <div className="text-lg sm:text-xl font-bold text-emerald-600 break-words">
-                      {formatCurrency(stats.totalAssets)}
+                <Card className="border shadow-sm bg-primary/5">
+                  <CardContent className="p-3 flex flex-col justify-center h-full">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Current Stock</p>
+                    <div className="text-2xl font-black text-primary">
+                      {Number(product.stock).toFixed(2)} <span className="text-xs font-normal uppercase">{product.unit}</span>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border">
-                  <CardHeader className="pb-2 px-3 pt-3">
-                    <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
-                      <TrendingUp className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">Avg Buy</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-3 pb-3">
-                    <div className="text-base sm:text-lg font-bold break-words">
-                      {formatCurrency(stats.averagePurchasePrice)}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      {Number(product.stock).toFixed(2)} {product.unit}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border">
-                  <CardHeader className="pb-2 px-3 pt-3">
-                    <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
-                      <TrendingDown className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">Avg Sell</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-3 pb-3">
-                    <div className="text-base sm:text-lg font-bold text-blue-600 break-words">
-                      {formatCurrency(stats.averageSellingPrice)}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      {stats.totalSold} {product.unit}
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Total Weight: {stats.totalStockWeight ? stats.totalStockWeight.toFixed(2) : "0"} {product.unit}
                     </p>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Business Analytics */}
-              <Card className="border">
-                <CardHeader className="px-3 sm:px-4 pt-3 sm:pt-4 pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                    <BarChart3 className="h-4 w-4 flex-shrink-0" />
-                    Business Analytics (Weighted Average Method)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        Total Purchased
-                      </p>
-                      <p className="text-sm sm:text-base font-semibold">
-                        {Number(stats.totalPurchased).toFixed(2)} {product.unit}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {formatCurrency(stats.totalPurchaseValue)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        Total Sold
-                      </p>
-                      <p className="text-sm sm:text-base font-semibold">
-                        {Number(stats.totalSold).toFixed(2)} {product.unit}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {formatCurrency(stats.totalSalesValue)}
-                      </p>
-                      {stats.totalReturned > 0 && (
-                        <p className="text-[10px] text-orange-500 mt-0.5">
-                          Net: {Number(stats.netSold).toFixed(2)} {product.unit}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        Profit Margin
-                      </p>
-                      <p
-                        className={`text-sm sm:text-base font-semibold ${
-                          stats.profitMargin > 0
-                            ? "text-emerald-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {stats.profitMargin.toFixed(2)}%
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {formatCurrency(stats.totalProfit)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        Stock Turnover
-                      </p>
-                      <p className="text-sm sm:text-base font-semibold">
-                        {stats.totalPurchased > 0
-                          ? (
-                              (stats.totalSold / stats.totalPurchased) *
-                              100
-                            ).toFixed(1)
-                          : 0}
-                        %
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {Number(stats.totalSold).toFixed(2)} /{" "}
-                        {Number(stats.totalPurchased).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Key Metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Card className="border shadow-sm">
+                  <CardContent className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Assets Value</p>
+                    <p className="text-lg font-bold text-emerald-600">{formatCurrency(stats.totalAssets)}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border shadow-sm">
+                  <CardContent className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Avg Buy Price</p>
+                    <p className="text-lg font-bold">{formatCurrency(stats.averagePurchasePrice)}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border shadow-sm">
+                  <CardContent className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Avg Sell Price</p>
+                    <p className="text-lg font-bold text-blue-600">{formatCurrency(stats.averageSellingPrice)}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border shadow-sm">
+                  <CardContent className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Profit Margin</p>
+                    <p className={`text-lg font-bold ${stats.profitMargin > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                      {stats.profitMargin.toFixed(1)}%
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
-              {/* Filters */}
-              <div className="flex flex-col sm:flex-row gap-3 bg-muted/20 p-3 rounded-lg border">
+              {/* Business Analytics Mini */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-3 bg-muted/30 rounded-lg border text-center">
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Bought</p>
+                  <p className="text-sm font-semibold">{Number(stats.totalPurchased).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Sold</p>
+                  <p className="text-sm font-semibold">{Number(stats.totalSold).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Returns</p>
+                  <p className="text-sm font-semibold text-orange-600">{Number(stats.totalReturned).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Turnover</p>
+                  <p className="text-sm font-semibold">
+                    {stats.totalPurchased > 0 ? ((stats.totalSold / stats.totalPurchased) * 100).toFixed(1) : 0}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Filters Area */}
+              <div className="flex flex-col sm:flex-row gap-2 bg-muted/10 p-2 rounded-md border border-dashed">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input

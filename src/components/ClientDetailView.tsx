@@ -13,10 +13,14 @@ import { getBills, getBillReturns, getInventoryTransactions, getProducts, update
 import { formatCurrency } from '@/lib/billUtils';
 import { 
   Calendar, TrendingUp, DollarSign, FileText, Package, 
-  ArrowLeftRight, Filter, Search, Eye, X, RefreshCw, CreditCard, Loader2
+  ArrowLeftRight, Filter, Search, Eye, X, RefreshCw, CreditCard, Loader2, Download
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { ClientPDF } from './ClientPDF';
+import { getCompanyProfile } from '@/lib/storage';
+import { CompanyProfile } from '@/types';
 
 interface ClientDetailViewProps {
   client: Client;
@@ -43,12 +47,19 @@ export function ClientDetailView({ client, open, onOpenChange }: ClientDetailVie
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
 
   useEffect(() => {
     if (open && client) {
       loadData();
+      loadProfile();
     }
   }, [open, client]);
+
+  const loadProfile = async () => {
+    const profile = await getCompanyProfile();
+    if (profile) setCompanyProfile(profile);
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -196,7 +207,7 @@ export function ClientDetailView({ client, open, onOpenChange }: ClientDetailVie
         return;
       }
 
-      await updateBillPayment(selectedBillForPayment.id, amount);
+      await updateBillPayment(selectedBillForPayment.id, amount, 'Cash');
       await loadData();
       toast.success(`Payment of ${formatCurrency(amount)} collected successfully`);
       setPaymentDialogOpen(false);
@@ -221,10 +232,51 @@ export function ClientDetailView({ client, open, onOpenChange }: ClientDetailVie
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[96vw] sm:max-w-4xl lg:max-w-6xl max-h-[90vh] overflow-hidden flex flex-col p-0">
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 border-b flex-shrink-0">
-          <DialogTitle className="text-base sm:text-lg md:text-xl flex items-center gap-2 pr-8 break-words">
-            <Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-            Client Details - {client.name}
-          </DialogTitle>
+          <div className="flex items-center justify-between pr-8">
+            <DialogTitle className="text-base sm:text-lg md:text-xl flex items-center gap-2 break-words">
+              <Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+              Client Details - {client.name}
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              {!loading && (
+                <PDFDownloadLink
+                  document={
+                    <ClientPDF 
+                      client={client}
+                      bills={bills}
+                      returns={returns}
+                      analytics={{
+                        totalBills,
+                        totalRevenue,
+                        pendingAmount,
+                        totalReturns,
+                        totalReturnValue,
+                        averageBillValue,
+                        paidBills,
+                        pendingBills,
+                        paymentRate: totalBills > 0 ? ((paidBills / totalBills) * 100).toFixed(1) : '0',
+                        returnRate: totalBills > 0 ? ((totalReturns / totalBills) * 100).toFixed(1) : '0',
+                        netRevenue: totalRevenue - totalReturnValue
+                      }}
+                      companyProfile={companyProfile}
+                    />
+                  }
+                  fileName={`${client.name.replace(/\s+/g, '_')}_Report.pdf`}
+                >
+                  {({ loading: pdfLoading }) => (
+                    <Button variant="outline" size="sm" disabled={pdfLoading}>
+                      {pdfLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-2" />
+                      )}
+                      Download Report
+                    </Button>
+                  )}
+                </PDFDownloadLink>
+              )}
+            </div>
+          </div>
         </DialogHeader>
 
         {loading ? (

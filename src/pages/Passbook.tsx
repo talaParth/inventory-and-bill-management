@@ -85,6 +85,7 @@ export default function Passbook() {
 
             // Add sales (positive amounts for received payments)
             bills.forEach(bill => {
+                // Add payments separately as 'payment' entries
                 if (bill.payments && bill.payments.length > 0) {
                     bill.payments.forEach(payment => {
                         allEntries.push({
@@ -97,14 +98,14 @@ export default function Passbook() {
                             details: { ...bill, currentPayment: payment },
                         });
                     });
-                } else if (bill.paymentStatus === 'paid' || (bill.paidAmount && bill.paidAmount > 0)) {
-                    // Fallback for bills without explicit payments array (legacy data)
+                } else if (bill.paidAmount && bill.paidAmount > 0) {
+                    // Fallback for bills that might not have the payments array populated yet
                     allEntries.push({
-                        id: `sale-${bill.id}`,
+                        id: `payment-legacy-${bill.id}`,
                         date: bill.date,
-                        type: 'sale',
-                        description: `Sale - Bill #${bill.billNumber} to ${bill.client.name}`,
-                        amount: bill.paidAmount || bill.total,
+                        type: 'payment',
+                        description: `Payment Received - Bill #${bill.billNumber} (${bill.modeOfPayment || 'N/A'})`,
+                        amount: bill.paidAmount,
                         balance: 0,
                         details: bill,
                     });
@@ -183,8 +184,15 @@ export default function Passbook() {
                 }
             });
 
-            // Sort by date and calculate running balance
-            const sortedEntries = allEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            // Sort by date (Oldest to Newest) and calculate running balance
+            // When dates are the same, we need a secondary sort (e.g., ID or type) to ensure consistency
+            const sortedEntries = allEntries.sort((a, b) => {
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                if (dateA !== dateB) return dateA - dateB;
+                // Secondary sort by ID to ensure stable ordering for balance calculation
+                return a.id.localeCompare(b.id);
+            });
 
             let runningBalance = 0;
             const entriesWithBalance = sortedEntries.map(entry => {
@@ -195,7 +203,9 @@ export default function Passbook() {
                 };
             });
 
-            setEntries(entriesWithBalance);
+            // For display purposes, we show Newest to Oldest, but balance was calculated Oldest to Newest
+            const displayEntries = [...entriesWithBalance].reverse();
+            setEntries(displayEntries);
         } catch (error) {
             console.error('Error loading passbook data:', error);
         } finally {
@@ -236,14 +246,15 @@ export default function Passbook() {
             filtered = filtered.filter(entry => new Date(entry.date) <= new Date(dateRange.end));
         }
 
-        // Sort
+        // Recalculate running balance for filtered entries
+        // 1. Sort by date (Oldest to Newest) to calculate correct running balance
         filtered.sort((a, b) => {
             const dateA = new Date(a.date).getTime();
             const dateB = new Date(b.date).getTime();
-            return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            if (dateA !== dateB) return dateA - dateB;
+            return a.id.localeCompare(b.id);
         });
 
-        // Recalculate running balance for filtered entries
         let runningBalance = 0;
         const filteredWithBalance = filtered.map(entry => {
             runningBalance += entry.amount;
@@ -251,6 +262,17 @@ export default function Passbook() {
                 ...entry,
                 balance: runningBalance,
             };
+        });
+
+        // 2. Sort for display (Newest to Oldest or Oldest to Newest based on user preference)
+        filteredWithBalance.sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            if (dateA !== dateB) {
+                return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            }
+            // For the same date, reverse the secondary sort if we are in descending order
+            return sortOrder === 'asc' ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id);
         });
 
         setFilteredEntries(filteredWithBalance);
@@ -288,22 +310,22 @@ export default function Passbook() {
         }
     };
 
-    const totalIncome = entries.filter(e => e.amount > 0 && e.type !== 'return').reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = entries.filter(e => e.amount > 0 && (e.type === 'payment' || (e.type === 'return' && e.amount > 0))).reduce((sum, e) => sum + e.amount, 0);
     const totalPurchases = Math.abs(entries.filter(e => e.type === 'purchase').reduce((sum, e) => sum + e.amount, 0));
     const totalExpensesOnly = Math.abs(entries.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0));
     const totalReturnsValue = entries.filter(e => e.type === 'return').reduce((sum, e) => sum + e.amount, 0);
-    const totalOutflow = Math.abs(entries.filter(e => e.amount < 0 && e.type !== 'return').reduce((sum, e) => sum + e.amount, 0));
-    const netBalance = entries.length > 0 ? entries[entries.length - 1].balance : 0;
+    const totalOutflow = Math.abs(entries.filter(e => (e.amount < 0 && e.type !== 'return') || (e.type === 'return' && e.amount < 0)).reduce((sum, e) => sum + e.amount, 0));
+    
+    // Budget/Net Balance calculation: 
+    // Usually Passbook is Cash Flow. So it should be (Payments Received) - (Purchases) - (Expenses) + (Returns)
+    const cashIn = entries.filter(e => e.type === 'payment' || (e.type === 'return' && e.amount > 0)).reduce((sum, e) => sum + e.amount, 0);
+    const cashOut = Math.abs(entries.filter(e => e.type === 'purchase' || e.type === 'expense' || (e.type === 'return' && e.amount < 0)).reduce((sum, e) => sum + e.amount, 0));
+    const netBalance = cashIn - cashOut;
 
     const paymentMethodTotals = entries
-        .filter(e => e.type === 'payment' || (e.type === 'sale' && e.amount > 0))
+        .filter(e => e.type === 'payment')
         .reduce((acc, entry) => {
-            let method = 'Other';
-            if (entry.type === 'payment') {
-                method = entry.details?.currentPayment?.method || 'Other';
-            } else if (entry.type === 'sale') {
-                method = entry.details?.paymentType || 'Other';
-            }
+            const method = entry.details?.currentPayment?.method || 'Other';
             acc[method] = (acc[method] || 0) + entry.amount;
             return acc;
         }, {} as Record<string, number>);
@@ -355,13 +377,13 @@ export default function Passbook() {
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                         <CardTitle className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Total Income</CardTitle>
                         <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                            <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                            <Plus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">{formatCurrency(totalIncome)}</div>
                         <p className="text-xs text-muted-foreground">
-                            Money received from sales
+                            Actual cash received
                         </p>
                     </CardContent>
                 </Card>

@@ -100,6 +100,15 @@ export default function Settings() {
     ],
   });
 
+  const [initialData, setInitialData] = useState<CompanyProfile | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+
+  useEffect(() => {
+    if (!initialData) return;
+    const hasChanged = JSON.stringify(formData) !== JSON.stringify(initialData);
+    setIsDirty(hasChanged);
+  }, [formData, initialData]);
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -210,7 +219,7 @@ export default function Settings() {
     const loadProfile = async () => {
       const profile = await getCompanyProfile();
       if (profile) {
-        setFormData({
+        const fullProfile = {
           ...profile,
           upiId: profile.upiId || "",
           defaultUnit: profile.defaultUnit || "kg",
@@ -232,7 +241,9 @@ export default function Settings() {
             "Maintenance",
             "Miscellaneous",
           ],
-        });
+        };
+        setFormData(fullProfile);
+        setInitialData(fullProfile);
       }
     };
     loadProfile();
@@ -259,6 +270,8 @@ export default function Settings() {
     setSaving(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
     await saveCompanyProfile(formData);
+    setInitialData(formData);
+    setIsDirty(false);
     setSaving(false);
     toast.success("Settings saved successfully!");
   };
@@ -299,23 +312,29 @@ export default function Settings() {
   return (
     <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto pb-6 sm:pb-8 px-3 sm:px-4 md:px-0 w-full max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 sticky top-0 bg-background/95 backdrop-blur z-50 py-4 border-b">
         <div className="min-w-0 flex-1">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 break-words">
             <Settings2 className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary flex-shrink-0" />
             Settings
           </h1>
           <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1 sm:mt-2 break-words">
-            Manage your company profile, preferences, and default settings
+            Manage your company profile and preferences
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          {sessionExpiry && checkSessionExpiry() && (
-            <div className="text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-md text-center sm:text-left">
-              Session expires in:{" "}
-              <span className="font-semibold">{getSessionTimeRemaining()}</span>
-            </div>
-          )}
+          <Button
+            onClick={handleSubmit}
+            disabled={saving || !isDirty}
+            className="gap-2 w-full sm:w-auto text-xs sm:text-sm touch-manipulation order-first sm:order-none"
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
           <Button
             variant="outline"
             onClick={handleLogout}

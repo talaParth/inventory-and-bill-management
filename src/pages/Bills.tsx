@@ -385,7 +385,13 @@ if (loading) {
                       </Link>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="h-8 sm:h-9 w-8 sm:w-9 p-0 text-destructive hover:text-destructive touch-manipulation" disabled={deletingId === bill.id}>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 sm:h-9 w-8 sm:w-9 p-0 text-destructive hover:text-destructive touch-manipulation" 
+                            disabled={deletingId === bill.id || (bill.paidAmount !== undefined && bill.paidAmount > 0)}
+                            title={bill.paidAmount > 0 ? "Cannot delete bill with payments" : "Delete bill"}
+                          >
                             {deletingId === bill.id ? (
                               <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                             ) : (
