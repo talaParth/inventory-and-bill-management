@@ -152,7 +152,7 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
             },
             body: JSON.stringify({
               model: 'sarvam-m',
-              messages: [{ role: "assistant", content: "I am ready." }, initialMessage],
+              messages: [initialMessage],
               temperature: 0.7,
               max_tokens: 2000,
             }),
@@ -195,7 +195,7 @@ import { getBusinessDataForAI } from "@/lib/businessDataCollector";
 
       try {
         const messagesForAPI = messages.length === 0 
-          ? [{ role: "assistant", content: "I am ready." }, userMessage]
+          ? [userMessage]
           : [...messages, userMessage];
 
         const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
