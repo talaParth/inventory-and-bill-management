@@ -98,6 +98,17 @@ export default function Passbook() {
                             details: { ...bill, currentPayment: payment },
                         });
                     });
+                } else if (bill.paidAmount && bill.paidAmount > 0) {
+                    // Fallback for bills that might not have the payments array populated yet
+                    allEntries.push({
+                        id: `payment-legacy-${bill.id}`,
+                        date: bill.date,
+                        type: 'payment',
+                        description: `Payment Received - Bill #${bill.billNumber} (${bill.modeOfPayment || 'N/A'})`,
+                        amount: bill.paidAmount,
+                        balance: 0,
+                        details: bill,
+                    });
                 }
             });
 
@@ -283,11 +294,11 @@ export default function Passbook() {
         }
     };
 
-    const totalIncome = entries.filter(e => e.amount > 0 && e.type === 'payment').reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = entries.filter(e => e.amount > 0 && (e.type === 'payment' || (e.type === 'return' && e.amount > 0))).reduce((sum, e) => sum + e.amount, 0);
     const totalPurchases = Math.abs(entries.filter(e => e.type === 'purchase').reduce((sum, e) => sum + e.amount, 0));
     const totalExpensesOnly = Math.abs(entries.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0));
     const totalReturnsValue = entries.filter(e => e.type === 'return').reduce((sum, e) => sum + e.amount, 0);
-    const totalOutflow = Math.abs(entries.filter(e => e.amount < 0 && e.type !== 'return').reduce((sum, e) => sum + e.amount, 0));
+    const totalOutflow = Math.abs(entries.filter(e => (e.amount < 0 && e.type !== 'return') || (e.type === 'return' && e.amount < 0)).reduce((sum, e) => sum + e.amount, 0));
     
     // Budget/Net Balance calculation: 
     // Usually Passbook is Cash Flow. So it should be (Payments Received) - (Purchases) - (Expenses) + (Returns)
