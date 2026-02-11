@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,8 +76,8 @@ import {
 } from "@/lib/billUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { format } from 'date-fns';
-import { ProductsPDF } from '@/components/ProductsPDF';
+import { format } from "date-fns";
+import { ProductsPDF } from "@/components/ProductsPDF";
 
 export default function Products() {
   const [loading, setLoading] = useState(true);
@@ -99,7 +98,7 @@ export default function Products() {
     purchasePrice: "",
   });
   const [averagePrices, setAveragePrices] = useState<Record<string, number>>(
-    {}
+    {},
   );
   const [currentAveragePrices, setCurrentAveragePrices] = useState<
     Record<string, number>
@@ -153,7 +152,7 @@ export default function Products() {
       if (transactions && transactions.length > 0) {
         // Sort transactions by date descending to handle "last X bills"
         let filteredTransactions = [...transactions].sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
         );
 
         // Apply time/count filter
@@ -164,25 +163,31 @@ export default function Products() {
         } else if (avgPriceFilter === "1month") {
           const oneMonthAgo = new Date(now);
           oneMonthAgo.setMonth(now.getMonth() - 1);
-          filteredTransactions = filteredTransactions.filter(t => new Date(t.date) >= oneMonthAgo);
+          filteredTransactions = filteredTransactions.filter(
+            (t) => new Date(t.date) >= oneMonthAgo,
+          );
         } else if (avgPriceFilter === "3month") {
           const threeMonthsAgo = new Date(now);
           threeMonthsAgo.setMonth(now.getMonth() - 3);
-          filteredTransactions = filteredTransactions.filter(t => new Date(t.date) >= threeMonthsAgo);
+          filteredTransactions = filteredTransactions.filter(
+            (t) => new Date(t.date) >= threeMonthsAgo,
+          );
         } else if (avgPriceFilter === "6month") {
           const sixMonthsAgo = new Date(now);
           sixMonthsAgo.setMonth(now.getMonth() - 6);
-          filteredTransactions = filteredTransactions.filter(t => new Date(t.date) >= sixMonthsAgo);
+          filteredTransactions = filteredTransactions.filter(
+            (t) => new Date(t.date) >= sixMonthsAgo,
+          );
         }
 
         // Calculate total purchase value and quantity
         const totalPurchaseValue = filteredTransactions.reduce(
           (sum, t) => sum + t.quantity * (t.purchasePrice || 0),
-          0
+          0,
         );
         const totalPurchaseQuantity = filteredTransactions.reduce(
           (sum, t) => sum + t.quantity,
-          0
+          0,
         );
 
         // Overall weighted average purchase price for filtered period
@@ -243,12 +248,12 @@ export default function Products() {
     const duplicateProduct = products.find(
       (p) =>
         p.id !== editingProduct?.id &&
-        p.hsnCode.trim().toLowerCase() === hsnCodeLower
+        p.hsnCode.trim().toLowerCase() === hsnCodeLower,
     );
 
     if (duplicateProduct) {
       toast.error(
-        `Product with HSN Code "${formData.hsnCode}" already exists: ${duplicateProduct.name}. Please edit the existing product instead.`
+        `Product with HSN Code "${formData.hsnCode}" already exists: ${duplicateProduct.name}. Please edit the existing product instead.`,
       );
       return;
     }
@@ -286,12 +291,12 @@ export default function Products() {
           await addStockToProduct(
             product.id,
             quantityNum,
-            initPurchasePriceNum
+            initPurchasePriceNum,
           );
           toast.success("Product created and initial stock added");
         } else {
           toast.warning(
-            "Invalid initial stock details; product created without stock"
+            "Invalid initial stock details; product created without stock",
           );
         }
       } else {
@@ -415,12 +420,12 @@ export default function Products() {
     // Check for duplicate HSN code (case-insensitive)
     const hsnCodeLower = formData.hsnCode.trim().toLowerCase();
     const duplicateProduct = products.find(
-      (p) => p.hsnCode.trim().toLowerCase() === hsnCodeLower
+      (p) => p.hsnCode.trim().toLowerCase() === hsnCodeLower,
     );
 
     if (duplicateProduct) {
       toast.error(
-        `Product with HSN Code "${formData.hsnCode}" already exists: ${duplicateProduct.name}. Please select it from the dropdown instead.`
+        `Product with HSN Code "${formData.hsnCode}" already exists: ${duplicateProduct.name}. Please select it from the dropdown instead.`,
       );
       return;
     }
@@ -482,7 +487,7 @@ export default function Products() {
   const currentPage = Math.min(page, totalPages);
   const pagedProducts = filteredProducts.slice(
     (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    currentPage * pageSize,
   );
 
   // Reset to page 1 when search query changes
@@ -518,7 +523,7 @@ export default function Products() {
 
     const totalSellingValue = products.reduce(
       (sum, p) => sum + p.stock * (p.sellingPrice || p.price || 0),
-      0
+      0,
     );
 
     // Weighted averages based on current stock
@@ -531,7 +536,7 @@ export default function Products() {
     // Average with Commission — now based on current average purchase price
     const averageWithCommission = calculateSellingPriceFromCommission(
       averagePurchasePrice,
-      companyProfile?.commissionSettings
+      companyProfile?.commissionSettings,
     );
 
     // Total inventory value at current average cost
@@ -543,7 +548,7 @@ export default function Products() {
         currentAveragePrices[p.id] || p.purchasePrice || 0;
       const commissionPrice = calculateSellingPriceFromCommission(
         currentAvgPrice,
-        companyProfile?.commissionSettings
+        companyProfile?.commissionSettings,
       );
       return sum + p.stock * commissionPrice;
     }, 0);
@@ -579,62 +584,88 @@ export default function Products() {
 
     // SHEET 1: Summary
     const summaryData = [
-      ['INVENTORY SUMMARY'],
-      ['Company:', companyProfile?.name || 'Company Name'],
-      ['Generated:', format(new Date(), 'dd-MM-yyyy HH:mm:ss')],
+      ["INVENTORY SUMMARY"],
+      ["Company:", companyProfile?.name || "Company Name"],
+      ["Generated:", format(new Date(), "dd-MM-yyyy HH:mm:ss")],
       [],
-      ['Total Products', stats.totalProducts],
-      ['Total Stock', stats.totalStock.toFixed(2)],
-      ['Inventory Value', formatCurr(stats.totalInventoryValue)],
-      ['Profit Potential', formatCurr(stats.totalProfitPotential)],
-      ['Average Margin %', `${stats.averageMarginPercent.toFixed(2)}%`],
+      ["Total Products", stats.totalProducts],
+      ["Total Stock", stats.totalStock.toFixed(2)],
+      ["Inventory Value", formatCurr(stats.totalInventoryValue)],
+      ["Profit Potential", formatCurr(stats.totalProfitPotential)],
+      ["Average Margin %", `${stats.averageMarginPercent.toFixed(2)}%`],
     ];
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-    summarySheet['!cols'] = [{ wch: 30 }, { wch: 20 }];
+    summarySheet["!cols"] = [{ wch: 30 }, { wch: 20 }];
     XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
 
     // SHEET 2: All Products
     const productsData = [
-      ['Product Name', 'HSN', 'GST%', 'Unit', 'Stock', 'Purchase Price', 'Selling Price', 'Stock Value', 'Margin %'],
+      [
+        "Product Name",
+        "HSN",
+        "GST%",
+        "Unit",
+        "Stock",
+        "Purchase Price",
+        "Selling Price",
+        "Stock Value",
+        "Margin %",
+      ],
     ];
     products.forEach((p) => {
       const currentAvg = currentAveragePrices[p.id] || p.purchasePrice || 0;
       const selling = p.sellingPrice || p.price || 0;
-      const margin = currentAvg > 0 ? ((selling - currentAvg) / currentAvg) * 100 : 0;
+      const margin =
+        currentAvg > 0 ? ((selling - currentAvg) / currentAvg) * 100 : 0;
       productsData.push([
         p.name,
         p.hsnCode,
-        String(p.gstRate),
+        p.gstRate,
         p.unit,
-        String(p.stock),
-        String(currentAvg),
-        String(selling),
-        String(stockValues[p.id] || 0),
-        margin.toFixed(2)
+        p.stock,
+        currentAvg,
+        selling,
+        stockValues[p.id] || 0,
+        margin.toFixed(2),
       ]);
     });
     const productsSheet = XLSX.utils.aoa_to_sheet(productsData);
-    productsSheet['!cols'] = [
-      { wch: 30 }, { wch: 12 }, { wch: 8 }, { wch: 8 },
-      { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }
+    productsSheet["!cols"] = [
+      { wch: 30 },
+      { wch: 12 },
+      { wch: 8 },
+      { wch: 8 },
+      { wch: 10 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 10 },
     ];
     XLSX.utils.book_append_sheet(workbook, productsSheet, "All Products");
 
     // SHEET 3: Top by Value
-    const topValueData = [['Rank', 'Product', 'Stock', 'Value']];
+    const topValueData = [["Rank", "Product", "Stock", "Value"]];
     [...products]
       .sort((a, b) => (stockValues[b.id] || 0) - (stockValues[a.id] || 0))
       .slice(0, 20)
       .forEach((p, i) => {
-        topValueData.push([String(i + 1), p.name, String(p.stock), String(stockValues[p.id] || 0)]);
+        topValueData.push([i + 1, p.name, p.stock, stockValues[p.id] || 0]);
       });
     const topValueSheet = XLSX.utils.aoa_to_sheet(topValueData);
-    topValueSheet['!cols'] = [{ wch: 8 }, { wch: 30 }, { wch: 12 }, { wch: 15 }];
+    topValueSheet["!cols"] = [
+      { wch: 8 },
+      { wch: 30 },
+      { wch: 12 },
+      { wch: 15 },
+    ];
     XLSX.utils.book_append_sheet(workbook, topValueSheet, "Top by Value");
 
     // Write file
-    XLSX.writeFile(workbook, `Inventory_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
-    toast.success('Excel downloaded successfully');
+    XLSX.writeFile(
+      workbook,
+      `Inventory_${format(new Date(), "dd-MM-yyyy")}.xlsx`,
+    );
+    toast.success("Excel downloaded successfully");
   };
 
   const unitOptions: string[] = Array.from(
@@ -646,9 +677,9 @@ export default function Products() {
         formData.unit &&
           !(companyProfile?.unitOptions || []).includes(formData.unit)
           ? [formData.unit]
-          : []
-      )
-    )
+          : [],
+      ),
+    ),
   );
 
   if (loading) {
@@ -660,14 +691,12 @@ export default function Products() {
   }
 
   return (
-    <div className="space-y-10 p-4 md:p-8 lg:p-12 max-w-[1800px] mx-auto min-h-screen pb-24 bg-background/30">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-8">
-        <div className="space-y-2">
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-black tracking-tighter text-foreground">
-            Products
-          </h1>
-          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl font-medium leading-relaxed">
-            Manage your precious jewelry inventory with precision. Track stock levels, analyze costs, and optimize profitability.
+    <div className="space-y-6 p-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Products</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your product inventory
           </p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
@@ -709,13 +738,11 @@ export default function Products() {
                       companyProfile={companyProfile}
                     />
                   }
-                  fileName={`Inventory_Report_${new Date().toISOString().split('T')[0]}.pdf`}
+                  fileName={`Inventory_Report_${new Date().toISOString().split("T")[0]}.pdf`}
                   className="w-full"
                 >
                   {({ loading }: { loading: boolean }) => (
-                    <div 
-                    className="flex items-center text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm w-full"
-                    >
+                    <div className="flex items-center text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm w-full">
                       <FilePdf className="h-4 w-4 mr-2" />
                       {loading ? "Preparing PDF..." : "PDF"}
                     </div>
@@ -732,194 +759,301 @@ export default function Products() {
             }}
           >
             <DialogTrigger asChild>
-              <Button size="lg" className="h-14 px-8 text-lg font-bold shadow-xl shadow-primary/20 hover:scale-105 transition-transform">
-                <Plus className="h-6 w-6 mr-2" />
+              <Button size="lg">
+                <Plus className="h-5 w-5 mr-2" />
                 Create Product
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[1000px] w-[95vw] p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
-              <DialogHeader className="p-10 bg-gradient-to-r from-primary via-primary/90 to-primary/80 text-primary-foreground">
-                <DialogTitle className="text-4xl font-black tracking-tight flex items-center gap-3">
-                  {editingProduct ? <Edit className="h-8 w-8" /> : <PlusCircle className="h-8 w-8" />}
-                  {editingProduct ? "Update Product Details" : "New Inventory Item"}
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingProduct ? "Edit Product" : "Create Product"}
                 </DialogTitle>
-                <p className="text-primary-foreground/70 text-lg font-medium mt-2">
-                  {editingProduct ? "Modify existing jewelry specifications and pricing." : "Register a new item into your digital catalog."}
-                </p>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="p-10 space-y-10 bg-background max-h-[70vh] overflow-y-auto custom-scrollbar">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                  <div className="space-y-6">
-                    <h3 className="text-xl font-black uppercase tracking-widest text-primary/40 border-b pb-2">Technical Specs</h3>
-                    <div className="space-y-6">
-                      <div className="space-y-3">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Product Title</Label>
-                        <Input
-                          required
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          className="h-14 text-xl font-bold focus-visible:ring-primary border-muted-foreground/20"
-                          placeholder="e.g., 22K Gold Antique Necklace"
-                        />
-                      </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Product Name *</Label>
+                  <Input
+                    required
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                  />
+                </div>
 
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">HSN Code</Label>
-                          <Input
-                            required
-                            value={formData.hsnCode}
-                            onChange={(e) => setFormData({ ...formData, hsnCode: e.target.value })}
-                            className={`h-12 font-bold ${formData.hsnCode && products.some(p => p.id !== editingProduct?.id && p.hsnCode.trim().toLowerCase() === formData.hsnCode.trim().toLowerCase()) ? "border-red-500 bg-red-50 text-red-900" : "border-muted-foreground/20"}`}
-                            placeholder="8-digit HSN"
-                          />
-                          {formData.hsnCode && products.some(p => p.id !== editingProduct?.id && p.hsnCode.trim().toLowerCase() === formData.hsnCode.trim().toLowerCase()) && (
-                            <p className="text-[10px] font-black uppercase text-red-500 animate-pulse">HSN Already in use</p>
-                          )}
-                        </div>
-                        <div className="space-y-3">
-                          <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">GST Rate %</Label>
-                          <Input
-                            required
-                            type="number"
-                            step="0.01"
-                            value={formData.gstRate}
-                            onChange={(e) => setFormData({ ...formData, gstRate: e.target.value })}
-                            className="h-12 font-bold border-muted-foreground/20"
-                            placeholder="3.0"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Measurement Unit</Label>
-                          <Select
-                            value={formData.unit}
-                            onValueChange={(value) => setFormData({ ...formData, unit: value })}
-                          >
-                            <SelectTrigger className="h-12 font-bold border-muted-foreground/20">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {unitOptions.map((unit) => (
-                                <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-3">
-                          <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Weight ({formData.unit})</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={formData.weight}
-                            onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                            className="h-12 font-bold border-muted-foreground/20"
-                            placeholder="0.00"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>HSN Code *</Label>
+                    <Input
+                      required
+                      value={formData.hsnCode}
+                      onChange={(e) =>
+                        setFormData({ ...formData, hsnCode: e.target.value })
+                      }
+                      className={
+                        formData.hsnCode &&
+                        products.some(
+                          (p) =>
+                            p.id !== editingProduct?.id &&
+                            p.hsnCode.trim().toLowerCase() ===
+                              formData.hsnCode.trim().toLowerCase(),
+                        )
+                          ? "border-red-500 focus-visible:ring-red-500"
+                          : ""
+                      }
+                    />
+                    {formData.hsnCode &&
+                      products.some(
+                        (p) =>
+                          p.id !== editingProduct?.id &&
+                          p.hsnCode.trim().toLowerCase() ===
+                            formData.hsnCode.trim().toLowerCase(),
+                      ) && (
+                        <p className="text-xs text-red-500">
+                          HSN Code already exists:{" "}
+                          {
+                            products.find(
+                              (p) =>
+                                p.id !== editingProduct?.id &&
+                                p.hsnCode.trim().toLowerCase() ===
+                                  formData.hsnCode.trim().toLowerCase(),
+                            )?.name
+                          }
+                        </p>
+                      )}
                   </div>
 
-                  <div className="space-y-6">
-                    <h3 className="text-xl font-black uppercase tracking-widest text-primary/40 border-b pb-2">Financials</h3>
-                    <div className="space-y-6">
-                      <div className="space-y-3">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Purchase Cost (Excl. GST)</Label>
-                        <div className="relative">
-                          <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                          <Input
-                            required
-                            type="number"
-                            step="0.01"
-                            value={formData.purchasePrice}
-                            onChange={(e) => {
-                              const purchasePrice = parseFloat(e.target.value) || 0;
-                              const calculatedSellingPrice = calculateSellingPriceFromCommission(purchasePrice, companyProfile?.commissionSettings);
-                              setFormData({ ...formData, purchasePrice: e.target.value, sellingPrice: purchasePrice ? String(calculatedSellingPrice) : "" });
-                            }}
-                            className="h-14 pl-12 text-2xl font-black border-muted-foreground/20"
-                            placeholder="0.00"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground text-primary">Final Selling Price (Incl. Commission)</Label>
-                        <div className="relative">
-                          <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
-                          <Input
-                            required
-                            type="number"
-                            step="0.01"
-                            value={formData.sellingPrice}
-                            onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                            className="h-14 pl-12 text-2xl font-black border-primary/30 ring-2 ring-primary/5 shadow-inner"
-                            placeholder="0.00"
-                          />
-                        </div>
-                        {parseFloat(formData.purchasePrice || "0") > 0 && (
-                          <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between">
-                            <span className="text-sm font-bold text-primary">Profit ROI</span>
-                            <span className="text-xl font-black text-primary">
-                              {parseFloat(formData.sellingPrice || "0") > parseFloat(formData.purchasePrice || "0") 
-                                ? `${(((parseFloat(formData.sellingPrice || "0") - parseFloat(formData.purchasePrice || "0")) / parseFloat(formData.purchasePrice || "1")) * 100).toFixed(1)}%`
-                                : "0%"}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-3">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Primary Supplier</Label>
-                        <Input
-                          value={formData.whereToBuy}
-                          onChange={(e) => setFormData({ ...formData, whereToBuy: e.target.value })}
-                          className="h-12 font-bold border-muted-foreground/20"
-                          placeholder="Source vendor"
-                        />
-                      </div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label>GST Rate (%) *</Label>
+                    <Input
+                      required
+                      type="number"
+                      step="0.01"
+                      value={formData.gstRate}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          gstRate: e.target.value,
+                        })
+                      }
+                    />
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Unit *</Label>
+                    <Select
+                      value={formData.unit}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, unit: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select unit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {unitOptions.map((unit) => (
+                          <SelectItem key={unit} value={unit}>
+                            {unit}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Purchase Price (Cost) *</Label>
+                    <Input
+                      required
+                      type="number"
+                      step="0.01"
+                      value={formData.purchasePrice}
+                      onChange={(e) => {
+                        const purchasePrice = parseFloat(e.target.value) || 0;
+                        // Auto-calculate selling price based on commission settings when purchase price changes
+                        const calculatedSellingPrice =
+                          calculateSellingPriceFromCommission(
+                            purchasePrice,
+                            companyProfile?.commissionSettings,
+                          );
+                        setFormData({
+                          ...formData,
+                          purchasePrice: e.target.value,
+                          sellingPrice: purchasePrice
+                            ? String(calculatedSellingPrice)
+                            : "",
+                        });
+                      }}
+                      placeholder="Cost price"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Selling price will auto-calculate with{" "}
+                      {companyProfile?.commissionSettings
+                        ? companyProfile.commissionSettings.commissionType ===
+                          "percentage"
+                          ? `${
+                              companyProfile.commissionSettings
+                                .defaultCommissionRate || 0
+                            }% commission (Percentage)`
+                          : `₹${
+                              companyProfile.commissionSettings
+                                .fixedCommissionAmount || 0
+                            } fixed commission (Fixed)`
+                        : "20% commission (Default - no settings)"}{" "}
+                      from settings
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Weight</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.weight}
+                      onChange={(e) =>
+                        setFormData({ ...formData, weight: e.target.value })
+                      }
+                      placeholder="Weight per unit"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Bought from where</Label>
+                    <Input
+                      value={formData.whereToBuy}
+                      onChange={(e) =>
+                        setFormData({ ...formData, whereToBuy: e.target.value })
+                      }
+                      placeholder="Supplier or source"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>
+                    Selling Price (with Commission) *
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      (
+                      {companyProfile?.commissionSettings
+                        ? companyProfile.commissionSettings.commissionType ===
+                          "percentage"
+                          ? `${
+                              companyProfile.commissionSettings
+                                .defaultCommissionRate || 0
+                            }% commission`
+                          : `₹${
+                              companyProfile.commissionSettings
+                                .fixedCommissionAmount || 0
+                            } fixed commission`
+                        : "20% default commission"}
+                      )
+                    </span>
+                  </Label>
+                  <Input
+                    required
+                    type="number"
+                    step="0.01"
+                    value={formData.sellingPrice}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        sellingPrice: e.target.value,
+                      })
+                    }
+                    placeholder="Final selling price (includes commission)"
+                  />
+                  {parseFloat(formData.purchasePrice || "0") > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium">Margin:</span>{" "}
+                        {parseFloat(formData.sellingPrice || "0") >
+                        parseFloat(formData.purchasePrice || "0")
+                          ? `${(
+                              ((parseFloat(formData.sellingPrice || "0") -
+                                parseFloat(formData.purchasePrice || "0")) /
+                                parseFloat(formData.purchasePrice || "1")) *
+                              100
+                            ).toFixed(1)}%`
+                          : "0%"}
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        <span className="font-medium">Commission Type:</span>{" "}
+                        {companyProfile?.commissionSettings
+                          ? companyProfile.commissionSettings.commissionType ===
+                            "percentage"
+                            ? `${
+                                companyProfile.commissionSettings
+                                  .defaultCommissionRate || 0
+                              }% (Percentage) - from settings`
+                            : `₹${
+                                companyProfile.commissionSettings
+                                  .fixedCommissionAmount || 0
+                              } (Fixed) - from settings`
+                          : "20% (Percentage) - default (no settings)"}
+                      </p>
+                      <p className="text-xs text-muted-foreground italic">
+                        This is the actual selling price. Commission is already
+                        included.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {!editingProduct && (
-                  <div className="p-8 rounded-3xl bg-accent/20 border-2 border-dashed border-primary/20 space-y-6">
-                    <div className="flex items-center space-x-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
                       <Checkbox
                         id="addInitialStock"
                         checked={addInitialStock}
-                        onCheckedChange={(checked) => setAddInitialStock(!!checked)}
-                        className="h-6 w-6 rounded-lg data-[state=checked]:bg-primary"
+                        onCheckedChange={(checked) =>
+                          setAddInitialStock(!!checked)
+                        }
                       />
-                      <label htmlFor="addInitialStock" className="text-lg font-black tracking-tight cursor-pointer">Register Opening Stock Now?</label>
+                      <label
+                        htmlFor="addInitialStock"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Add initial stock?
+                      </label>
                     </div>
                     {addInitialStock && (
-                      <div className="grid grid-cols-2 gap-8 pt-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="space-y-3">
-                          <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Opening Quantity</Label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Initial Quantity *</Label>
                           <Input
                             required
                             type="number"
                             step="0.01"
                             min="0.01"
                             value={initialStockData.quantity}
-                            onChange={(e) => setInitialStockData({ ...initialStockData, quantity: e.target.value })}
-                            className="h-14 text-xl font-bold bg-background border-muted-foreground/20"
+                            onChange={(e) =>
+                              setInitialStockData({
+                                ...initialStockData,
+                                quantity: e.target.value,
+                              })
+                            }
+                            placeholder="0.00"
                           />
                         </div>
-                        <div className="space-y-3">
-                          <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Cost Price / Unit</Label>
+                        <div className="space-y-2">
+                          <Label>Initial Purchase Price *</Label>
                           <Input
                             required
                             type="number"
                             step="0.01"
                             min="0.01"
                             value={initialStockData.purchasePrice}
-                            onChange={(e) => setInitialStockData({ ...initialStockData, purchasePrice: e.target.value })}
-                            className="h-14 text-xl font-bold bg-background border-muted-foreground/20"
+                            onChange={(e) =>
+                              setInitialStockData({
+                                ...initialStockData,
+                                purchasePrice: e.target.value,
+                              })
+                            }
+                            placeholder="0.00"
                           />
                         </div>
                       </div>
@@ -927,157 +1061,161 @@ export default function Products() {
                   </div>
                 )}
 
-                <div className="flex flex-col sm:flex-row gap-4 pt-10 sticky bottom-0 bg-background/90 backdrop-blur-md pb-2">
-                  <Button type="button" variant="ghost" onClick={() => { setIsOpen(false); resetForm(); }} className="h-16 flex-1 text-lg font-bold hover:bg-destructive/10 hover:text-destructive">
-                    Discard
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsOpen(false);
+                      resetForm();
+                    }}
+                  >
+                    Cancel
                   </Button>
-                  <Button type="submit" disabled={saving} className="h-16 flex-[2] text-xl font-black shadow-2xl shadow-primary/30">
+                  <Button type="submit" disabled={saving}>
                     {saving ? (
-                      <div className="flex items-center gap-3">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                        <span>Processing...</span>
-                      </div>
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {editingProduct ? "Updating..." : "Creating..."}
+                      </>
                     ) : (
-                      <div className="flex items-center gap-2">
-                        {editingProduct ? <Save className="h-6 w-6" /> : <CheckCircle className="h-6 w-6" />}
-                        <span>{editingProduct ? "Sync Changes" : "Commit to Inventory"}</span>
-                      </div>
+                      <>{editingProduct ? "Update" : "Create"} Product</>
                     )}
                   </Button>
                 </div>
               </form>
             </DialogContent>
           </Dialog>
-      <Dialog
-        open={isAddStockOpen}
-        onOpenChange={(open) => {
-          setIsAddStockOpen(open);
-          if (!open) resetStockForm();
-        }}
-      >
-        <DialogTrigger asChild>
-          <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-bold border-2 hover:bg-accent/50 transition-all">
-            <PlusCircle className="h-6 w-6 mr-2" />
-            Add Stock
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-[600px] p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
-          <DialogHeader className="p-8 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white">
-            <DialogTitle className="text-3xl font-black tracking-tight flex items-center gap-3">
-              <Package className="h-8 w-8" />
-              Replenish Stock
-            </DialogTitle>
-            <p className="text-emerald-100 text-base font-medium mt-1">Update your inventory levels with new arrivals.</p>
-          </DialogHeader>
-          <form onSubmit={handleAddStock} className="p-8 space-y-8 bg-background">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Select Jewelry Item</Label>
-                <Select
-                  value={selectedProductId}
-                  onValueChange={setSelectedProductId}
-                  required
-                >
-                  <SelectTrigger className="h-14 text-lg font-bold border-muted-foreground/20">
-                    <SelectValue placeholder="Choose a product" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id} className="text-base py-3">
-                        {product.name} <span className="text-muted-foreground font-normal ml-2">({product.hsnCode})</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedProductId && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-accent/30 border border-accent">
-                    <AlertCircle className="h-4 w-4 text-primary" />
-                    <p className="text-sm font-bold">
-                      Current: {products.find((p) => p.id === selectedProductId)?.stock || 0} {products.find((p) => p.id === selectedProductId)?.unit || ""}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
+          <Dialog
+            open={isAddStockOpen}
+            onOpenChange={(open) => {
+              setIsAddStockOpen(open);
+              if (!open) resetStockForm();
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button size="lg" variant="outline">
+                <PlusCircle className="h-5 w-5 mr-2" />
+                Add Stock
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Add Stock</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAddStock} className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Quantity to Add</Label>
-                  <Input
+                  <Label>Select Product *</Label>
+                  <Select
+                    value={selectedProductId}
+                    onValueChange={setSelectedProductId}
                     required
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={stockFormData.quantity}
-                    onChange={(e) => setStockFormData({ ...stockFormData, quantity: e.target.value })}
-                    className="h-14 text-xl font-black border-muted-foreground/20"
-                    placeholder="0.00"
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((product) => (
+                        <SelectItem key={product.id} value={product.id}>
+                          {product.name} ({product.hsnCode})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedProductId && (
+                    <p className="text-xs text-muted-foreground">
+                      Current stock:{" "}
+                      {products.find((p) => p.id === selectedProductId)
+                        ?.stock || 0}{" "}
+                      {products.find((p) => p.id === selectedProductId)?.unit ||
+                        ""}
+                    </p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Unit Cost Price</Label>
-                  <div className="relative">
-                    <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Quantity *</Label>
+                    <Input
+                      required
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={stockFormData.quantity}
+                      onChange={(e) =>
+                        setStockFormData({
+                          ...stockFormData,
+                          quantity: e.target.value,
+                        })
+                      }
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Purchase Price *</Label>
                     <Input
                       required
                       type="number"
                       step="0.01"
                       min="0.01"
                       value={stockFormData.purchasePrice}
-                      onChange={(e) => setStockFormData({ ...stockFormData, purchasePrice: e.target.value })}
-                      className="h-14 pl-12 text-xl font-black border-muted-foreground/20"
+                      onChange={(e) =>
+                        setStockFormData({
+                          ...stockFormData,
+                          purchasePrice: e.target.value,
+                        })
+                      }
                       placeholder="0.00"
                     />
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="bg-muted/30 p-6 rounded-2xl space-y-3">
-              <p className="text-sm font-bold text-muted-foreground">New item not listed yet?</p>
-              <Button
-                type="button"
-                variant="link"
-                className="p-0 h-auto text-primary font-black uppercase tracking-widest text-xs"
-                onClick={() => {
-                  setIsAddStockOpen(false);
-                  setIsOpen(true);
-                }}
-              >
-                + Register New Product Category
-              </Button>
-            </div>
+                <div className="border-t pt-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Product not found?
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setIsAddStockOpen(false);
+                      setIsOpen(true);
+                    }}
+                  >
+                    Create New Product
+                  </Button>
+                </div>
 
-            <div className="flex gap-4 pt-4 border-t">
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-14 flex-1 text-base font-bold"
-                onClick={() => {
-                  setIsAddStockOpen(false);
-                  resetStockForm();
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={addingStock || !selectedProductId}
-                className="h-14 flex-[2] text-lg font-black shadow-xl shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700"
-              >
-                {addingStock ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Syncing...</span>
-                  </div>
-                ) : (
-                  "Confirm Arrival"
-                )}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsAddStockOpen(false);
+                      resetStockForm();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={addingStock || !selectedProductId}
+                  >
+                    {addingStock ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      "Add Stock"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -1107,101 +1245,92 @@ export default function Products() {
 
       {/* Statistics and Analytics Section */}
       {products.length > 0 && (
-        <div className="space-y-8 mb-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="bg-gradient-to-br from-blue-600/10 via-blue-500/5 to-transparent border-blue-200/50 dark:border-blue-800/50 shadow-sm hover:shadow-xl transition-all duration-300 group">
-              <CardContent className="pt-8 px-6 pb-8">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200 dark:border-blue-800">
+              <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600/70 dark:text-blue-400/70">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
                       Total Products
                     </p>
-                    <p className="text-4xl md:text-5xl font-black tracking-tight text-blue-700 dark:text-blue-400">
+                    <p className="text-2xl font-bold mt-1">
                       {stats.totalProducts}
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
-                       <Package className="h-4 w-4 text-blue-600/50" />
-                       <p className="text-xs font-semibold text-muted-foreground">
-                        {roundToTwoDecimals(stats.totalStock).toFixed(2)} units
-                      </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {roundToTwoDecimals(stats.totalStock).toFixed(2)} total
+                      stock
+                    </p>
                   </div>
-                  <div className="h-16 w-16 rounded-3xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Package className="h-9 w-9 text-blue-600" />
+                  <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <Package className="h-6 w-6 text-blue-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-emerald-600/10 via-emerald-500/5 to-transparent border-emerald-200/50 dark:border-emerald-800/50 shadow-sm hover:shadow-xl transition-all duration-300 group">
-              <CardContent className="pt-8 px-6 pb-8">
+            <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-200 dark:border-emerald-800">
+              <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600/70 dark:text-emerald-400/70">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
                       Inventory Value
                     </p>
-                    <p className="text-4xl md:text-5xl font-black tracking-tight text-emerald-700 dark:text-emerald-400">
+                    <p className="text-2xl font-bold text-emerald-600 mt-1">
                       {formatCurrency(stats.totalInventoryValue)}
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
-                       <DollarSign className="h-4 w-4 text-emerald-600/50" />
-                       <p className="text-xs font-semibold text-muted-foreground">
-                        At average cost
-                      </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      At purchase price
+                    </p>
                   </div>
-                  <div className="h-16 w-16 rounded-3xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <DollarSign className="h-9 w-9 text-emerald-600" />
+                  <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-emerald-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-purple-600/10 via-purple-500/5 to-transparent border-purple-200/50 dark:border-purple-800/50 shadow-sm hover:shadow-xl transition-all duration-300 group">
-              <CardContent className="pt-8 px-6 pb-8">
+            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200 dark:border-purple-800">
+              <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-600/70 dark:text-purple-400/70">
-                      Sales Value
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      With Commission
                     </p>
-                    <p className="text-4xl md:text-5xl font-black tracking-tight text-purple-700 dark:text-purple-400">
+                    <p className="text-2xl font-bold text-purple-600 mt-1">
                       {formatCurrency(stats.totalValueWithCommission)}
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
-                       <Calculator className="h-4 w-4 text-purple-600/50" />
-                       <p className="text-xs font-semibold text-muted-foreground">
-                        Projected revenue
-                      </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Potential selling value
+                    </p>
                   </div>
-                  <div className="h-16 w-16 rounded-3xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Calculator className="h-9 w-9 text-purple-600" />
+                  <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+                    <Calculator className="h-6 w-6 text-purple-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-orange-600/10 via-orange-500/5 to-transparent border-orange-200/50 dark:border-orange-800/50 shadow-sm hover:shadow-xl transition-all duration-300 group">
-              <CardContent className="pt-8 px-6 pb-8">
+            <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-200 dark:border-orange-800">
+              <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-600/70 dark:text-orange-400/70">
-                      Profit Margin
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Profit Potential
                     </p>
-                    <p className="text-4xl md:text-5xl font-black tracking-tight text-orange-700 dark:text-orange-400">
+                    <p className="text-2xl font-bold text-orange-600 mt-1">
                       {formatCurrency(stats.totalProfitPotential)}
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
-                       <TrendingUp className="h-4 w-4 text-orange-600/50" />
-                       <p className="text-xs font-semibold text-muted-foreground">
-                        {stats.averageMarginPercent > 0
-                          ? `${roundToTwoDecimals(stats.averageMarginPercent).toFixed(1)}% ROI`
-                          : "ROI Projection"}
-                      </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {stats.averageMarginPercent > 0
+                        ? `${roundToTwoDecimals(
+                            stats.averageMarginPercent,
+                          ).toFixed(1)}% margin`
+                        : "No margin"}
+                    </p>
                   </div>
-                  <div className="h-16 w-16 rounded-3xl bg-orange-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <TrendingUp className="h-9 w-9 text-orange-600" />
+                  <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-orange-600" />
                   </div>
                 </div>
               </CardContent>
@@ -1236,19 +1365,19 @@ export default function Products() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {pagedProducts.map((product) => {
             const sellingPrice = roundToTwoDecimals(
-              product.sellingPrice || product.price || 0
+              product.sellingPrice || product.price || 0,
             );
             const purchasePrice = roundToTwoDecimals(
-              product.purchasePrice || 0
+              product.purchasePrice || 0,
             );
 
             // Use current average price for commission and profit calculations
             const currentAvgPurchasePrice = roundToTwoDecimals(
-              currentAveragePrices[product.id] || purchasePrice
+              currentAveragePrices[product.id] || purchasePrice,
             );
 
             const margin = roundToTwoDecimals(
-              sellingPrice - currentAvgPurchasePrice
+              sellingPrice - currentAvgPurchasePrice,
             );
             const marginPercent =
               currentAvgPurchasePrice > 0
@@ -1256,19 +1385,19 @@ export default function Products() {
                 : 0;
 
             const stockValue = roundToTwoDecimals(
-              product.stock * currentAvgPurchasePrice
+              product.stock * currentAvgPurchasePrice,
             );
 
             const stockValueWithCommission = roundToTwoDecimals(
               product.stock *
-              calculateSellingPriceFromCommission(
-                currentAvgPurchasePrice,
-                companyProfile?.commissionSettings
-              )
+                calculateSellingPriceFromCommission(
+                  currentAvgPurchasePrice,
+                  companyProfile?.commissionSettings,
+                ),
             );
 
             const profitPotential = roundToTwoDecimals(
-              stockValueWithCommission - stockValue
+              stockValueWithCommission - stockValue,
             );
 
             return (
@@ -1338,10 +1467,11 @@ export default function Products() {
                         Stock
                       </span>
                       <span
-                        className={`text-lg font-bold ${product.stock < 10
-                          ? "text-orange-600"
-                          : "text-emerald-600"
-                          }`}
+                        className={`text-lg font-bold ${
+                          product.stock < 10
+                            ? "text-orange-600"
+                            : "text-emerald-600"
+                        }`}
                       >
                         {product.stock % 1 === 0
                           ? product.stock
@@ -1353,7 +1483,7 @@ export default function Products() {
                       <span>Avg Purchase Price</span>
                       <span className="font-medium">
                         {formatCurrency(
-                          averagePrices[product.id] || purchasePrice
+                          averagePrices[product.id] || purchasePrice,
                         )}
                       </span>
                     </div>
@@ -1382,7 +1512,7 @@ export default function Products() {
                         <span className="font-medium text-black-600">
                           {" "}
                           {formatCurrency(
-                            currentAveragePrices[product.id] || purchasePrice
+                            currentAveragePrices[product.id] || purchasePrice,
                           )}
                         </span>
                       </div>
