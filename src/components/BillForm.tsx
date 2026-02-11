@@ -148,12 +148,13 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
 
   useEffect(() => {
     const loadData = async () => {
-      const [clientsData, productsData, companyData, creatorsData] = await Promise.all([
-        getClients(),
-        getProducts(),
-        getCompanyProfile(),
-        getCreators(),
-      ]);
+      const [clientsData, productsData, companyData, creatorsData] =
+        await Promise.all([
+          getClients(),
+          getProducts(),
+          getCompanyProfile(),
+          getCreators(),
+        ]);
       setClients(clientsData);
       setProducts(productsData);
       setCompanyProfile(companyData);
@@ -347,7 +348,7 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
 
       // Automatically set creator from logged in user
       const user = getCurrentUser();
-      const creator = user.role === "admin" ? "Admin" : (user.name || "Unknown");
+      const creator = user.role === "admin" ? "Admin" : user.name || "Unknown";
 
       const newBill: Bill = {
         id: bill?.id || crypto.randomUUID(),
@@ -631,18 +632,6 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Bill Type Selection */}
-            <div className="flex items-center justify-between md:col-span-2 p-4 border rounded-lg bg-muted/30">
-              <div className="space-y-0.5">
-                <Label className="text-base">GST Billing</Label>
-                <p className="text-sm text-muted-foreground">
-                  {gstEnabled ? "GST is enabled for this bill" : "GST is disabled for this bill"}
-                </p>
-              </div>
-              <Switch
-                checked={gstEnabled}
-                onCheckedChange={setGstEnabled}
-              />
-            </div>
 
             <div className="space-y-2 md:col-span-2">
               <Label>Bill Type *</Label>
@@ -1020,6 +1009,18 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
         </Card>
       )}
 
+      <div className="flex items-center justify-between md:col-span-2 p-4 border rounded-lg bg-muted/30">
+        <div className="space-y-0.5">
+          <Label className="text-base">GST Billing</Label>
+          <p className="text-sm text-muted-foreground">
+            {gstEnabled
+              ? "GST is enabled for this bill"
+              : "GST is disabled for this bill"}
+          </p>
+        </div>
+        <Switch checked={gstEnabled} onCheckedChange={setGstEnabled} />
+      </div>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Bill Items</CardTitle>
@@ -1383,7 +1384,10 @@ export function BillForm({ bill, isEdit = false }: BillFormProps) {
               <div className="flex justify-between text-lg">
                 <span>Other Charges:</span>
                 <span>
-                  ₹{formatToTwoDecimals(parseFloat(String(formData.otherCharges)) || 0)}
+                  ₹
+                  {formatToTwoDecimals(
+                    parseFloat(String(formData.otherCharges)) || 0,
+                  )}
                 </span>
               </div>
             )}

@@ -29,7 +29,6 @@ import {
   Upload,
   Loader2,
   Building2,
-  LogOut,
   Settings2,
   CreditCard,
   Receipt,
@@ -265,8 +264,8 @@ export default function Settings() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setSaving(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
     await saveCompanyProfile(formData);
@@ -311,11 +310,11 @@ export default function Settings() {
 
   return (
     <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto pb-6 sm:pb-8 px-3 sm:px-4 md:px-0 w-full max-w-full overflow-x-hidden relative">
-      {/* Conditional Floating Save Button */}
+      {/* Conditional Floating Save Button - Only shows when there are changes */}
       {isDirty && (
-        <div className="fixed bottom-6 right-6 z-[60] flex items-center justify-center">
+        <div className="fixed bottom-24 right-6 z-[100] flex items-center justify-center">
           <Button
-            onClick={handleSubmit}
+            onClick={() => handleSubmit()}
             disabled={saving}
             size="lg"
             className="rounded-full h-14 px-6 shadow-2xl transition-all hover:scale-105 active:scale-95 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 ring-4 ring-primary/20 animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300"
@@ -396,11 +395,6 @@ export default function Settings() {
                 <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground mb-1 sm:mb-2 break-words">
                   {formData.name || "Your Company"}
                 </h2>
-                {formData.gstin && (
-                  <Badge variant="secondary" className="text-xs">
-                    GSTIN: {formData.gstin}
-                  </Badge>
-                )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                 {formData.email && (
@@ -649,7 +643,7 @@ export default function Settings() {
                 className="h-11"
               />
               <p className="text-xs text-muted-foreground">
-                This UPI ID will be used to generate “Scan & Pay” QR codes on
+                This UPI ID will be used to generate "Scan & Pay" QR codes on
                 bills.
               </p>
             </div>
@@ -730,7 +724,7 @@ export default function Settings() {
                         })
                       }
                     >
-                      <LogOut className="h-3 w-3 rotate-45" />
+                      ×
                     </Button>
                   </Badge>
                 ))}
@@ -1144,28 +1138,6 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Save Button */}
-        <div className="flex justify-center md:justify-end pt-3 sm:pt-4">
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full md:w-auto min-w-[180px] sm:min-w-[200px] h-11 sm:h-12 text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all touch-manipulation"
-            disabled={saving}
-          >
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                Save All Settings
-              </>
-            )}
-          </Button>
-        </div>
       </form>
     </div>
   );
