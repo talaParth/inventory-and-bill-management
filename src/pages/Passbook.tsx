@@ -85,23 +85,6 @@ export default function Passbook() {
 
             // Add sales (positive amounts for received payments)
             bills.forEach(bill => {
-                // Add the bill itself as a sale entry if it's not already covered by payments
-                // This ensures "Unpaid" or "Partially Paid" sales are still visible in the passbook
-                // as revenue generated, even if cash hasn't fully arrived.
-                // However, the user specifically mentioned "passbook" which usually tracks cash flow.
-                // But they also said "sales entries are not coming", implying they want to see the sales.
-                
-                // Let's ensure the bill itself is tracked as a 'sale' entry
-                allEntries.push({
-                    id: `bill-${bill.id}`,
-                    date: bill.date,
-                    type: 'sale',
-                    description: `Sale - Bill #${bill.billNumber} to ${bill.client?.name || 'Customer'}`,
-                    amount: bill.total,
-                    balance: 0,
-                    details: bill,
-                });
-
                 // Add payments separately as 'payment' entries
                 if (bill.payments && bill.payments.length > 0) {
                     bill.payments.forEach(payment => {
@@ -297,7 +280,6 @@ export default function Passbook() {
     };
 
     const totalIncome = entries.filter(e => e.amount > 0 && e.type === 'payment').reduce((sum, e) => sum + e.amount, 0);
-    const totalSalesValue = entries.filter(e => e.type === 'sale').reduce((sum, e) => sum + e.amount, 0);
     const totalPurchases = Math.abs(entries.filter(e => e.type === 'purchase').reduce((sum, e) => sum + e.amount, 0));
     const totalExpensesOnly = Math.abs(entries.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0));
     const totalReturnsValue = entries.filter(e => e.type === 'return').reduce((sum, e) => sum + e.amount, 0);
@@ -310,14 +292,9 @@ export default function Passbook() {
     const netBalance = cashIn - cashOut;
 
     const paymentMethodTotals = entries
-        .filter(e => e.type === 'payment' || (e.type === 'sale' && e.amount > 0))
+        .filter(e => e.type === 'payment')
         .reduce((acc, entry) => {
-            let method = 'Other';
-            if (entry.type === 'payment') {
-                method = entry.details?.currentPayment?.method || 'Other';
-            } else if (entry.type === 'sale') {
-                method = entry.details?.paymentType || 'Other';
-            }
+            const method = entry.details?.currentPayment?.method || 'Other';
             acc[method] = (acc[method] || 0) + entry.amount;
             return acc;
         }, {} as Record<string, number>);
@@ -364,22 +341,7 @@ export default function Passbook() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                <Card className="border shadow-md hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Total Sales</CardTitle>
-                        <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                            <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">{formatCurrency(totalSalesValue)}</div>
-                        <p className="text-xs text-muted-foreground">
-                            Total value of all sales
-                        </p>
-                    </CardContent>
-                </Card>
-
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card className="border shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                         <CardTitle className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Total Income</CardTitle>
