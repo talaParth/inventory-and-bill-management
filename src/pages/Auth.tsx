@@ -32,7 +32,10 @@ export default function Auth() {
       // Check if session is still valid
       const isAuth = await isAuthenticated();
       if (isAuth) {
-        navigate('/');
+        // Redirect to the originally intended path or dashboard
+        const params = new URLSearchParams(window.location.search);
+        const from = params.get('from') || '/';
+        navigate(from, { replace: true });
       }
     };
     loadData();

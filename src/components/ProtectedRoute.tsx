@@ -40,7 +40,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!authenticated) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={`/auth?from=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   }
 
   return <>{children}</>;
